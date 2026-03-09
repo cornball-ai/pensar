@@ -1,0 +1,14 @@
+# tinyrox says don't edit this manually, but it can't stop you!
+
+export(add)
+export(adjacency)
+export(clusters)
+export(emit_obo)
+export(index_vault)
+export(promote)
+export(query)
+export(startup)
+export(status)
+export(suggest)
+
+S3method(print,pensar_status)
