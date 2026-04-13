@@ -2,31 +2,24 @@
 
 library(pensar)
 
-vault <- tempfile("vault")
-dir.create(vault)
+tmp <- file.path(tempdir(), paste0("vault-", format(Sys.time(), "%H%M%S")))
+init_vault(tmp)
 
-writeLines(c(
-  "---",
-  "id: ONTO:0000001",
-  "type: term",
-  "---",
-  "# Machine Learning"
-), file.path(vault, "Machine Learning.md"))
+# Add some content
+ingest("Article content", type = "articles", source = "test-source",
+       vault = tmp)
+writeLines(c("---", "title: Wiki Page", "---", "Content with [[link]]."),
+           file.path(tmp, "wiki", "concept.md"))
 
-writeLines(c(
-  "---",
-  "type: term",
-  "---",
-  "# Neural Networks",
-  "is_a:: [[Machine Learning]]"
-), file.path(vault, "Neural Networks.md"))
-
-index_vault(vault)
-
-st <- status(vault_path = vault)
+st <- status(vault = tmp)
 expect_true(inherits(st, "pensar_status"))
-expect_true(st$terms >= 2L)
-expect_true(st$promoted >= 1L)
-expect_true(st$relations >= 1L)
+expect_true(st$raw_articles >= 1L)
+expect_true(st$wiki >= 1L)
+expect_true(st$total >= 2L)
 
-unlink(vault, recursive = TRUE)
+# --- Print method works ---
+out <- capture.output(print(st))
+expect_true(any(grepl("articles", out)))
+expect_true(any(grepl("Wiki", out)))
+
+unlink(tmp, recursive = TRUE)

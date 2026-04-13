@@ -18,7 +18,7 @@ backlinks <- function(page, vault = default_vault()) {
                          full.names = TRUE)
     control <- c("index.md", "log.md", "schema.md")
     all_md <- all_md[!basename(all_md) %in% control |
-                     dirname(all_md) != vault]
+        dirname(all_md) != vault]
 
     sources <- character(0L)
     files <- character(0L)
@@ -33,3 +33,4 @@ backlinks <- function(page, vault = default_vault()) {
 
     data.frame(source = sources, file = files, stringsAsFactors = FALSE)
 }
+

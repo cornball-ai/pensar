@@ -16,31 +16,31 @@ update_index <- function(vault = default_vault()) {
                          full.names = TRUE)
     control <- c("index.md", "log.md", "schema.md")
     all_md <- all_md[!basename(all_md) %in% control |
-                     dirname(all_md) != vault]
+        dirname(all_md) != vault]
 
     categories <- list(
-        "Raw: Articles"  = file.path(vault, "raw", "articles"),
-        "Raw: Chats"     = file.path(vault, "raw", "chats"),
-        "Raw: Briefings" = file.path(vault, "raw", "briefings"),
-        "Raw: Matrix"    = file.path(vault, "raw", "matrix"),
-        "Wiki"           = file.path(vault, "wiki")
+                       "Raw: Articles" = file.path(vault, "raw", "articles"),
+                       "Raw: Chats" = file.path(vault, "raw", "chats"),
+                       "Raw: Briefings" = file.path(vault, "raw", "briefings"),
+                       "Raw: Matrix" = file.path(vault, "raw", "matrix"),
+                       "Wiki" = file.path(vault, "wiki")
     )
 
     lines <- c(
-        "---",
-        "title: Vault Index",
-        sprintf("updated: %s", now_ts()),
-        "---",
-        "",
-        "# Vault Index",
-        ""
+               "---",
+               "title: Vault Index",
+               sprintf("updated: %s", now_ts()),
+               "---",
+               "",
+               "# Vault Index",
+               ""
     )
 
     for (cat_name in names(categories)) {
         cat_dir <- normalizePath(categories[[cat_name]], mustWork = FALSE)
         cat_files <- all_md[startsWith(
-            normalizePath(all_md, mustWork = FALSE), cat_dir
-        )]
+                                       normalizePath(all_md, mustWork = FALSE), cat_dir
+            )]
         lines <- c(lines,
                    sprintf("## %s (%d)", cat_name, length(cat_files)),
                    "")
@@ -48,8 +48,7 @@ update_index <- function(vault = default_vault()) {
             page_name <- name_from_path(fp)
             fm <- parse_frontmatter(fp)
             title <- fm$title %||% page_name
-            lines <- c(lines,
-                       sprintf("- [[%s]] -- %s", page_name, title))
+            lines <- c(lines, sprintf("- [[%s]] -- %s", page_name, title))
         }
         lines <- c(lines, "")
     }
@@ -57,3 +56,4 @@ update_index <- function(vault = default_vault()) {
     writeLines(lines, file.path(vault, "index.md"))
     invisible(file.path(vault, "index.md"))
 }
+

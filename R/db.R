@@ -65,5 +65,10 @@ unique_path <- function(path) {
 #' Null-coalescing operator
 #' @noRd
 `%||%` <- function(a, b) {
-    if (is.null(a)) b else a
+    if (is.null(a)) {
+        b
+    } else {
+        a
+    }
 }
+

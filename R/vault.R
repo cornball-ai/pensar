@@ -18,11 +18,11 @@ init_vault <- function(path = default_vault()) {
     }
 
     dirs <- c(
-        file.path(path, "raw", "articles"),
-        file.path(path, "raw", "chats"),
-        file.path(path, "raw", "briefings"),
-        file.path(path, "raw", "matrix"),
-        file.path(path, "wiki")
+              file.path(path, "raw", "articles"),
+              file.path(path, "raw", "chats"),
+              file.path(path, "raw", "briefings"),
+              file.path(path, "raw", "matrix"),
+              file.path(path, "wiki")
     )
     for (d in dirs) {
         dir.create(d, recursive = TRUE, showWarnings = FALSE)
@@ -120,13 +120,6 @@ index_seed <- function() {
 #' Log seed content
 #' @noRd
 log_seed <- function() {
-    c(
-        "---",
-        "title: Vault Log",
-        "type: log",
-        "---",
-        "",
-        "# Vault Log",
-        ""
-    )
+    c("---", "title: Vault Log", "type: log", "---", "", "# Vault Log", "")
 }
+

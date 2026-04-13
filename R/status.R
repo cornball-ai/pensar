@@ -26,13 +26,13 @@ status <- function(vault = default_vault()) {
     total <- raw_articles + raw_chats + raw_briefings + raw_matrix + wiki
 
     result <- list(
-        raw_articles = raw_articles,
-        raw_chats = raw_chats,
-        raw_briefings = raw_briefings,
-        raw_matrix = raw_matrix,
-        wiki = wiki,
-        total = total,
-        vault = vault
+                   raw_articles = raw_articles,
+                   raw_chats = raw_chats,
+                   raw_briefings = raw_briefings,
+                   raw_matrix = raw_matrix,
+                   wiki = wiki,
+                   total = total,
+                   vault = vault
     )
     class(result) <- "pensar_status"
     result
@@ -49,3 +49,4 @@ print.pensar_status <- function(x, ...) {
     cat(sprintf("  Total          %d\n", x$total))
     invisible(x)
 }
+

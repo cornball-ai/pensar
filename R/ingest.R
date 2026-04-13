@@ -19,8 +19,7 @@
 #' @export
 ingest <- function(content,
                    type = c("articles", "chats", "briefings", "matrix"),
-                   source, title = NULL, tags = NULL,
-                   vault = default_vault()) {
+                   source, title = NULL, tags = NULL, vault = default_vault()) {
     type <- match.arg(type)
     vault <- normalizePath(vault, mustWork = TRUE)
 
@@ -34,15 +33,14 @@ ingest <- function(content,
     outpath <- unique_path(file.path(vault, "raw", type, filename))
 
     title <- title %||% source
-    fm <- list(title = title, type = type, source = source,
-               date = date_str)
+    fm <- list(title = title, type = type, source = source, date = date_str)
     if (!is.null(tags)) {
         fm$tags <- tags
     }
 
     fm_yaml <- yaml::as.yaml(fm)
     lines <- c("---", sub("\n$", "", fm_yaml), "---", "",
-               if (is.character(content)) content else as.character(content))
+        if (is.character(content)) content else as.character(content))
     writeLines(lines, outpath)
 
     update_index(vault)
@@ -52,3 +50,4 @@ ingest <- function(content,
     message("Ingested: ", basename(outpath))
     invisible(outpath)
 }
+

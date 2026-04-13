@@ -12,10 +12,10 @@
 #' @param vault Path to the vault directory.
 #' @return Invisible \code{NULL}.
 #' @export
-log_entry <- function(message, operation = "note",
-                      vault = default_vault()) {
+log_entry <- function(message, operation = "note", vault = default_vault()) {
     log_path <- file.path(vault, "log.md")
     entry <- sprintf("- **%s** [%s] %s", now_ts(), operation, message)
     cat(entry, "\n", sep = "", file = log_path, append = TRUE)
     invisible(NULL)
 }
+
