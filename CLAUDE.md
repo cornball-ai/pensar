@@ -2,134 +2,71 @@
 
 ## What this is
 
-pensar ("to think") is the concept graph / ontology package in the llamaR agent toolchain. It maintains a lightweight knowledge graph derived from markdown files with YAML frontmatter and typed links.
+pensar ("to think") is an LLM wiki engine. It manages a persistent vault of markdown files: LLMs maintain wiki pages that synthesize and cross-reference knowledge from various sources.
 
-You (Claude Code) are the primary consumer. Troy is the editor-of-last-resort.
+You (Claude Code) are both a consumer and a maintainer of the vault. Troy curates sources and asks questions. You do the summarizing, cross-referencing, and filing.
 
-Project files (CLAUDE.md, DESCRIPTION, etc.) are the source of truth. Read in place, never copied. The TSV index at `~/.cache/R/pensar/index` is derived. Never edit the index directly; edit the source files, then run `startup()`.
+## Vault layout
 
-## Sister packages
-
-- **saber** (cornball-ai/saber): AST symbol index, code analysis (zero deps)
-- **informR** (cornball-ai/informR): project briefings, heartbeat, feature hubs (depends on pensar)
-
-## Design philosophy
-
-- Base R. No tidyverse. No pipes.
-- One real dependency: yaml. Everything else is base R.
-- Index stored as TSV files (human-readable, diffable).
-- OBO emit is just writeLines(). No serialization library.
-- CRAN-viable.
-- Apache-2.0 license.
-
-## Cache layout
+Default location: `tools::R_user_dir("pensar", "data")`.
 
 ```
-~/.cache/R/pensar/
-  index/.pensar/   — terms.tsv, relations.tsv, files.tsv
-  annotations/     — persistent annotation files from add()
+{vault}/
+  raw/
+    articles/       clipped articles, pasted text, links worth preserving
+    chats/          conversation logs worth keeping
+    briefings/      project briefings (one per project, historical record)
+    matrix/         messages from Matrix rooms
+  wiki/             your pages: summaries, concepts, analyses
+  index.md          auto-generated catalog (use update_index())
+  log.md            append-only operation log (use log_entry())
+  schema.md         conventions for vault maintenance
 ```
 
-pensar never writes outside this directory.
+`ingest()` stores content in `raw/`. Sources that already live somewhere and don't need preservation can be referenced by wiki pages in their frontmatter without calling ingest.
 
 ## Core functions
 
 | Function | Purpose |
 |---|---|
-| `index_vault(vault_path)` | Parse markdown files, build/update TSV index |
-| `query(term, relation, direction)` | Traverse the typed graph (ancestors, descendants, siblings) |
-| `suggest(vault_path)` | Propose typed edges from untyped links. Returns candidates, NOT facts. |
-| `promote(term, vault_path)` | Write a stable `id:` into a file's frontmatter |
-| `emit_obo(vault_path, outfile)` | Snapshot the current ontology to OBO format |
-| `status(vault_path)` | Summary stats: term count, relation count, unconfirmed suggestions |
-| `add(terms, relations)` | Bulk-insert terms and relations programmatically |
-| `startup()` | Scan projects, build unified ontology, generate instructions file |
-| `adjacency(vault_path)` | Build weighted adjacency matrix from relations |
-| `clusters(vault_path, k)` | Hierarchical clustering of terms (hclust/cutree) |
+| `init_vault(path)` | Create vault structure, seed control files |
+| `ingest(content, type, source)` | Write source to raw/, update index + log |
+| `update_index(vault)` | Regenerate index.md from all pages |
+| `log_entry(message, operation)` | Append to log.md |
+| `status(vault)` | Page counts by category |
+| `backlinks(page, vault)` | Find pages linking to a given page |
 
-## How you use this package
+## Page conventions
 
-```r
-r -e 'pensar::query("neural_networks", "is_a", "ancestors")'
-```
-
-All functions default to the standard cache path.
-
-## Vault conventions
-
-### Frontmatter
-
-```yaml
----
-id: ONTO:0000042
-type: term
-aliases:
-  - NN
-  - ANN
----
-```
-
-### Typed relations (inline fields)
-
-```markdown
-is_a:: [[dev_tooling]]
-part_of:: [[cornyverse]]
-uses:: [[yaml]]
-```
-
-Dataview-style inline fields. These are the canonical typed edges.
-
-### What counts as a term
-
-A note is a term if ANY of:
-- It has `id:` in frontmatter
-- It has `type: term` in frontmatter
-- It appears as the target of a typed relation
-
-## Index format
-
-Three TSV files in the index directory:
-- `terms.tsv` — id, name, filepath, aliases, promoted, updated_at
-- `relations.tsv` — subject_id, relation_type, object_id, confirmed, source
-- `files.tsv` — filepath, hash, parsed_at
-
-## The suggest/confirm loop
-
-`suggest()` proposes typed relations based on folder structure, heading context, and link frequency. Suggestions are written with `confirmed = 0`. Troy reviews them. Do NOT treat unconfirmed suggestions as facts.
+- YAML frontmatter on every page (title, type, source, date, tags)
+- `[[wikilinks]]` for connections between pages
+- Standard `[text](path.md)` links where full paths matter
+- One concept per wiki page
+- Wiki pages synthesize, never duplicate raw sources
 
 ## File structure
 
 ```
 R/
-  db.R        — load_index(), save_index(), TSV I/O
-  parse.R     — frontmatter/link parsing
-  index.R     — index_vault()
-  query.R     — query(), graph traversal
-  suggest.R   — suggest(), heuristic relation proposals
-  promote.R   — promote(), ID generation
-  emit.R      — emit_obo()
-  status.R    — status()
-  add.R       — add(), bulk insert
-  graph.R     — adjacency(), clusters()
-  startup.R   — startup(), unified bootstrapper
-inst/
-  tinytest/   — 103 tests
+  backlinks.R   backlinks()
+  db.R          default_vault(), now_ts(), slugify(), helpers
+  index.R       update_index()
+  ingest.R      ingest()
+  log.R         log_entry()
+  parse.R       frontmatter/wikilink parsing (internal)
+  status.R      status(), print.pensar_status()
+  vault.R       init_vault(), schema template
 ```
 
-## Testing
+## Design philosophy
 
-- tinytest, 103 tests
-- Tests use temp directories, not a real vault
+- Base R only, one dependency: yaml
+- Flat markdown files, no database
+- CRAN-viable, Apache 2.0
 
-## Things you should NOT do
+## Do not
 
-- Do not add dependencies beyond yaml without asking Troy
-- Do not silently promote notes to terms
-- Do not treat suggested relations as confirmed
-- Do not use tidyverse functions or pipes
-
-## Things you SHOULD do
-
-- When Troy asks you to query the ontology, actually call the functions
-- When you notice an untyped link that should probably be typed, mention it
-- Keep functions short. If a function is over 80 lines, split it.
+- Add dependencies beyond yaml without asking Troy
+- Edit raw sources after ingest (they're immutable)
+- Edit index.md or log.md manually (use the functions)
+- Use tidyverse functions or pipes
