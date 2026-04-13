@@ -1,45 +1,51 @@
-#' @title Ontology status summary
-#' @description Summary stats for the ontology index.
+#' @title Vault status
+#' @description Summary stats for a pensar vault.
 
-#' Get ontology status summary
+#' Vault status summary
 #'
-#' Returns summary statistics about the ontology: term count, relation count,
-#' promoted terms, and unconfirmed suggestions.
+#' Returns page counts by category, total pages, and wikilink count.
 #'
-#' @param vault_path Path to the vault.
+#' @param vault Path to the vault directory.
 #' @return A list with class \code{pensar_status}.
 #' @export
-status <- function(vault_path = file.path(tools::R_user_dir("pensar", "cache"),
-        "index")) {
-    idx <- load_index(vault_path)
+status <- function(vault = default_vault()) {
+    vault <- normalizePath(vault, mustWork = TRUE)
 
-    confirmed <- idx$relations[idx$relations$confirmed == 1L,, drop = FALSE]
-    suggested <- idx$relations[idx$relations$confirmed == 0L,, drop = FALSE]
+    count_md <- function(dir) {
+        if (!dir.exists(dir)) {
+            return(0L)
+        }
+        length(list.files(dir, pattern = "\\.md$", recursive = TRUE))
+    }
 
-    rel_types <- as.data.frame(table(confirmed$relation_type),
-                               stringsAsFactors = FALSE)
-    names(rel_types) <- c("relation_type", "n")
+    raw_articles <- count_md(file.path(vault, "raw", "articles"))
+    raw_chats <- count_md(file.path(vault, "raw", "chats"))
+    raw_briefings <- count_md(file.path(vault, "raw", "briefings"))
+    raw_matrix <- count_md(file.path(vault, "raw", "matrix"))
+    wiki <- count_md(file.path(vault, "wiki"))
+    total <- raw_articles + raw_chats + raw_briefings + raw_matrix + wiki
 
-    result <- list(terms = nrow(idx$terms),
-                   promoted = sum(idx$terms$promoted == 1L),
-                   relations = nrow(confirmed), suggestions = nrow(suggested),
-                   relation_types = rel_types)
+    result <- list(
+        raw_articles = raw_articles,
+        raw_chats = raw_chats,
+        raw_briefings = raw_briefings,
+        raw_matrix = raw_matrix,
+        wiki = wiki,
+        total = total,
+        vault = vault
+    )
     class(result) <- "pensar_status"
     result
 }
 
 #' @export
 print.pensar_status <- function(x, ...) {
-    cat("Ontology status:\n")
-    cat(sprintf("  Terms:       %d (%d promoted)\n", x$terms, x$promoted))
-    cat(sprintf("  Relations:   %d confirmed\n", x$relations))
-    cat(sprintf("  Suggestions: %d unconfirmed\n", x$suggestions))
-    if (nrow(x$relation_types) > 0L) {
-        cat("  By type:\n")
-        for (i in seq_len(nrow(x$relation_types))) {
-            cat(sprintf("    %s: %d\n", x$relation_types$relation_type[i],
-                        x$relation_types$n[i]))
-        }
-    }
+    cat("Vault status:", x$vault, "\n")
+    cat(sprintf("  Raw: articles  %d\n", x$raw_articles))
+    cat(sprintf("  Raw: chats     %d\n", x$raw_chats))
+    cat(sprintf("  Raw: briefings %d\n", x$raw_briefings))
+    cat(sprintf("  Raw: matrix    %d\n", x$raw_matrix))
+    cat(sprintf("  Wiki           %d\n", x$wiki))
+    cat(sprintf("  Total          %d\n", x$total))
     invisible(x)
 }
