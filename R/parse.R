@@ -20,28 +20,6 @@ parse_frontmatter <- function(filepath) {
     tryCatch(yaml::yaml.load(yaml_text), error = function(e) list())
 }
 
-#' Parse typed relations (inline fields) from a markdown file
-#'
-#' Typed relations use Dataview-style inline fields:
-#'   relation_type:: [[Target]]
-#'
-#' @param filepath Path to a markdown file.
-#' @return A data.frame with columns: relation_type, target.
-#' @noRd
-parse_typed_links <- function(filepath) {
-    lines <- readLines(filepath, warn = FALSE)
-    pattern <- "^([a-z_]+)::\\s*\\[\\[([^]]+)\\]\\]"
-    matches <- regmatches(lines, regexec(pattern, lines))
-    matches <- matches[vapply(matches, length, integer(1L)) > 0L]
-    if (length(matches) == 0L) {
-        return(data.frame(relation_type = character(0L),
-                          target = character(0L), stringsAsFactors = FALSE))
-    }
-    data.frame(relation_type = vapply(matches, `[`, character(1L), 2L),
-               target = vapply(matches, `[`, character(1L), 3L),
-               stringsAsFactors = FALSE)
-}
-
 #' Parse all wikilinks from a markdown file
 #'
 #' @param filepath Path to a markdown file.
@@ -116,3 +94,4 @@ parse_dcf_list <- function(x) {
     parts <- parts[nchar(parts) > 0L]
     parts
 }
+

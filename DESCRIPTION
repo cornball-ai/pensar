@@ -1,19 +1,23 @@
 Package: pensar
 Type: Package
-Title: Lightweight Knowledge Graph from Markdown Files
-Version: 0.1.0
-Authors@R: person("Troy", "Hernandez", role = c("aut", "cre"),
-    email = "troy@cornball.ai",
-    comment = c(ORCID = "0009-0005-4248-604X"))
-Description: Maintains a lightweight knowledge graph derived from markdown
-    files with 'YAML' frontmatter and typed links. Parses markdown into a TSV
-    index, supports graph traversal queries, suggests typed relations from
-    untyped links, and emits OBO format snapshots.
+Title: 'LLM' Wiki Engine for R
+Version: 0.2.0
+Authors@R: c(
+    person("Troy", "Hernandez", role = c("aut", "cre"),
+        email = "troy@cornball.ai",
+        comment = c(ORCID = "0009-0005-4248-604X")),
+    person("cornball.ai", role = "cph"))
+Description: Maintains a persistent, compounding knowledge base from source
+    documents. Ingests articles, chat logs, briefings, and messages into a
+    structured vault of markdown files with 'YAML' frontmatter and wikilinks.
+    The vault is designed for large language model (LLM) agents to summarize,
+    cross-reference, and maintain; humans curate sources and ask questions.
 License: Apache License (>= 2)
 URL: https://github.com/cornball-ai/pensar
 BugReports: https://github.com/cornball-ai/pensar/issues
 Imports:
     yaml
 Suggests:
+    jsonlite,
     tinytest
 Encoding: UTF-8
