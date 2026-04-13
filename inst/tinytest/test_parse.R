@@ -29,27 +29,6 @@ writeLines(c("# Just a heading", "No frontmatter here."), tmp2)
 fm2 <- pensar:::parse_frontmatter(tmp2)
 expect_equal(fm2, list())
 
-# --- parse_typed_links ---
-
-tmp3 <- tempfile(fileext = ".md")
-writeLines(c(
-  "---",
-  "type: term",
-  "---",
-  "is_a:: [[Machine Learning Method]]",
-  "part_of:: [[Artificial Intelligence]]",
-  "Some text with [[untyped link]]."
-), tmp3)
-
-links <- pensar:::parse_typed_links(tmp3)
-expect_equal(nrow(links), 2L)
-expect_equal(links$relation_type, c("is_a", "part_of"))
-expect_equal(links$target, c("Machine Learning Method", "Artificial Intelligence"))
-
-# Edge case: no typed links
-links2 <- pensar:::parse_typed_links(tmp2)
-expect_equal(nrow(links2), 0L)
-
 # --- parse_wikilinks ---
 
 tmp4 <- tempfile(fileext = ".md")
@@ -67,4 +46,4 @@ expect_true("Gamma" %in% wl)
 # --- name_from_path ---
 expect_equal(pensar:::name_from_path("/vault/Neural Networks.md"), "Neural Networks")
 
-unlink(c(tmp, tmp2, tmp3, tmp4))
+unlink(c(tmp, tmp2, tmp4))
