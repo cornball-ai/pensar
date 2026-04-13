@@ -21,12 +21,8 @@ now_ts <- function() {
 #' @noRd
 make_relative <- function(path, base) {
     path <- normalizePath(path, mustWork = FALSE)
-    base <- normalizePath(base, mustWork = FALSE)
-    if (!endsWith(base, "/")) {
-        base <- paste0(base, "/")
-    }
-    sub(paste0("^", gsub("([.\\\\+*?\\[\\]^${}()|])", "\\\\\\1", base)),
-        "", path)
+    base <- paste0(normalizePath(base, mustWork = FALSE), "/")
+    sub(base, "", path, fixed = TRUE)
 }
 
 #' Convert a string to a filename-safe slug
