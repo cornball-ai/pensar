@@ -60,6 +60,7 @@ init_vault <- function(path = default_vault(), rproj = TRUE,
     }
 
     log_entry("Vault initialized", operation = "init", vault = path)
+    vault_commit("Vault initialized", vault = path)
 
     message("Vault created at: ", path)
     invisible(path)
@@ -140,7 +141,24 @@ agent_instructions_template <- function() {
         "## When something seems off",
         "",
         "Run `pensar lint`. It surfaces orphans (no backlinks), broken",
-        "wikilinks, and tag clusters with no wiki synthesis."
+        "wikilinks, and tag clusters with no wiki synthesis.",
+        "",
+        "## Versioning",
+        "",
+        "If the vault is a git repo (there's a `.git/` directory),",
+        "pensar auto-commits after `ingest()` and `init_vault()`.",
+        "Pushes to configured remotes happen automatically when",
+        "`PENSAR_AUTO_PUSH` is truthy (default: push if any remote is",
+        "set). Manual commit after wiki edits:",
+        "",
+        "```",
+        "pensar commit \"Revised torch ecosystem synthesis\"",
+        "```",
+        "",
+        "Non-standard git usage: the vault is typically a local-only",
+        "repo on one authoritative machine (e.g., troy-ai). Other",
+        "machines clone read-only over Tailscale/SSH. No GitHub",
+        "required for privacy."
     )
 }
 

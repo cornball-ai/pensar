@@ -15,7 +15,7 @@ cmd="${1:-help}"
 shift || true
 
 case "$cmd" in
-    status|lint|show|back|tag|log|export)
+    status|lint|show|back|tag|log|export|commit)
         exec r "$SCRIPT_DIR/$cmd.R" "$@"
         ;;
     help|--help|-h)
@@ -30,6 +30,7 @@ Usage:
     pensar tag <tag>           pages with this tag
     pensar log [n]             last n log entries (default 10)
     pensar export [out-dir]    render vault to static HTML (requires pandoc)
+    pensar commit [message]    git commit + push (if vault is a git repo)
 EOF
         ;;
     *)
