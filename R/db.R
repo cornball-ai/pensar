@@ -13,10 +13,16 @@ default_vault <- function() {
 
 #' Default site (export) directory
 #'
-#' Regenerable rendered HTML lives in the R user cache directory.
+#' Honors the \code{PENSAR_SITE_DIR} environment variable for users who
+#' want the site to land in a synced folder (Syncthing, Dropbox, etc.).
+#' Falls back to the R user cache directory.
 #' @return Character string.
 #' @noRd
 default_site_dir <- function() {
+    env <- Sys.getenv("PENSAR_SITE_DIR", unset = "")
+    if (nchar(env) > 0L) {
+        return(path.expand(env))
+    }
     file.path(tools::R_user_dir("pensar", "cache"), "site")
 }
 

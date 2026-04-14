@@ -58,4 +58,15 @@ expect_equal(out, out2)
 # runs silently when pandoc is present)
 expect_silent(pensar:::check_pandoc())
 
+# --- PENSAR_SITE_DIR env var ---
+old <- Sys.getenv("PENSAR_SITE_DIR", unset = NA)
+env_target <- file.path(tmp, "env-site")
+Sys.setenv(PENSAR_SITE_DIR = env_target)
+expect_equal(pensar:::default_site_dir(), env_target)
+if (is.na(old)) {
+    Sys.unsetenv("PENSAR_SITE_DIR")
+} else {
+    Sys.setenv(PENSAR_SITE_DIR = old)
+}
+
 unlink(tmp, recursive = TRUE)
