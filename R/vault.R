@@ -90,7 +90,24 @@ schema_template <- function() {
         "2. One concept per page. Split broad topics into focused pages.",
         "3. Cross-reference aggressively. If two pages relate, link them.",
         "4. Update index.md after adding or removing pages (via update_index()).",
-        "5. Log all operations to log.md (via log_entry())."
+        "5. Log all operations to log.md (via log_entry()).",
+        "",
+        "## Drill-Down Workflow",
+        "",
+        "When a wiki claim seems wrong or weak:",
+        "",
+        "1. Use `pensar show \"<page>\"` or `show_page()` to see the page",
+        "   plus its cited sources (Outlinks).",
+        "2. Read the cited raw sources.",
+        "3. Compare: does the raw support the wiki's claim?",
+        "4. Fix the wiki, never the raw. Raw is ground truth.",
+        "",
+        "Rules:",
+        "",
+        "- Raw contradicts the wiki: rewrite the wiki claim.",
+        "- Raw is ambiguous: soften (\"may\", \"probably\") or mark open question.",
+        "- Claim has no cited source: find one or demote to speculation.",
+        "- Two raws contradict: flag the contradiction in the wiki."
     )
 }
 
