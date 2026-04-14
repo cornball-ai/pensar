@@ -4,7 +4,8 @@
 #' Initialize a pensar vault
 #'
 #' Creates the vault directory structure and seeds the control files:
-#' \code{schema.md}, \code{index.md}, and \code{log.md}.
+#' \code{schema.md}, \code{index.md}, \code{log.md}, and (by default)
+#' agent instruction files for Claude Code and Codex.
 #'
 #' @param path Path to the vault directory. Defaults to the standard
 #'   R user data directory for pensar.
@@ -17,9 +18,15 @@
 #'   file since the vault contents are markdown, not R source. The file
 #'   is a harmless ~14-line INI stub; delete it anytime if you prefer
 #'   not to use RStudio. Pass \code{rproj = FALSE} to skip it entirely.
+#' @param agent_instructions If \code{TRUE} (default), write
+#'   \code{CLAUDE.md} and \code{AGENTS.md} with identical content
+#'   orienting an AI agent to work in this vault (CLI reminders,
+#'   editing rules, ingest workflow). If you don't plan to start an
+#'   AI agent session in the vault, pass \code{FALSE}.
 #' @return The vault path, invisibly.
 #' @export
-init_vault <- function(path = default_vault(), rproj = TRUE) {
+init_vault <- function(path = default_vault(), rproj = TRUE,
+                       agent_instructions = TRUE) {
     path <- normalizePath(path, mustWork = FALSE)
     if (file.exists(file.path(path, "schema.md"))) {
         message("Vault already exists at: ", path)
@@ -46,10 +53,95 @@ init_vault <- function(path = default_vault(), rproj = TRUE) {
         writeLines(rproj_template(), rproj_path)
     }
 
+    if (isTRUE(agent_instructions)) {
+        tmpl <- agent_instructions_template()
+        writeLines(tmpl, file.path(path, "CLAUDE.md"))
+        writeLines(tmpl, file.path(path, "AGENTS.md"))
+    }
+
     log_entry("Vault initialized", operation = "init", vault = path)
 
     message("Vault created at: ", path)
     invisible(path)
+}
+
+#' Agent instructions template (CLAUDE.md / AGENTS.md)
+#' @noRd
+agent_instructions_template <- function() {
+    c(
+        "# Agent Instructions",
+        "",
+        "You're in a pensar vault. This is a knowledge base, not a code",
+        "project. The content is plain markdown; the tooling is the",
+        "`pensar` R package.",
+        "",
+        "## What lives here",
+        "",
+        "```",
+        "raw/              immutable source documents",
+        "wiki/             LLM-maintained synthesis pages",
+        "index.md          auto-generated catalog",
+        "log.md            append-only operation log",
+        "schema.md         vault conventions (read first if in doubt)",
+        "```",
+        "",
+        "## How to converse with the vault",
+        "",
+        "Use the `pensar` CLI instead of reading files blindly. It's",
+        "faster, surfaces connections, and makes behavior consistent",
+        "across sessions.",
+        "",
+        "```",
+        "pensar status              page counts by category",
+        "pensar lint                orphans, broken wikilinks, gaps",
+        "pensar show \"<page>\"       content + outlinks + backlinks",
+        "pensar back \"<page>\"       what links to this page",
+        "pensar tag <tag>           pages with this tag",
+        "pensar log [n]             last n log entries",
+        "pensar export [out-dir]    render to static HTML",
+        "```",
+        "",
+        "Before making any claim about a wiki page, run",
+        "`pensar show \"<page>\"` first so you can see what it cites and",
+        "what cites it.",
+        "",
+        "## Editing rules",
+        "",
+        "- **Raw sources are immutable.** Never edit files in `raw/`.",
+        "  If a raw source is wrong, treat it as a data point and",
+        "  correct the interpretation in wiki pages.",
+        "- **Wiki pages are editable.** Synthesize, don't duplicate.",
+        "  Every claim should cite a raw source via `[[wikilinks]]`.",
+        "- **Fix the wiki, never the raw.** Raw is ground truth for",
+        "  what was said; wiki is interpretation. If they disagree,",
+        "  wiki is wrong.",
+        "",
+        "## Ingesting new content",
+        "",
+        "Two paths:",
+        "",
+        "1. Slash command `/pensar <pasted content>` (if the skill is",
+        "   installed) infers type/source/title/tags and files it.",
+        "2. Direct R call: `pensar::ingest(content, type, source, ...)`",
+        "",
+        "Don't edit `raw/` files by hand. Always go through `ingest()`.",
+        "",
+        "## After edits, rebuild the site",
+        "",
+        "```",
+        "pensar export",
+        "```",
+        "",
+        "If `PENSAR_SITE_DIR` is set (e.g. to a Syncthing folder), that",
+        "becomes the default destination. Otherwise the site lands in",
+        "`tools::R_user_dir(\"pensar\", \"cache\")/site`. Run after any",
+        "wiki edit or ingest so downstream viewers show current state.",
+        "",
+        "## When something seems off",
+        "",
+        "Run `pensar lint`. It surfaces orphans (no backlinks), broken",
+        "wikilinks, and tag clusters with no wiki synthesis."
+    )
 }
 
 #' RStudio project file template
