@@ -15,7 +15,7 @@ cmd="${1:-help}"
 shift || true
 
 case "$cmd" in
-    status|lint|show|back|tag|log)
+    status|lint|show|back|tag|log|export)
         exec r "$SCRIPT_DIR/$cmd.R" "$@"
         ;;
     help|--help|-h)
@@ -29,6 +29,7 @@ Usage:
     pensar back "<page>"       what links to this page
     pensar tag <tag>           pages with this tag
     pensar log [n]             last n log entries (default 10)
+    pensar export [out-dir]    render vault to static HTML (requires pandoc)
 EOF
         ;;
     *)

@@ -9,6 +9,7 @@ export(outlinks)
 export(show_page)
 export(status)
 export(update_index)
+export(vault_export)
 
 S3method(print,pensar_lint)
 S3method(print,pensar_page)
