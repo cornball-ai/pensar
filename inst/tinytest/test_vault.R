@@ -31,12 +31,21 @@ expect_equal(v2, v)
 # --- Rproj is written by default ---
 expect_true(file.exists(file.path(tmp, paste0(basename(tmp), ".Rproj"))))
 
+# --- Agent instructions written by default ---
+expect_true(file.exists(file.path(tmp, "CLAUDE.md")))
+expect_true(file.exists(file.path(tmp, "AGENTS.md")))
+# Same content
+expect_equal(readLines(file.path(tmp, "CLAUDE.md")),
+             readLines(file.path(tmp, "AGENTS.md")))
+
 unlink(tmp, recursive = TRUE)
 
 # --- rproj = FALSE skips the Rproj file ---
 tmp2 <- file.path(tempdir(),
                   paste0("vault-no-rproj-", format(Sys.time(), "%H%M%S")))
-init_vault(tmp2, rproj = FALSE)
+init_vault(tmp2, rproj = FALSE, agent_instructions = FALSE)
 rproj_files <- list.files(tmp2, pattern = "\\.Rproj$")
 expect_equal(length(rproj_files), 0L)
+expect_false(file.exists(file.path(tmp2, "CLAUDE.md")))
+expect_false(file.exists(file.path(tmp2, "AGENTS.md")))
 unlink(tmp2, recursive = TRUE)

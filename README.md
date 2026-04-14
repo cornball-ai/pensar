@@ -53,10 +53,32 @@ backlinks("Interesting Post")
   wiki/             LLM-maintained pages (summaries, concepts, analyses)
   index.md          auto-generated catalog of everything
   log.md            append-only record of operations
-  schema.md         instructions for LLMs operating on the vault
+  schema.md         conventions for content in the vault
+  CLAUDE.md         instructions for Claude Code when started here
+  AGENTS.md         same content for Codex and other agents
+  {name}.Rproj      RStudio project file
 ```
 
 `raw/` is for content you want to preserve in the vault. `ingest()` stores it there. Sources that already live somewhere and don't need preservation can be referenced directly by wiki pages in their frontmatter, no ingest needed. `index.md` and `log.md` are maintained by pensar functions.
+
+## Working with an AI agent
+
+`init_vault()` seeds `CLAUDE.md` and `AGENTS.md` by default so any agent you start in the vault (Claude Code, Codex, etc.) knows how to operate on it — what files are immutable, how to drill down with `pensar show`, when to rebuild the site, and so on.
+
+For conversational use, start your agent session *in the vault directory itself*. The working directory becomes the knowledge base, auto-memory stays scoped to vault work, and file edits land in the right place by default.
+
+Pass `agent_instructions = FALSE` to `init_vault()` if you don't want these files.
+
+## Versioning: git or syncthing?
+
+Use both, for different things:
+
+- **Git** for the vault source (`raw/`, `wiki/`, `index.md`, `log.md`, `schema.md`, etc.). The vault is plain markdown — it diffs beautifully, history matters when a wiki page gets revised, and you can push to a private GitHub repo for backup. After `init_vault()`, just run `git init && git add . && git commit -m "initial vault"`.
+- **Syncthing (or Dropbox, etc.)** for the rendered site (`vault_export()` output), so you can browse on your phone without running anything. Set `PENSAR_SITE_DIR` to a synced folder and `pensar export` writes there by default.
+
+Don't sync the vault source via Syncthing. Concurrent edits from multiple devices on the same `.md` file get messy, and you lose history. Use git for that.
+
+Note: "raw" in pensar terminology means source documents in `raw/` (vs. synthesized `wiki/` pages), not "raw text". Everything in the vault is markdown — there's no separate raw-vs-rendered distinction inside the vault itself. Rendering happens via `vault_export()` into a separate directory.
 
 ## Functions
 
@@ -68,6 +90,24 @@ backlinks("Interesting Post")
 | `log_entry(message, operation)` | Append a structured entry to `log.md` |
 | `status(vault)` | Page counts by category |
 | `backlinks(page, vault)` | Find all pages linking to a given page |
+| `outlinks(page, vault)` | Find pages this page cites |
+| `show_page(page, vault)` | Content + outlinks + backlinks for drill-down |
+| `lint(vault)` | Orphans, broken wikilinks, tag clusters needing synthesis |
+| `vault_export(vault, out_dir)` | Render vault to static HTML (requires pandoc) |
+
+A `pensar` CLI is also installed at `{pkg}/bin/pensar`:
+
+```
+pensar status              page counts by category
+pensar lint                health check
+pensar show "<page>"       drill-down inspection
+pensar back "<page>"       backlinks only
+pensar tag <tag>           pages with this tag
+pensar log [n]             last n log entries
+pensar export [out-dir]    render to static HTML
+```
+
+Symlink `{pkg}/bin/pensar` to somewhere on your PATH (e.g., `~/.local/bin/pensar`) to use it as a command.
 
 ## Conventions
 
