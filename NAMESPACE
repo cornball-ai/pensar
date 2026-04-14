@@ -3,8 +3,10 @@
 export(backlinks)
 export(ingest)
 export(init_vault)
+export(lint)
 export(log_entry)
 export(status)
 export(update_index)
 
+S3method(print,pensar_lint)
 S3method(print,pensar_status)
