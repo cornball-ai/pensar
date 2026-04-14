@@ -1,2 +1,4 @@
 ^CLAUDE\.md$
 ^\.github$
+^.*\.Rproj$
+^\.Rproj\.user$
