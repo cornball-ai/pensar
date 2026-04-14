@@ -35,6 +35,37 @@ Default location: `tools::R_user_dir("pensar", "data")`.
 | `log_entry(message, operation)` | Append to log.md |
 | `status(vault)` | Page counts by category |
 | `backlinks(page, vault)` | Find pages linking to a given page |
+| `outlinks(page, vault)` | Find pages this page cites |
+| `show_page(page, vault)` | Bundle content + outlinks + backlinks |
+| `lint(vault)` | Orphans, broken wikilinks, cluster gaps |
+
+## CLI tool (use by default)
+
+A `pensar` shell command is installed at `~/.local/bin/pensar`. Use it instead of writing `r -e '...'` for routine inspection:
+
+```
+pensar status              # vault page counts
+pensar lint                # health check
+pensar show "<page>"       # content + outlinks + backlinks (drill-down)
+pensar back "<page>"       # backlinks only
+pensar tag <tag>           # pages with a tag
+pensar log [n]             # last n log entries
+```
+
+**Before claiming anything about a wiki page, run `pensar show "<page>"` first.** It surfaces what the page cites and what cites it, which is the context needed to judge accuracy.
+
+## Drill-down workflow (when a wiki claim is wrong or weak)
+
+1. `pensar show "<wiki-page>"` to see the page content plus its cited sources
+2. Read the cited raw sources (listed under Outlinks)
+3. Compare: does the raw support the wiki's claim?
+4. Fix the wiki — never the raw. Raw is ground truth.
+
+Rules:
+- Raw contradicts wiki: rewrite the wiki claim
+- Raw is ambiguous: soften ("may," "probably") or mark as open question
+- Claim has no cited source: either find one or demote to speculation
+- Two raws contradict: flag the contradiction in the wiki
 
 ## Page conventions
 

@@ -1,0 +1,39 @@
+#!/bin/bash
+# pensar - CLI for the pensar vault
+#
+# Dispatches subcommands to R scripts in the installed pensar package.
+
+set -e
+
+SCRIPT_DIR="$(r -e 'cat(system.file("scripts", package = "pensar"))')"
+if [ -z "$SCRIPT_DIR" ] || [ ! -d "$SCRIPT_DIR" ]; then
+    echo "Error: pensar scripts directory not found. Is pensar installed?" >&2
+    exit 1
+fi
+
+cmd="${1:-help}"
+shift || true
+
+case "$cmd" in
+    status|lint|show|back|tag|log)
+        exec r "$SCRIPT_DIR/$cmd.R" "$@"
+        ;;
+    help|--help|-h)
+        cat <<'EOF'
+pensar - CLI for the pensar vault
+
+Usage:
+    pensar status              vault page counts
+    pensar lint                health check (orphans, broken links, clusters)
+    pensar show "<page>"       content + outlinks + backlinks
+    pensar back "<page>"       what links to this page
+    pensar tag <tag>           pages with this tag
+    pensar log [n]             last n log entries (default 10)
+EOF
+        ;;
+    *)
+        echo "Unknown command: $cmd" >&2
+        echo "Run 'pensar help' for usage." >&2
+        exit 1
+        ;;
+esac
