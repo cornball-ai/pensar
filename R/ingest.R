@@ -46,6 +46,9 @@ ingest <- function(content,
     update_index(vault)
     log_entry(sprintf("Ingested %s: %s", type, basename(outpath)),
               operation = "ingest", vault = vault)
+    vault_commit(sprintf("Ingest %s: %s", type,
+                         tools::file_path_sans_ext(basename(outpath))),
+                 vault = vault)
 
     message("Ingested: ", basename(outpath))
     invisible(outpath)
