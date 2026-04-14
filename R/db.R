@@ -11,6 +11,15 @@ default_vault <- function() {
     tools::R_user_dir("pensar", "data")
 }
 
+#' Default site (export) directory
+#'
+#' Regenerable rendered HTML lives in the R user cache directory.
+#' @return Character string.
+#' @noRd
+default_site_dir <- function() {
+    file.path(tools::R_user_dir("pensar", "cache"), "site")
+}
+
 #' ISO 8601 timestamp
 #' @noRd
 now_ts <- function() {

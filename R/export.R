@@ -8,14 +8,20 @@
 #' site that can be served from any static file server or opened via
 #' \code{file://}.
 #'
+#' The rendered site is regenerable from the vault, so it defaults to
+#' the R user cache directory (\code{tools::R_user_dir("pensar",
+#' "cache")/site}) rather than living inside the vault itself. Pass a
+#' different \code{out_dir} to override.
+#'
 #' Requires the \code{pandoc} command-line tool to be available.
 #'
 #' @param vault Path to the vault directory.
-#' @param out_dir Destination directory. Defaults to \code{{vault}/_site}.
+#' @param out_dir Destination directory. Defaults to the R user cache
+#'   directory for pensar.
 #' @return The output directory path, invisibly.
 #' @export
 vault_export <- function(vault = default_vault(),
-                         out_dir = file.path(vault, "_site")) {
+                         out_dir = default_site_dir()) {
     vault <- normalizePath(vault, mustWork = TRUE)
     check_pandoc()
 

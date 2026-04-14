@@ -24,7 +24,8 @@ writeLines(c("---", "title: Source 2", "---",
            file.path(tmp, "raw", "articles", "Source 2.md"))
 update_index(tmp)
 
-out <- vault_export(tmp)
+site_dir <- file.path(tmp, "_site")
+out <- vault_export(tmp, site_dir)
 expect_true(dir.exists(out))
 expect_true(file.exists(file.path(out, "index.html")))
 expect_true(file.exists(file.path(out, "style.css")))
@@ -49,7 +50,7 @@ expect_true(grepl("Raw: Articles", idx_html))
 expect_true(grepl("Concept A", idx_html))
 
 # Export is idempotent (overwrite)
-out2 <- vault_export(tmp)
+out2 <- vault_export(tmp, site_dir)
 expect_equal(out, out2)
 
 # Missing pandoc check
