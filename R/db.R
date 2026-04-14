@@ -11,6 +11,21 @@ default_vault <- function() {
     tools::R_user_dir("pensar", "data")
 }
 
+#' Default site (export) directory
+#'
+#' Honors the \code{PENSAR_SITE_DIR} environment variable for users who
+#' want the site to land in a synced folder (Syncthing, Dropbox, etc.).
+#' Falls back to the R user cache directory.
+#' @return Character string.
+#' @noRd
+default_site_dir <- function() {
+    env <- Sys.getenv("PENSAR_SITE_DIR", unset = "")
+    if (nchar(env) > 0L) {
+        return(path.expand(env))
+    }
+    file.path(tools::R_user_dir("pensar", "cache"), "site")
+}
+
 #' ISO 8601 timestamp
 #' @noRd
 now_ts <- function() {
