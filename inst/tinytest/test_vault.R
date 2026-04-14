@@ -28,4 +28,15 @@ expect_true(any(grepl("init", log)))
 v2 <- init_vault(tmp)
 expect_equal(v2, v)
 
+# --- Rproj is written by default ---
+expect_true(file.exists(file.path(tmp, paste0(basename(tmp), ".Rproj"))))
+
 unlink(tmp, recursive = TRUE)
+
+# --- rproj = FALSE skips the Rproj file ---
+tmp2 <- file.path(tempdir(),
+                  paste0("vault-no-rproj-", format(Sys.time(), "%H%M%S")))
+init_vault(tmp2, rproj = FALSE)
+rproj_files <- list.files(tmp2, pattern = "\\.Rproj$")
+expect_equal(length(rproj_files), 0L)
+unlink(tmp2, recursive = TRUE)

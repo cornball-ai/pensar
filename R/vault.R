@@ -8,9 +8,12 @@
 #'
 #' @param path Path to the vault directory. Defaults to the standard
 #'   R user data directory for pensar.
+#' @param rproj If \code{TRUE} (default), also write an RStudio project
+#'   file (\code{{basename(path)}.Rproj}) so the vault can be opened as
+#'   a project. Code indexing is disabled since the vault is markdown.
 #' @return The vault path, invisibly.
 #' @export
-init_vault <- function(path = default_vault()) {
+init_vault <- function(path = default_vault(), rproj = TRUE) {
     path <- normalizePath(path, mustWork = FALSE)
     if (file.exists(file.path(path, "schema.md"))) {
         message("Vault already exists at: ", path)
@@ -32,10 +35,35 @@ init_vault <- function(path = default_vault()) {
     writeLines(index_seed(), file.path(path, "index.md"))
     writeLines(log_seed(), file.path(path, "log.md"))
 
+    if (isTRUE(rproj)) {
+        rproj_path <- file.path(path, paste0(basename(path), ".Rproj"))
+        writeLines(rproj_template(), rproj_path)
+    }
+
     log_entry("Vault initialized", operation = "init", vault = path)
 
     message("Vault created at: ", path)
     invisible(path)
+}
+
+#' RStudio project file template
+#' @noRd
+rproj_template <- function() {
+    c(
+        "Version: 1.0",
+        "",
+        "RestoreWorkspace: No",
+        "SaveWorkspace: No",
+        "AlwaysSaveHistory: Default",
+        "",
+        "EnableCodeIndexing: No",
+        "UseSpacesForTab: Yes",
+        "NumSpacesForTab: 2",
+        "Encoding: UTF-8",
+        "",
+        "RnwWeave: Sweave",
+        "LaTeX: pdfLaTeX"
+    )
 }
 
 #' Schema template
