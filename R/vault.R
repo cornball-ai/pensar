@@ -9,8 +9,14 @@
 #' @param path Path to the vault directory. Defaults to the standard
 #'   R user data directory for pensar.
 #' @param rproj If \code{TRUE} (default), also write an RStudio project
-#'   file (\code{{basename(path)}.Rproj}) so the vault can be opened as
-#'   a project. Code indexing is disabled since the vault is markdown.
+#'   file (\code{{basename(path)}.Rproj}). RStudio's GUI refuses to
+#'   create projects inside hidden folders like \code{~/.local/share/},
+#'   which is where the default vault lives. Seeding the project file
+#'   during init_vault() sidesteps that limitation so the vault opens
+#'   cleanly as a project. Code indexing is disabled in the project
+#'   file since the vault contents are markdown, not R source. The file
+#'   is a harmless ~14-line INI stub; delete it anytime if you prefer
+#'   not to use RStudio. Pass \code{rproj = FALSE} to skip it entirely.
 #' @return The vault path, invisibly.
 #' @export
 init_vault <- function(path = default_vault(), rproj = TRUE) {
