@@ -2,6 +2,7 @@
 
 export(backlinks)
 export(ingest)
+export(ingest_briefing)
 export(init_vault)
 export(lint)
 export(log_entry)
