@@ -4,3 +4,4 @@ man/*.Rd
 .Rhistory
 .RData
 .Rproj.user
+*.Rproj
