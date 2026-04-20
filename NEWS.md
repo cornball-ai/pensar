@@ -1,3 +1,11 @@
+# pensar 0.4.0
+
+* New `vault_graph()` renders the vault's wikilink graph as static
+  SVG via `saber::graph_svg()`. Tooltips carry title, type, date,
+  tags, and a lede from the first meaningful body line. Broken
+  wikilinks appear as separate nodes. Default viewport 1600x1200 for
+  denser vaults.
+
 # pensar 0.3.0
 
 * New `ingest_briefing()` generates a saber briefing via
