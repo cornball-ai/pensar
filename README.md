@@ -25,8 +25,9 @@ The vault is the synthesis layer, not a data lake. Sources that already live som
 ```r
 library(pensar)
 
-# Create a vault
-init_vault()
+# Create a vault (pick a path you actually want to look at)
+init_vault("~/wiki")
+use_vault("~/wiki")   # persist for the session; add to ~/.Rprofile
 
 # Ingest a source
 ingest("Article content here...",
@@ -40,6 +41,8 @@ status()
 # Find what links to a page
 backlinks("Interesting Post")
 ```
+
+Vault path resolution: `vault` argument → `options("pensar.vault")` (set by `use_vault()`) → `PENSAR_VAULT` env var → `tools::R_user_dir("pensar", "data")`. The `R_user_dir()` fallback is CRAN-safe but lands in `~/.local/share/R/pensar/`, which is unpleasant to live in. Pick a real path with `init_vault("~/wiki")`.
 
 ## Vault structure
 
@@ -85,6 +88,7 @@ Note: "raw" in pensar terminology means source documents in `raw/` (vs. synthesi
 | Function | What it does |
 |---|---|
 | `init_vault(path)` | Create the vault directory structure and seed control files |
+| `use_vault(path)` | Remember a vault path for this session (sets `options("pensar.vault")`) |
 | `ingest(content, type, source)` | Write a source to `raw/`, update the index and log |
 | `update_index(vault)` | Regenerate `index.md` from all vault pages |
 | `log_entry(message, operation)` | Append a structured entry to `log.md` |

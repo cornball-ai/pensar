@@ -6,6 +6,17 @@
   wikilinks appear as separate nodes. Default viewport 1600x1200 for
   denser vaults.
 
+# pensar 0.3.1
+
+* `default_vault()` now honors `options("pensar.vault")` and the
+  `PENSAR_VAULT` environment variable before falling back to
+  `tools::R_user_dir("pensar", "data")`. Previously, the vault path
+  was hardcoded to the `R_user_dir()` path with no escape hatch, so
+  a nicer path like `~/wiki` required passing `vault =` to every
+  call.
+* New `use_vault()` sets `options("pensar.vault")` for the session,
+  mirroring `hacer::use_repo()`.
+
 # pensar 0.3.0
 
 * New `ingest_briefing()` generates a saber briefing via
