@@ -13,6 +13,7 @@ export(update_index)
 export(use_vault)
 export(vault_commit)
 export(vault_export)
+export(vault_graph)
 
 S3method(print,pensar_lint)
 S3method(print,pensar_page)
