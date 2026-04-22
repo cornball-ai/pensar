@@ -22,6 +22,7 @@
 #' @param out_dir Destination directory. Defaults to the R user cache
 #'   directory for pensar.
 #' @return The output directory path, invisibly.
+#' @importFrom stats setNames
 #' @export
 vault_export <- function(vault = default_vault(),
                          out_dir = default_site_dir()) {

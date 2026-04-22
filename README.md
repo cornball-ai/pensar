@@ -18,7 +18,7 @@ Most people's experience with LLMs and documents is stateless. You ask a questio
 
 pensar takes a different approach. An LLM reads your sources (articles, chat logs, project briefings, whatever you point it at), writes wiki pages that synthesize the key ideas, links everything together with `[[wikilinks]]`, and maintains an index. The knowledge base gets richer with every source you add and every question you ask.
 
-The vault is the synthesis layer, not a data lake. Sources that already live somewhere (llamaR sessions, saber briefs) get referenced, not copied. Content without a home (a link someone sent you, a pasted article, a quick note) can be ingested directly.
+The vault is the synthesis layer, not a data lake. Sources that already live somewhere (corteza sessions, saber briefs) get referenced, not copied. Content without a home (a link someone sent you, a pasted article, a quick note) can be ingested directly.
 
 ## Quick start
 
@@ -137,9 +137,9 @@ This connects to [[Other Page]] and builds on [[Raw Source]].
 |---|---|
 | [saber](https://github.com/cornball-ai/saber) | AST symbol index, blast radius, package introspection |
 | pensar | LLM wiki engine (this package) |
-| [buscar](https://github.com/cornball-ai/buscar) | BM25 keyword and vector similarity search |
-| [llamaR](https://github.com/cornball-ai/llamaR) | Agent runtime and chat loop |
+| [corteza](https://github.com/cornball-ai/corteza) | Agent runtime and chat loop |
 | [llm.api](https://github.com/cornball-ai/llm.api) | LLM provider connectivity |
+| [mx.api](https://github.com/cornball-ai/mx.api) | Matrix Client-Server API |
 
 ## License
 

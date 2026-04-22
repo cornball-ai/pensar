@@ -18,3 +18,5 @@ export(vault_graph)
 S3method(print,pensar_lint)
 S3method(print,pensar_page)
 S3method(print,pensar_status)
+
+importFrom(stats,setNames)
