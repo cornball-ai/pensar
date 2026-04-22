@@ -4,11 +4,37 @@
 
 #' Default vault path
 #'
-#' Returns the standard R user data directory for pensar.
+#' Resolution order:
+#' \enumerate{
+#'   \item \code{options("pensar.vault")} (set by \code{use_vault()} within a session).
+#'   \item The \code{PENSAR_VAULT} environment variable (for one-shot CLI invocations).
+#'   \item \code{tools::R_user_dir("pensar", "data")} (CRAN-safe fallback).
+#' }
+#' The \code{R_user_dir()} fallback is ugly (\code{~/.local/share/R/pensar/}
+#' on Linux). Most users \code{init_vault("~/wiki")} and persist
+#' \code{use_vault("~/wiki")} in \code{~/.Rprofile}.
 #' @return Character string.
 #' @noRd
 default_vault <- function() {
+    opt <- getOption("pensar.vault", NULL)
+    if (!is.null(opt)) return(path.expand(opt))
+    env <- Sys.getenv("PENSAR_VAULT", unset = "")
+    if (nzchar(env)) return(path.expand(env))
     tools::R_user_dir("pensar", "data")
+}
+
+#' Remember a vault path for this R session
+#'
+#' Sets \code{options("pensar.vault")} so subsequent pensar calls
+#' resolve to \code{path} without repeating the argument. Persist by
+#' adding \code{pensar::use_vault("~/wiki")} to \code{~/.Rprofile}.
+#' @param path Path to your pensar vault directory.
+#' @return The resolved path, invisibly.
+#' @export
+use_vault <- function(path) {
+    path <- normalizePath(path.expand(path), mustWork = TRUE)
+    options(pensar.vault = path)
+    invisible(path)
 }
 
 #' Default site (export) directory

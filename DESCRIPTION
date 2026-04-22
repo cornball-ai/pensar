@@ -1,7 +1,7 @@
 Package: pensar
 Type: Package
 Title: 'LLM' Wiki Engine for R
-Version: 0.3.0
+Version: 0.3.1
 Authors@R: c(
     person("Troy", "Hernandez", role = c("aut", "cre"),
         email = "troy@cornball.ai",
