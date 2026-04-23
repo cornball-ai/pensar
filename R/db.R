@@ -61,8 +61,8 @@ now_ts <- function() {
 #' Make a path relative to a base directory
 #' @noRd
 make_relative <- function(path, base) {
-    path <- normalizePath(path, mustWork = FALSE)
-    base <- paste0(normalizePath(base, mustWork = FALSE), "/")
+    path <- normalizePath(path, winslash = "/", mustWork = FALSE)
+    base <- paste0(normalizePath(base, winslash = "/", mustWork = FALSE), "/")
     sub(base, "", path, fixed = TRUE)
 }
 

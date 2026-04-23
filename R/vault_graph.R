@@ -82,7 +82,16 @@ vault_graph <- function(vault = default_vault(), width = 1600L,
                         href = NA_character_, tooltip = tooltips,
                         stringsAsFactors = FALSE)
 
-    saber::graph_svg(edges, nodes, width = width, height = height, ...)
+    saber_graph_svg <- tryCatch(
+        getExportedValue("saber", "graph_svg"),
+        error = function(e) NULL
+    )
+    if (is.null(saber_graph_svg)) {
+        stop("vault_graph() requires saber (>= 0.6.0) which exports ",
+             "graph_svg(). Install the development version from ",
+             "https://github.com/cornball-ai/saber")
+    }
+    saber_graph_svg(edges, nodes, width = width, height = height, ...)
 }
 
 #' Read the first non-empty, non-header body line from a markdown file,
