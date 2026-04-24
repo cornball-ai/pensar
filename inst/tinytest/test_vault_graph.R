@@ -5,6 +5,9 @@ library(pensar)
 if (!requireNamespace("saber", quietly = TRUE)) {
     exit_file("saber not installed")
 }
+if (packageVersion("saber") < "0.6.0") {
+    exit_file("needs saber >= 0.6.0 for graph_svg()")
+}
 
 tmp <- file.path(tempdir(), paste0("vault-graph-",
                                    format(Sys.time(), "%H%M%S")))
