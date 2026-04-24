@@ -44,6 +44,12 @@ init_vault <- function(path = default_vault(), rproj = TRUE,
         dir.create(d, recursive = TRUE, showWarnings = FALSE)
     }
 
+    # Re-normalize now that the directory exists. On macOS, normalizePath()
+    # on a non-existent path does not resolve /var -> /private/var, so the
+    # path returned from init_vault() could differ from normalizePath() on
+    # the same path once it exists.
+    path <- normalizePath(path)
+
     writeLines(schema_template(), file.path(path, "schema.md"))
     writeLines(index_seed(), file.path(path, "index.md"))
     writeLines(log_seed(), file.path(path, "log.md"))
