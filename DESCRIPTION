@@ -11,7 +11,7 @@ Description: Maintains a persistent, compounding knowledge base from source
     documents. Ingests articles, chat logs, briefings, and messages into a
     structured vault of markdown files with 'YAML' 'frontmatter' and 'wikilinks'.
     The vault is designed for large language model (LLM) agents to summarize,
-    cross-reference, and maintain; humans curate sources and ask questions.
+    cross-reference, and maintain; humans curate sources, edit, and ask questions.
 License: Apache License (>= 2)
 URL: https://github.com/cornball-ai/pensar
 BugReports: https://github.com/cornball-ai/pensar/issues
