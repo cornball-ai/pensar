@@ -1,3 +1,14 @@
+# pensar 0.4.1
+
+* `default_vault()` resolution order changed so project-local vaults
+  beat a global `.Rprofile` default. New order: `PENSAR_VAULT` env
+  var > walk-up from `getwd()` for a `schema.md` marker > the
+  `options("pensar.vault")` value set by `use_vault()` > the
+  `R_user_dir()` fallback. Previously the option won over the env
+  var, which made `PENSAR_VAULT=...` ineffective once `use_vault()`
+  ran in `.Rprofile`. Walk-up is new: `cd` into a project vault and
+  the CLI Just Works without unsetting your global default.
+
 # pensar 0.4.0
 
 * New `vault_graph()` renders the vault's wikilink graph as static

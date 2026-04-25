@@ -14,5 +14,8 @@ The resolved path, invisibly.
 \description{
 Sets \code{options("pensar.vault")} so subsequent pensar calls
 resolve to \code{path} without repeating the argument. Persist by
-adding \code{pensar::use_vault("~/wiki")} to \code{~/.Rprofile}.
+adding \code{pensar::use_vault("~/wiki")} to \code{~/.Rprofile} as
+a global default. Both \code{PENSAR_VAULT} and a project-local
+\code{schema.md} found via walk-up will override this option (see
+\code{default_vault} resolution order).
 }
