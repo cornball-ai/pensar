@@ -83,8 +83,8 @@ vault_graph <- function(vault = default_vault(), width = 1600L,
                         stringsAsFactors = FALSE)
 
     saber_graph_svg <- tryCatch(
-        getExportedValue("saber", "graph_svg"),
-        error = function(e) NULL
+                                getExportedValue("saber", "graph_svg"),
+                                error = function(e) NULL
     )
     if (is.null(saber_graph_svg)) {
         stop("vault_graph() requires saber (>= 0.6.0) which exports ",
