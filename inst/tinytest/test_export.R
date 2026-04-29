@@ -14,7 +14,7 @@ init_vault(tmp)
 writeLines(c("---", "title: Concept A", "---",
              "Links to [[Source 1]] and [[missing-page]].",
              "",
-             "See also [[Source 2]]."),
+             "See also [[Source 2|second source]]."),
            file.path(tmp, "wiki", "A.md"))
 writeLines(c("---", "title: Source 1", "---",
              "# Source 1", "Ground truth."),
@@ -38,6 +38,7 @@ a_html <- paste(readLines(file.path(out, "wiki", "A.html")),
 # Good wikilink becomes an anchor pointing at the target HTML
 expect_true(grepl("Source%201.html", a_html))
 expect_true(grepl("Source%202.html", a_html))
+expect_true(grepl(">second\\s+source</a>", a_html, perl = TRUE))
 # Broken wikilink renders as span, not anchor
 expect_true(grepl("broken-link", a_html))
 expect_false(grepl("missing-page.html", a_html))

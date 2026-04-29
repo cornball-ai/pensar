@@ -32,7 +32,31 @@ parse_wikilinks <- function(filepath) {
     if (length(all_links) == 0L) {
         return(character(0L))
     }
-    gsub("^\\[\\[|\\]\\]$", "", all_links)
+    vapply(all_links, wikilink_target, character(1L), USE.NAMES = FALSE)
+}
+
+#' Extract the target page from a raw wikilink
+#'
+#' Supports Obsidian-style aliases: [[page-slug|display text]] links to
+#' page-slug while displaying "display text".
+#' @noRd
+wikilink_target <- function(link) {
+    parsed <- parse_wikilink(link)
+    parsed$target
+}
+
+#' Parse a raw wikilink into target and label
+#' @noRd
+parse_wikilink <- function(link) {
+    inner <- gsub("^\\[\\[|\\]\\]$", "", link)
+    parts <- strsplit(inner, "|", fixed = TRUE)[[1L]]
+    target <- trimws(parts[1L])
+    label <- if (length(parts) > 1L) {
+        trimws(paste(parts[-1L], collapse = "|"))
+    } else {
+        target
+    }
+    list(target = target, label = label)
 }
 
 #' Derive the term name from a filepath

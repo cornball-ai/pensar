@@ -35,13 +35,22 @@ tmp4 <- tempfile(fileext = ".md")
 writeLines(c(
   "This links to [[Alpha]] and [[Beta]].",
   "is_a:: [[Gamma]]",
-  "Also [[Alpha]] again."
+  "Also [[Alpha]] again.",
+  "Alias links target [[Delta|display text]].",
+  "Pipes after the first stay in the label [[Epsilon|display | text]]."
 ), tmp4)
 
 wl <- pensar:::parse_wikilinks(tmp4)
 expect_true("Alpha" %in% wl)
 expect_true("Beta" %in% wl)
 expect_true("Gamma" %in% wl)
+expect_true("Delta" %in% wl)
+expect_true("Epsilon" %in% wl)
+expect_false("display text" %in% wl)
+
+parsed <- pensar:::parse_wikilink("[[Delta|display text]]")
+expect_equal(parsed$target, "Delta")
+expect_equal(parsed$label, "display text")
 
 # --- name_from_path ---
 expect_equal(pensar:::name_from_path("/vault/Neural Networks.md"), "Neural Networks")

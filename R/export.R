@@ -137,13 +137,13 @@ replace_wikilinks <- function(text, page_map, from_rel) {
         return(text)
     }
     for (raw in unique(matches)) {
-        target <- gsub("^\\[\\[|\\]\\]$", "", raw)
-        href <- resolve_link(target, page_map, from_rel)
+        link <- parse_wikilink(raw)
+        href <- resolve_link(link$target, page_map, from_rel)
         replacement <- if (is.null(href)) {
             # Broken link: render as plain span so it's visible but not a link
-            paste0("<span class=\"broken-link\">", target, "</span>")
+            paste0("<span class=\"broken-link\">", link$label, "</span>")
         } else {
-            paste0("[", target, "](", href, ")")
+            paste0("[", link$label, "](", href, ")")
         }
         text <- gsub(raw, replacement, text, fixed = TRUE)
     }

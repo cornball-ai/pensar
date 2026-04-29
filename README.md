@@ -115,7 +115,7 @@ Symlink `{pkg}/bin/pensar` to somewhere on your PATH (e.g., `~/.local/bin/pensar
 
 ## Conventions
 
-Every page uses YAML frontmatter and plain `[[wikilinks]]`. Compatible with Obsidian but no Obsidian-specific extensions. View the vault in RStudio, Obsidian, any markdown editor.
+Every page uses YAML frontmatter and plain `[[wikilinks]]`. Obsidian-style aliases such as `[[page-slug|display text]]` are supported: pensar resolves `page-slug` as the target and renders `display text` for readers. View the vault in RStudio, Obsidian, any markdown editor.
 
 ```markdown
 ---
