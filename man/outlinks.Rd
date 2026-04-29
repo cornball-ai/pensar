@@ -21,3 +21,11 @@ Find outlinks from a page
 Scans a single page for \code{[[wikilinks]]} and returns the targets.
 Mirror of \code{backlinks()} in the forward direction.
 }
+\examples{
+v <- tempfile("vault-")
+init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+fp <- ingest("Cites [[seed]] and [[missing]].", type = "articles",
+             source = "demo", vault = v)
+outlinks(tools::file_path_sans_ext(basename(fp)), vault = v)
+unlink(v, recursive = TRUE)
+}

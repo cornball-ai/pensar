@@ -8,8 +8,9 @@ vault_export(vault = default_vault(), out_dir = default_site_dir())
 \arguments{
 \item{vault}{Path to the vault directory.}
 
-\item{out_dir}{Destination directory. Defaults to the R user cache
-directory for pensar.}
+\item{out_dir}{Destination directory. No default: pass an explicit
+path or set \code{PENSAR_SITE_DIR} (per CRAN policy, pensar will
+not silently render into a home-filespace location).}
 }
 \value{
 The output directory path, invisibly.
@@ -32,4 +33,15 @@ globally (e.g., point it at a Syncthing folder so edits propagate
 to other devices on export).
 
 Requires the \code{pandoc} command-line tool to be available.
+}
+\examples{
+\donttest{
+if (nzchar(Sys.which("pandoc"))) {
+    v <- tempfile("vault-")
+    init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+    ingest("Body.", type = "articles", source = "demo", vault = v)
+    vault_export(v, out_dir = tempfile("site-"))
+    unlink(v, recursive = TRUE)
+}
+}
 }

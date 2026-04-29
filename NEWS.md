@@ -1,3 +1,27 @@
+# pensar 0.4.2
+
+* CRAN review compliance.
+* `default_vault()` and `default_site_dir()` no longer fall back to
+  `tools::R_user_dir()`. Per CRAN policy pensar will not silently
+  write to the user's home filespace; if no vault is configured via
+  `PENSAR_VAULT`, walk-up `schema.md`, or `options("pensar.vault")`,
+  the call errors with a setup hint. Pass `vault =` (or `path =` for
+  `init_vault()`) explicitly to write to a one-off path. **Breaking
+  for users who relied on the implicit `~/.local/share/R/pensar/`
+  fallback** -- run `use_vault('/path/to/vault')` once or set
+  `PENSAR_VAULT` to restore the previous behavior.
+* `vault_export()` now requires either `PENSAR_SITE_DIR` or an
+  explicit `out_dir =`; the cache fallback is gone for the same
+  reason.
+* Title shortened to `LLM Wiki Engine`. Description tidied. Added
+  `SystemRequirements: pandoc, git`. Dropped unused `jsonlite` from
+  Suggests.
+* Every exported function now has a runnable `@examples` block,
+  using `tempdir()` / `tempfile()` so nothing leaks into the user's
+  home filespace at example time.
+* `vault_graph()` and `ingest_briefing()` error messages reworded
+  to drop the GitHub install URL.
+
 # pensar 0.4.1
 
 * `default_vault()` resolution order changed so project-local vaults

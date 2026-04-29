@@ -32,3 +32,11 @@ Writes content to \code{raw/{type}/}, generates a filename from source
 and date, adds YAML frontmatter, updates \code{index.md}, and appends
 to \code{log.md}.
 }
+\examples{
+v <- tempfile("vault-")
+init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+ingest("Hello, world.", type = "articles", source = "demo",
+       vault = v)
+status(v)
+unlink(v, recursive = TRUE)
+}

@@ -10,6 +10,13 @@
 #' @param vault Path to the vault directory.
 #' @return A data.frame with columns \code{source} (page name) and
 #'   \code{file} (path relative to the vault).
+#' @examples
+#' v <- tempfile("vault-")
+#' init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+#' ingest("See [[seed]] for context.", type = "articles",
+#'        source = "demo", vault = v)
+#' backlinks("seed", vault = v)
+#' unlink(v, recursive = TRUE)
 #' @export
 backlinks <- function(page, vault = default_vault()) {
     vault <- normalizePath(vault, mustWork = TRUE)

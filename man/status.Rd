@@ -17,3 +17,9 @@ Vault status summary
 
 Returns page counts by category, total pages, and wikilink count.
 }
+\examples{
+v <- tempfile("vault-")
+init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+status(v)
+unlink(v, recursive = TRUE)
+}

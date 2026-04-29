@@ -8,6 +8,12 @@
 #'
 #' @param vault Path to the vault directory.
 #' @return The path to \code{index.md}, invisibly.
+#' @examples
+#' v <- tempfile("vault-")
+#' init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+#' ingest("Body.", type = "articles", source = "demo", vault = v)
+#' update_index(v)
+#' unlink(v, recursive = TRUE)
 #' @export
 update_index <- function(vault = default_vault()) {
     vault <- normalizePath(vault, mustWork = TRUE)

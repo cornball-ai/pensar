@@ -29,3 +29,10 @@ Honors the \code{PENSAR_AUTO_PUSH} environment variable: if set to
 \code{"0"} or \code{"false"} (case-insensitive), skips the push
 step. Otherwise, pushes to every configured remote.
 }
+\examples{
+v <- tempfile("vault-")
+init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+# Returns FALSE invisibly: no .git in this temp vault.
+vault_commit("noop", vault = v, push = FALSE)
+unlink(v, recursive = TRUE)
+}

@@ -13,11 +13,19 @@
 #' @return The path to the ingested briefing file, invisibly. Returns
 #'   \code{NULL} invisibly if \code{saber} is not installed or the
 #'   project cannot be inferred.
+#' @examples
+#' \dontrun{
+#' # Requires saber and a git project so a briefing can be generated.
+#' v <- tempfile("vault-")
+#' init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+#' ingest_briefing(project = "pensar", vault = v)
+#' }
 #' @export
 ingest_briefing <- function(project = NULL, vault = default_vault()) {
     if (!requireNamespace("saber", quietly = TRUE)) {
         stop("Package 'saber' is required for ingest_briefing(). ",
-             "Install it from https://github.com/cornball-ai/saber")
+             "Install it before calling this function.",
+             call. = FALSE)
     }
 
     if (is.null(project)) {

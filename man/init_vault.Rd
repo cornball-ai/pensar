@@ -6,18 +6,22 @@
 init_vault(path = default_vault(), rproj = TRUE, agent_instructions = TRUE)
 }
 \arguments{
-\item{path}{Path to the vault directory. Defaults to the standard
-R user data directory for pensar.}
+\item{path}{Path to the vault directory. No implicit default: pass
+an explicit path, or configure one via \code{PENSAR_VAULT},
+\code{use_vault()}, or a walk-up \code{schema.md} marker. Per
+CRAN policy pensar will not silently write to the user's home
+filespace.}
 
 \item{rproj}{If \code{TRUE} (default), also write an RStudio project
-file (\code{{basename(path)}.Rproj}). RStudio's GUI refuses to
-create projects inside hidden folders like \code{~/.local/share/},
-which is where the default vault lives. Seeding the project file
-during init_vault() sidesteps that limitation so the vault opens
-cleanly as a project. Code indexing is disabled in the project
-file since the vault contents are markdown, not R source. The file
-is a harmless ~14-line INI stub; delete it anytime if you prefer
-not to use RStudio. Pass \code{rproj = FALSE} to skip it entirely.}
+file (\code{{basename(path)}.Rproj}). The project file makes a
+vault stored under a hidden directory (e.g., one configured via
+\code{PENSAR_VAULT} pointing at \code{~/.local/share/...}) easy to
+open as an RStudio project, since RStudio's GUI normally refuses
+to create projects inside hidden folders. Code indexing is
+disabled in the project file since the vault contents are
+markdown, not R source. The file is a harmless ~14-line INI stub;
+delete it anytime if you prefer not to use RStudio. Pass
+\code{rproj = FALSE} to skip it entirely.}
 
 \item{agent_instructions}{If \code{TRUE} (default), write
 \code{CLAUDE.md} and \code{AGENTS.md} with identical content
@@ -35,4 +39,10 @@ Initialize a pensar vault
 Creates the vault directory structure and seeds the control files:
 \code{schema.md}, \code{index.md}, \code{log.md}, and (by default)
 agent instruction files for Claude Code and Codex.
+}
+\examples{
+v <- tempfile("vault-")
+init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+list.files(v, recursive = TRUE)
+unlink(v, recursive = TRUE)
 }

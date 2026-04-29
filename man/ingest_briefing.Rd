@@ -24,3 +24,11 @@ Calls \code{saber::briefing(project)} to produce a project briefing
 and ingests it into the vault as a \code{briefings} raw source.
 Requires the \code{saber} package.
 }
+\examples{
+\dontrun{
+# Requires saber and a git project so a briefing can be generated.
+v <- tempfile("vault-")
+init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+ingest_briefing(project = "pensar", vault = v)
+}
+}

@@ -42,7 +42,16 @@ status()
 backlinks("Interesting Post")
 ```
 
-Vault path resolution: `vault` argument → `options("pensar.vault")` (set by `use_vault()`) → `PENSAR_VAULT` env var → `tools::R_user_dir("pensar", "data")`. The `R_user_dir()` fallback is CRAN-safe but lands in `~/.local/share/R/pensar/`, which is unpleasant to live in. Pick a real path with `init_vault("~/wiki")`.
+### Configuring the vault path
+
+Per CRAN policy, pensar **never writes to a default home-filespace location**. You have to point it somewhere. Resolution order (first hit wins):
+
+1. The `vault =` argument (or `path =` for `init_vault()`) when passed explicitly.
+2. The `PENSAR_VAULT` environment variable.
+3. Walk-up from `getwd()` for a directory containing `schema.md` (project-local vaults).
+4. `options("pensar.vault")`, set by `use_vault()` -- typically in `~/.Rprofile` as a global default.
+
+If none of these resolves, pensar errors with a setup hint. There is no implicit fallback. Same shape for `vault_export()`'s `out_dir`: pass it explicitly or set `PENSAR_SITE_DIR`.
 
 ## Vault structure
 
@@ -77,7 +86,7 @@ Pass `agent_instructions = FALSE` to `init_vault()` if you don't want these file
 Use both, for different things:
 
 - **Git** for the vault source (`raw/`, `wiki/`, `index.md`, `log.md`, `schema.md`, etc.). The vault is plain markdown — it diffs beautifully, history matters when a wiki page gets revised, and you can push to a private GitHub repo for backup. After `init_vault()`, just run `git init && git add . && git commit -m "initial vault"`.
-- **Syncthing (or Dropbox, etc.)** for the rendered site (`vault_export()` output), so you can browse on your phone without running anything. Set `PENSAR_SITE_DIR` to a synced folder and `pensar export` writes there by default.
+- **Syncthing (or Dropbox, etc.)** for the rendered site (`vault_export()` output), so you can browse on your phone without running anything. Set `PENSAR_SITE_DIR` to a synced folder and `pensar export` writes there. (`vault_export()` requires either `PENSAR_SITE_DIR` or an explicit `out_dir =` -- there's no implicit cache fallback.)
 
 Don't sync the vault source via Syncthing. Concurrent edits from multiple devices on the same `.md` file get messy, and you lose history. Use git for that.
 

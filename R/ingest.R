@@ -16,6 +16,13 @@
 #' @param tags Optional character vector of tags.
 #' @param vault Path to the vault directory.
 #' @return The path to the written file, invisibly.
+#' @examples
+#' v <- tempfile("vault-")
+#' init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+#' ingest("Hello, world.", type = "articles", source = "demo",
+#'        vault = v)
+#' status(v)
+#' unlink(v, recursive = TRUE)
 #' @export
 ingest <- function(content,
                    type = c("articles", "chats", "briefings", "matrix"),

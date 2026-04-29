@@ -17,6 +17,12 @@
 #'   Pass \code{TRUE} or \code{FALSE} to override.
 #' @return \code{TRUE} if a commit was made, \code{FALSE} otherwise
 #'   (invisibly).
+#' @examples
+#' v <- tempfile("vault-")
+#' init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+#' # Returns FALSE invisibly: no .git in this temp vault.
+#' vault_commit("noop", vault = v, push = FALSE)
+#' unlink(v, recursive = TRUE)
 #' @export
 vault_commit <- function(message, vault = default_vault(), push = NULL) {
     vault <- normalizePath(vault, mustWork = TRUE)
