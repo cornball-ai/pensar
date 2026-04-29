@@ -19,10 +19,21 @@
 #' Requires the \code{pandoc} command-line tool to be available.
 #'
 #' @param vault Path to the vault directory.
-#' @param out_dir Destination directory. Defaults to the R user cache
-#'   directory for pensar.
+#' @param out_dir Destination directory. No default: pass an explicit
+#'   path or set \code{PENSAR_SITE_DIR} (per CRAN policy, pensar will
+#'   not silently render into a home-filespace location).
 #' @return The output directory path, invisibly.
 #' @importFrom stats setNames
+#' @examples
+#' \donttest{
+#' if (nzchar(Sys.which("pandoc"))) {
+#'     v <- tempfile("vault-")
+#'     init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+#'     ingest("Body.", type = "articles", source = "demo", vault = v)
+#'     vault_export(v, out_dir = tempfile("site-"))
+#'     unlink(v, recursive = TRUE)
+#' }
+#' }
 #' @export
 vault_export <- function(vault = default_vault(),
                          out_dir = default_site_dir()) {

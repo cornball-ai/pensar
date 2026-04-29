@@ -8,7 +8,7 @@ You (Claude Code) are both a consumer and a maintainer of the vault. Troy curate
 
 ## Vault layout
 
-Default location: `tools::R_user_dir("pensar", "data")`.
+No default location. Per CRAN policy pensar refuses to silently write into the user's home filespace, so the vault must be opted in via `PENSAR_VAULT`, a walk-up `schema.md`, `use_vault()`, or an explicit `vault =` / `path =` argument. `default_vault()` errors with a setup hint when none of those resolves -- preserve this behavior; do not add an `R_user_dir()` fallback.
 
 ```
 {vault}/
@@ -101,3 +101,5 @@ R/
 - Edit raw sources after ingest (they're immutable)
 - Edit index.md or log.md manually (use the functions)
 - Use tidyverse functions or pipes
+- Add a default home-filespace path back to `default_vault()` or `default_site_dir()` -- CRAN flagged this; the only acceptable defaults are env vars, walk-up, or `options("pensar.vault")`, all opt-in. Same rule for any new function that writes to disk: no implicit path that lands in `~`, the package directory, or `getwd()`.
+- Reference non-CRAN packages or GitHub install URLs in error messages -- the auto-scanner flags any `install_github`-style string. Tell users to install the package; don't tell them where.

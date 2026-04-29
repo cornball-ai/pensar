@@ -11,6 +11,13 @@
 #' @param min_cluster_size Minimum number of raw pages sharing a tag to
 #'   suggest a wiki page. Default 3.
 #' @return A list with class \code{pensar_lint}.
+#' @examples
+#' v <- tempfile("vault-")
+#' init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+#' ingest("Refers to [[absent]].", type = "articles", source = "demo",
+#'        vault = v)
+#' lint(v)
+#' unlink(v, recursive = TRUE)
 #' @export
 lint <- function(vault = default_vault(), min_cluster_size = 3L) {
     vault <- normalizePath(vault, mustWork = TRUE)
@@ -70,14 +77,25 @@ lint <- function(vault = default_vault(), min_cluster_size = 3L) {
             raw_tags[[page_names[i]]] <- tags
         }
     }
-    tag_counts <- table(unlist(raw_tags))
     wiki_tag_set <- unique(wiki_tags)
-    cluster_df <- data.frame(
-                             tag = names(tag_counts),
-                             raw_pages = as.integer(tag_counts),
-                             has_wiki = names(tag_counts) %in% wiki_tag_set,
-                             stringsAsFactors = FALSE
-    )
+    all_tag_values <- unlist(raw_tags)
+    if (length(all_tag_values) == 0L) {
+        cluster_df <- data.frame(
+                                 tag = character(0L),
+                                 raw_pages = integer(0L),
+                                 has_wiki = logical(0L),
+                                 stringsAsFactors = FALSE
+        )
+    } else {
+        tag_counts <- table(all_tag_values)
+        cluster_df <- data.frame(
+                                 tag = names(tag_counts),
+                                 raw_pages = as.integer(tag_counts),
+                                 has_wiki = names(tag_counts) %in%
+                                 wiki_tag_set,
+                                 stringsAsFactors = FALSE
+        )
+    }
     cluster_df <- cluster_df[cluster_df$raw_pages >= min_cluster_size &
         !cluster_df$has_wiki,, drop = FALSE]
     cluster_df <- cluster_df[order(-cluster_df$raw_pages),, drop = FALSE]

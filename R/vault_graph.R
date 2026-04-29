@@ -16,12 +16,23 @@
 #' @param ... Passed through to \code{saber::graph_svg()} (e.g.,
 #'   \code{iterations}, \code{seed}).
 #' @return Character vector of SVG lines. Write with \code{writeLines()}.
+#' @examples
+#' \dontrun{
+#' # Requires a version of 'saber' that exports graph_svg().
+#' v <- tempfile("vault-")
+#' init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+#' ingest("Cites [[other]].", type = "articles", source = "demo",
+#'        vault = v)
+#' svg <- vault_graph(v)
+#' writeLines(svg, tempfile(fileext = ".svg"))
+#' }
 #' @export
 vault_graph <- function(vault = default_vault(), width = 1600L,
                         height = 1200L, ...) {
     if (!requireNamespace("saber", quietly = TRUE)) {
         stop("Package 'saber' is required for vault_graph(). ",
-             "Install it from https://github.com/cornball-ai/saber")
+             "Install it before calling this function.",
+             call. = FALSE)
     }
     vault <- normalizePath(vault, mustWork = TRUE)
 
@@ -87,9 +98,10 @@ vault_graph <- function(vault = default_vault(), width = 1600L,
                                 error = function(e) NULL
     )
     if (is.null(saber_graph_svg)) {
-        stop("vault_graph() requires saber (>= 0.6.0) which exports ",
-             "graph_svg(). Install the development version from ",
-             "https://github.com/cornball-ai/saber")
+        stop("vault_graph() requires a version of 'saber' that exports ",
+             "graph_svg(). The installed 'saber' does not. Please ",
+             "upgrade 'saber' before calling this function.",
+             call. = FALSE)
     }
     saber_graph_svg(edges, nodes, width = width, height = height, ...)
 }

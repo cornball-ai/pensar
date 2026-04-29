@@ -1,7 +1,7 @@
 Package: pensar
 Type: Package
-Title: 'LLM' Wiki Engine for R
-Version: 0.4.1
+Title: LLM Wiki Engine
+Version: 0.4.2
 Authors@R: c(
     person("Troy", "Hernandez", role = c("aut", "cre"),
         email = "troy@cornball.ai",
@@ -9,16 +9,16 @@ Authors@R: c(
     person("cornball.ai", role = "cph"))
 Description: Maintains a persistent, compounding knowledge base from source
     documents. Ingests articles, chat logs, briefings, and messages into a
-    structured vault of markdown files with 'YAML' 'frontmatter' and 'wikilinks'.
+    structured vault of markdown files with 'YAML' frontmatter and wikilinks.
     The vault is designed for large language model (LLM) agents to summarize,
     cross-reference, and maintain; humans curate sources, edit, and ask questions.
 License: Apache License (>= 2)
 URL: https://github.com/cornball-ai/pensar
 BugReports: https://github.com/cornball-ai/pensar/issues
+SystemRequirements: pandoc (for vault_export()), git (for vault_commit())
 Imports:
     yaml
 Suggests:
-    jsonlite,
     saber,
     tinytest
 Encoding: UTF-8

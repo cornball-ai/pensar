@@ -22,3 +22,11 @@ Scans the vault for orphan pages (no incoming wikilinks), broken
 wikilinks (pointing to nonexistent pages), and tag clusters with no
 wiki synthesis.
 }
+\examples{
+v <- tempfile("vault-")
+init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+ingest("Refers to [[absent]].", type = "articles", source = "demo",
+       vault = v)
+lint(v)
+unlink(v, recursive = TRUE)
+}

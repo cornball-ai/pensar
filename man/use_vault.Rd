@@ -19,3 +19,11 @@ a global default. Both \code{PENSAR_VAULT} and a project-local
 \code{schema.md} found via walk-up will override this option (see
 \code{default_vault} resolution order).
 }
+\examples{
+v <- tempfile("vault-")
+init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+use_vault(v)
+status()
+options(pensar.vault = NULL)
+unlink(v, recursive = TRUE)
+}

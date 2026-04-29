@@ -28,3 +28,14 @@ extracts \code{[[wikilinks]]} as edges, and renders the result via
 and date from YAML frontmatter; broken wikilinks (targets with no
 matching page) appear as external nodes with a distinct tooltip.
 }
+\examples{
+\dontrun{
+# Requires a version of 'saber' that exports graph_svg().
+v <- tempfile("vault-")
+init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+ingest("Cites [[other]].", type = "articles", source = "demo",
+       vault = v)
+svg <- vault_graph(v)
+writeLines(svg, tempfile(fileext = ".svg"))
+}
+}

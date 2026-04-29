@@ -18,3 +18,10 @@ Update the vault index
 Scans all markdown files in the vault and regenerates \code{index.md}
 as a categorized catalog with wikilinks and titles.
 }
+\examples{
+v <- tempfile("vault-")
+init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+ingest("Body.", type = "articles", source = "demo", vault = v)
+update_index(v)
+unlink(v, recursive = TRUE)
+}

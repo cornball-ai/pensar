@@ -7,6 +7,11 @@
 #'
 #' @param vault Path to the vault directory.
 #' @return A list with class \code{pensar_status}.
+#' @examples
+#' v <- tempfile("vault-")
+#' init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+#' status(v)
+#' unlink(v, recursive = TRUE)
 #' @export
 status <- function(vault = default_vault()) {
     vault <- normalizePath(vault, mustWork = TRUE)

@@ -11,6 +11,11 @@
 #'   \code{"lint"}).
 #' @param vault Path to the vault directory.
 #' @return Invisible \code{NULL}.
+#' @examples
+#' v <- tempfile("vault-")
+#' init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+#' log_entry("Reviewed wiki/seed.md", operation = "review", vault = v)
+#' unlink(v, recursive = TRUE)
 #' @export
 log_entry <- function(message, operation = "note", vault = default_vault()) {
     log_path <- file.path(vault, "log.md")

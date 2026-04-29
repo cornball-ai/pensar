@@ -10,6 +10,13 @@
 #' @param page Page name (without \code{.md} extension).
 #' @param vault Path to the vault directory.
 #' @return A list with class \code{pensar_page}.
+#' @examples
+#' v <- tempfile("vault-")
+#' init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+#' fp <- ingest("Body text.", type = "articles", source = "demo",
+#'              vault = v)
+#' show_page(tools::file_path_sans_ext(basename(fp)), vault = v)
+#' unlink(v, recursive = TRUE)
 #' @export
 show_page <- function(page, vault = default_vault()) {
     vault <- normalizePath(vault, mustWork = TRUE)

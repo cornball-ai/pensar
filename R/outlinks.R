@@ -10,6 +10,13 @@
 #' @param vault Path to the vault directory.
 #' @return A data.frame with columns \code{target} (page name) and
 #'   \code{exists} (logical: whether the target page exists in the vault).
+#' @examples
+#' v <- tempfile("vault-")
+#' init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+#' fp <- ingest("Cites [[seed]] and [[missing]].", type = "articles",
+#'              source = "demo", vault = v)
+#' outlinks(tools::file_path_sans_ext(basename(fp)), vault = v)
+#' unlink(v, recursive = TRUE)
 #' @export
 outlinks <- function(page, vault = default_vault()) {
     vault <- normalizePath(vault, mustWork = TRUE)

@@ -4,19 +4,22 @@
 
 #' Default vault path
 #'
-#' Resolution order:
+#' Resolves to a user-configured vault path. Per CRAN policy, pensar
+#' will not silently write to the user's home filespace, so there is
+#' no implicit fallback location -- the user must opt in.
+#'
+#' Resolution order (all opt-in):
 #' \enumerate{
-#'   \item The \code{PENSAR_VAULT} environment variable (explicit per-invocation override).
+#'   \item The \code{PENSAR_VAULT} environment variable.
 #'   \item Walk-up from \code{getwd()} looking for a \code{schema.md} marker
 #'     (project-local vault; mirrors how git finds \code{.git}).
-#'   \item \code{options("pensar.vault")} (set by \code{use_vault()}, typically
-#'     in \code{~/.Rprofile} as a global default).
-#'   \item \code{tools::R_user_dir("pensar", "data")} (CRAN-safe fallback).
+#'   \item \code{options("pensar.vault")} (set by \code{use_vault()},
+#'     typically in \code{~/.Rprofile} as a global default).
 #' }
-#' Env var beats the option so a per-call \code{PENSAR_VAULT=...} can
-#' override an \code{.Rprofile} default. Walk-up beats the option so
-#' \code{cd}-ing into a project vault Just Works without unsetting the
-#' global default.
+#' If none of these resolves, \code{default_vault()} errors with a
+#' setup hint. Callers wanting a one-off path should pass
+#' \code{vault =} explicitly (examples and tests use \code{tempfile()}
+#' / \code{tempdir()}).
 #' @return Character string.
 #' @noRd
 default_vault <- function() {
@@ -32,7 +35,14 @@ default_vault <- function() {
     if (!is.null(opt)) {
         return(path.expand(opt))
     }
-    tools::R_user_dir("pensar", "data")
+    stop("No pensar vault configured. Choose one of:\n",
+         "  - Set PENSAR_VAULT=/path/to/vault in your environment\n",
+         "  - Call pensar::use_vault('/path/to/vault') ",
+         "(persist via ~/.Rprofile)\n",
+         "  - Run from inside a directory containing schema.md\n",
+         "  - Pass vault = '/path' (or path = '/path' for ",
+         "init_vault()) explicitly",
+         call. = FALSE)
 }
 
 #' Walk up from a starting directory looking for a vault marker
@@ -68,6 +78,13 @@ find_vault_walkup <- function(start = getwd()) {
 #' \code{default_vault} resolution order).
 #' @param path Path to your pensar vault directory.
 #' @return The resolved path, invisibly.
+#' @examples
+#' v <- tempfile("vault-")
+#' init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+#' use_vault(v)
+#' status()
+#' options(pensar.vault = NULL)
+#' unlink(v, recursive = TRUE)
 #' @export
 use_vault <- function(path) {
     path <- normalizePath(path.expand(path), mustWork = TRUE)
@@ -79,7 +96,9 @@ use_vault <- function(path) {
 #'
 #' Honors the \code{PENSAR_SITE_DIR} environment variable for users who
 #' want the site to land in a synced folder (Syncthing, Dropbox, etc.).
-#' Falls back to the R user cache directory.
+#' Per CRAN policy, there is no implicit home-filespace fallback -- if
+#' \code{PENSAR_SITE_DIR} is unset, \code{vault_export()} requires an
+#' explicit \code{out_dir =}.
 #' @return Character string.
 #' @noRd
 default_site_dir <- function() {
@@ -87,7 +106,10 @@ default_site_dir <- function() {
     if (nchar(env) > 0L) {
         return(path.expand(env))
     }
-    file.path(tools::R_user_dir("pensar", "cache"), "site")
+    stop("No pensar site directory configured. Choose one of:\n",
+         "  - Set PENSAR_SITE_DIR=/path/to/site in your environment\n",
+         "  - Pass out_dir = '/path' to vault_export() explicitly",
+         call. = FALSE)
 }
 
 #' ISO 8601 timestamp

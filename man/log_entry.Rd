@@ -23,3 +23,9 @@ Append a log entry
 Appends a structured entry to \code{log.md} with timestamp, operation
 type, and message.
 }
+\examples{
+v <- tempfile("vault-")
+init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+log_entry("Reviewed wiki/seed.md", operation = "review", vault = v)
+unlink(v, recursive = TRUE)
+}
