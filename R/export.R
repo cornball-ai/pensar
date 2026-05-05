@@ -45,6 +45,7 @@ vault_export <- function(vault = default_vault(),
         unlink(out_dir, recursive = TRUE)
     }
     dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+    out_dir <- normalizePath(out_dir, mustWork = TRUE)
 
     all_md <- list.files(vault, pattern = "\\.md$", recursive = TRUE,
                          full.names = TRUE)
