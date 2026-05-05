@@ -1,3 +1,13 @@
+# pensar 0.4.3
+
+* `vault_export()` returns a canonicalized `out_dir` so the path is
+  stable across calls. On macOS `tempdir()` lives under `/var/...`
+  which is a symlink to `/private/var/...`; `normalizePath()` only
+  resolves symlinks for paths that exist, so the first call returned
+  the unresolved form and the second returned the resolved form,
+  breaking idempotency. Re-normalizing after `dir.create()` fixes
+  the M1mac CRAN check failure.
+
 # pensar 0.4.2
 
 * CRAN review compliance.
