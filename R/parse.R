@@ -61,11 +61,22 @@ parse_wikilink <- function(link) {
 
 #' Derive the term name from a filepath
 #'
+#' Path-aware: files under \code{raw/repos/<repo>/} return
+#' \code{<repo>/<basename>} so that artifacts of different repos do not
+#' collide on a shared filename like \code{briefing.md}. Everything else
+#' returns the basename without extension.
+#'
 #' @param filepath Path to a markdown file.
-#' @return The filename without extension, used as the term name.
+#' @return The term name used in the wikilink graph.
 #' @noRd
 name_from_path <- function(filepath) {
-    tools::file_path_sans_ext(basename(filepath))
+    base <- tools::file_path_sans_ext(basename(filepath))
+    parent <- basename(dirname(filepath))
+    grandparent <- basename(dirname(dirname(filepath)))
+    if (grandparent == "repos") {
+        return(paste0(parent, "/", base))
+    }
+    base
 }
 
 #' Compute a file hash for change detection

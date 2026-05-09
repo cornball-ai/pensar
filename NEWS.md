@@ -1,3 +1,27 @@
+# pensar 0.5.0
+
+* New `ingest_repo(path)` writes per-repo provenance under
+  `raw/repos/<repo>/`: `briefing.md` (saber digest), `ast.md`
+  (`saber::symbols()` output), and `snapshot.md` (commit-pinned
+  metadata: SHA, origin URL, branch, tracked file listing). Wiki
+  pages cite them with path-style wikilinks like
+  `[[corteza/briefing]]`.
+* `name_from_path()` is now path-aware: files under
+  `raw/repos/<repo>/` resolve to `<repo>/<basename>`, so artifacts
+  named `briefing.md` across different repos do not collide. Files
+  outside `raw/repos/` are unchanged.
+* `update_index()` reports a new `Raw: Repos` category.
+* `ingest_briefing()` is deprecated; calls now warn and delegate to
+  `ingest_repo(path, artifacts = "briefing")`.
+* New `migrate_briefings_to_repos(vault, dry_run = TRUE)` moves
+  legacy `raw/briefings/*.md` content into `raw/repos/<repo>/`. Keeps
+  the newest file per `(repo, artifact)` pair, drops superseded
+  duplicates by default, rewrites wikilinks across `wiki/*.md`. The
+  built-in rename map handles `llamaR -> corteza`; pass an extended
+  map for other renames. Defaults to dry-run; review the plan first.
+* Schema doc updated to describe the `raw/repos/<repo>/<artifact>`
+  layout and mark `briefings/` deprecated.
+
 # pensar 0.4.3
 
 * `vault_export()` returns a canonicalized `out_dir` so the path is
