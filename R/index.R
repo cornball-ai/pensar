@@ -29,6 +29,7 @@ update_index <- function(vault = default_vault()) {
                        "Raw: Chats" = file.path(vault, "raw", "chats"),
                        "Raw: Briefings" = file.path(vault, "raw", "briefings"),
                        "Raw: Matrix" = file.path(vault, "raw", "matrix"),
+                       "Raw: Repos" = file.path(vault, "raw", "repos"),
                        "Wiki" = file.path(vault, "wiki")
     )
 

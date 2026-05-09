@@ -25,11 +25,17 @@ if (requireNamespace("saber", quietly = TRUE)) {
 
 # With an explicit project name, saber must be available to succeed.
 # Only run the full happy path when saber is installed and we're at_home.
-if (tinytest::at_home() && requireNamespace("saber", quietly = TRUE)) {
-    fp <- ingest_briefing(project = "pensar", vault = tmp)
+# ingest_briefing() is deprecated and delegates to ingest_repo(); the
+# resulting file lands under raw/repos/<name>/briefing.md.
+if (tinytest::at_home() && requireNamespace("saber", quietly = TRUE) &&
+    file.exists(file.path(path.expand("~"), "pensar"))) {
+    paths <- suppressWarnings(ingest_briefing(project = "pensar",
+                                              vault = tmp))
+    expect_true(length(paths) >= 1L)
+    fp <- paths[[1L]]
     expect_true(file.exists(fp))
-    expect_true(grepl("raw/briefings", fp))
+    expect_true(grepl("raw/repos/pensar", fp))
     fm <- pensar:::parse_frontmatter(fp)
-    expect_equal(fm$type, "briefings")
-    expect_equal(fm$source, "pensar")
+    expect_equal(fm$type, "repo-briefing")
+    expect_equal(fm$repo$name, "pensar")
 }

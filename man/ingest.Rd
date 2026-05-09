@@ -9,8 +9,9 @@ ingest(content, type = c("articles", "chats", "briefings", "matrix"), source,
 \arguments{
 \item{content}{Character string or character vector (lines) of content.}
 
-\item{type}{Content type: \code{"articles"}, \code{"chats"},
-\code{"briefings"}, or \code{"matrix"}.}
+\item{type}{Content type: \code{"articles"}, \code{"chats"}, or
+\code{"matrix"}. The legacy type \code{"briefings"} is still accepted
+but deprecated; for repo artifacts use \code{\link{ingest_repo}()}.}
 
 \item{source}{Short identifier for the content source (e.g., URL,
 session ID, project name).}

@@ -8,8 +8,9 @@
 #' to \code{log.md}.
 #'
 #' @param content Character string or character vector (lines) of content.
-#' @param type Content type: \code{"articles"}, \code{"chats"},
-#'   \code{"briefings"}, or \code{"matrix"}.
+#' @param type Content type: \code{"articles"}, \code{"chats"}, or
+#'   \code{"matrix"}. The legacy type \code{"briefings"} is still accepted
+#'   but deprecated; for repo artifacts use \code{\link{ingest_repo}()}.
 #' @param source Short identifier for the content source (e.g., URL,
 #'   session ID, project name).
 #' @param title Optional title. If \code{NULL}, derived from source.

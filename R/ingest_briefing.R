@@ -1,32 +1,32 @@
-#' @title Briefing ingestion
+#' @title Briefing ingestion (deprecated)
 #' @description Generate a saber briefing and ingest it into the vault.
 
 #' Generate and ingest a saber briefing
 #'
-#' Calls \code{saber::briefing(project)} to produce a project briefing
-#' and ingests it into the vault as a \code{briefings} raw source.
-#' Requires the \code{saber} package.
+#' @description
+#' \strong{Deprecated.} Use \code{\link{ingest_repo}()} with the default
+#' \code{enrich = "auto"} (which writes a \code{briefing.md} for R packages
+#' under \code{raw/repos/<name>/}) instead. This function now delegates to
+#' \code{ingest_repo()} after warning.
 #'
 #' @param project Project name. If \code{NULL}, inferred from the git
 #'   root of the current working directory.
+#' @param scan_dir Directory to search for the project. Defaults to
+#'   \code{path.expand("~")}.
 #' @param vault Path to the vault directory.
-#' @return The path to the ingested briefing file, invisibly. Returns
-#'   \code{NULL} invisibly if \code{saber} is not installed or the
-#'   project cannot be inferred.
+#' @return Invisibly, the path(s) written by \code{ingest_repo()}.
 #' @examples
 #' \dontrun{
-#' # Requires saber and a git project so a briefing can be generated.
 #' v <- tempfile("vault-")
 #' init_vault(v, rproj = FALSE, agent_instructions = FALSE)
 #' ingest_briefing(project = "pensar", vault = v)
 #' }
 #' @export
-ingest_briefing <- function(project = NULL, vault = default_vault()) {
-    if (!requireNamespace("saber", quietly = TRUE)) {
-        stop("Package 'saber' is required for ingest_briefing(). ",
-             "Install it before calling this function.",
-             call. = FALSE)
-    }
+ingest_briefing <- function(project = NULL, scan_dir = path.expand("~"),
+                            vault = default_vault()) {
+    .Deprecated("ingest_repo",
+                msg = paste0("ingest_briefing() is deprecated; ",
+                             "use ingest_repo(path) instead."))
 
     if (is.null(project)) {
         project <- infer_project_from_git()
@@ -36,9 +36,13 @@ ingest_briefing <- function(project = NULL, vault = default_vault()) {
         }
     }
 
-    content <- saber::briefing(project)
-    ingest(content, type = "briefings", source = project,
-           title = paste0("Briefing: ", project), vault = vault)
+    repo_path <- file.path(scan_dir, project)
+    if (!file.exists(repo_path)) {
+        stop("Project not found at ", repo_path, call. = FALSE)
+    }
+
+    ingest_repo(path = repo_path, name = project,
+                artifacts = "briefing", vault = vault)
 }
 
 #' Infer project name from git root of current working directory
