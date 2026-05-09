@@ -193,11 +193,23 @@ apply_migration_plan <- function(plan, vault, drop_old) {
         file.remove(src)
     }
 
-    if (drop_old) {
-        for (i in seq_len(nrow(drops))) {
+    # Dropped slugs point at the same (repo, artifact) as their winner,
+    # so redirect any wikilinks to the winner's destination rather than
+    # leaving them broken. Repos with no surviving winner (no move) get
+    # an empty redirect and surface as warnings.
+    for (i in seq_len(nrow(drops))) {
+        old_slug <- name_from_path(drops$file[i])
+        winners <- movers$action == "move" &
+            movers$repo == drops$repo[i] &
+            movers$artifact == drops$artifact[i]
+        new_slug <- if (any(winners)) {
+            paste0(drops$repo[i], "/", drops$artifact[i])
+        } else {
+            ""
+        }
+        rename_pairs <- c(rename_pairs, setNames(new_slug, old_slug))
+        if (drop_old) {
             file.remove(drops$file[i])
-            rename_pairs <- c(rename_pairs,
-                              setNames("", name_from_path(drops$file[i])))
         }
     }
 
