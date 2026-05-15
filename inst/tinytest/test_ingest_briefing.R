@@ -17,11 +17,7 @@ call_from_nongit <- function() {
     ingest_briefing(vault = tmp)
 }
 
-if (requireNamespace("saber", quietly = TRUE)) {
-    expect_error(call_from_nongit(), "Could not infer project")
-} else {
-    expect_error(call_from_nongit(), "saber")
-}
+suppressWarnings(expect_error(call_from_nongit(), "Could not infer project"))
 
 # With an explicit project name, saber must be available to succeed.
 # Only run the full happy path when saber is installed and we're at_home.
