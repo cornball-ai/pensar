@@ -24,13 +24,12 @@ Renders every markdown page in the vault to HTML, resolving
 site that can be served from any static file server or opened via
 \code{file://}.
 
-The rendered site is regenerable from the vault, so it defaults to
-the R user cache directory (\code{tools::R_user_dir("pensar",
-"cache")/site}) rather than living inside the vault itself. Pass a
-different \code{out_dir} to override, or set the
-\code{PENSAR_SITE_DIR} environment variable to change the default
-globally (e.g., point it at a Syncthing folder so edits propagate
-to other devices on export).
+No default \code{out_dir}: pass an explicit path or set the
+\code{PENSAR_SITE_DIR} environment variable. Per CRAN policy
+pensar will not silently render into a home-filespace location
+(e.g., \code{tools::R_user_dir()}). \code{PENSAR_SITE_DIR} is the
+recommended escape hatch -- point it at a Syncthing folder so edits
+propagate to other devices on export.
 
 Requires the \code{pandoc} command-line tool to be available.
 }

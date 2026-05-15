@@ -42,13 +42,24 @@ gracefully when `saber` is absent.
   form, breaking idempotency. Re-normalizing after `dir.create()`
   fixes the M1mac CRAN check failure reported against 0.4.2.
 
+## Test environments
+
+- Local: Ubuntu 24.04 LTS, R 4.6.0
+- Local: Windows 10, R 4.6.0 (release) and R-devel (r90050)
+- GitHub Actions via r-ci: ubuntu-latest, macos-latest
+
 ## R CMD check results
 
 - 0 errors
 - 0 warnings
-- 0 notes (against current CRAN `saber` 0.3.0; the one repo-ingest
-  test that needs newer `saber` is guarded by
+- 0 notes on all environments (against current CRAN `saber` 0.3.0;
+  the one repo-ingest test that needs newer `saber` is guarded by
   `packageVersion("saber") < "0.6.0"` and skips cleanly)
+
+## Downstream dependencies
+
+None on CRAN. Verified via
+`tools::package_dependencies("pensar", reverse = TRUE)`.
 
 ## Notes for reviewers
 
