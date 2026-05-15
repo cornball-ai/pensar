@@ -2,6 +2,8 @@
 
 LLM wiki engine for R. Your knowledge base grows while you work.
 
+> **Alpha.** Expect bugs and missing functionality. Feel free to open an issue if you're noticing or missing something specific that's not already tracked.
+
 An open source R implementation of the [Obsidian](https://obsidian.md/) markdown vault concept combined with [Karpathy's LLM wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f). The LLM maintains the wiki. You edit, curate sources, and ask questions.
 
 pensar ("to think") has one dependency: `yaml`.
