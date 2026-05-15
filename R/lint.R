@@ -131,8 +131,7 @@ print.pensar_lint <- function(x, ...) {
     if (nrow(x$broken_links) > 0L) {
         head_n <- min(10L, nrow(x$broken_links))
         for (i in seq_len(head_n)) {
-            cat(sprintf("  - [[%s]] in %s\n",
-                        x$broken_links$link[i],
+            cat(sprintf("  - [[%s]] in %s\n", x$broken_links$link[i],
                         x$broken_links$file[i]))
         }
         if (nrow(x$broken_links) > head_n) {

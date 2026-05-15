@@ -73,9 +73,8 @@ empty_migration_plan <- function() {
 #' @noRd
 classify_briefings <- function(files, rename_map) {
     n <- length(files)
-    out <- data.frame(file = files,
-                      repo = character(n), artifact = character(n),
-                      date = character(n),
+    out <- data.frame(file = files, repo = character(n),
+                      artifact = character(n), date = character(n),
                       stringsAsFactors = FALSE)
     for (i in seq_len(n)) {
         fp <- files[i]
@@ -137,8 +136,7 @@ pick_newest_per_artifact <- function(plan) {
         plan$action[winner] <- "move"
     }
     movers <- plan$action == "move"
-    plan$destination[movers] <- file.path("raw", "repos",
-        plan$repo[movers],
+    plan$destination[movers] <- file.path("raw", "repos", plan$repo[movers],
         paste0(plan$artifact[movers], ".md"))
     plan
 }
@@ -147,8 +145,8 @@ pick_newest_per_artifact <- function(plan) {
 print_migration_plan <- function(plan, drop_old) {
     n_move <- sum(plan$action == "move")
     n_drop <- sum(plan$action == "drop")
-    cat(sprintf("Migration plan: %d move(s), %d drop(s)%s\n\n",
-                n_move, n_drop,
+    cat(sprintf("Migration plan: %d move(s), %d drop(s)%s\n\n", n_move,
+                n_drop,
             if (drop_old) "" else " [drop_old=FALSE: drops kept in place]"))
     cat("Moves:\n")
     movers <- plan[plan$action == "move",, drop = FALSE]
@@ -200,8 +198,8 @@ apply_migration_plan <- function(plan, vault, drop_old) {
     for (i in seq_len(nrow(drops))) {
         old_slug <- name_from_path(drops$file[i])
         winners <- movers$action == "move" &
-            movers$repo == drops$repo[i] &
-            movers$artifact == drops$artifact[i]
+        movers$repo == drops$repo[i] &
+        movers$artifact == drops$artifact[i]
         new_slug <- if (any(winners)) {
             paste0(drops$repo[i], "/", drops$artifact[i])
         } else {
@@ -237,8 +235,8 @@ rewrite_artifact_type <- function(path, artifact, repo) {
     }
     title_idx <- grep("^title:", fm_lines)
     if (length(title_idx) == 1L) {
-        fm_lines[title_idx] <- sprintf("title: '%s @ migrated (%s)'",
-                                       repo, artifact)
+        fm_lines[title_idx] <- sprintf("title: '%s @ migrated (%s)'", repo,
+                                       artifact)
     }
     writeLines(c(lines[1L], fm_lines, lines[end:length(lines)]), path)
 }
@@ -259,8 +257,8 @@ rewrite_wikilinks_in_wiki <- function(vault, rename_pairs) {
         return(invisible())
     }
 
-    files <- list.files(wiki_dir, pattern = "\\.md$",
-                        recursive = TRUE, full.names = TRUE)
+    files <- list.files(wiki_dir, pattern = "\\.md$", recursive = TRUE,
+                        full.names = TRUE)
     moves <- rename_pairs[nzchar(rename_pairs)]
     drops <- names(rename_pairs)[!nzchar(rename_pairs)]
 

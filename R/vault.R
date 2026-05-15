@@ -42,13 +42,10 @@ init_vault <- function(path = default_vault(), rproj = TRUE,
         return(invisible(path))
     }
 
-    dirs <- c(
-              file.path(path, "raw", "articles"),
+    dirs <- c(file.path(path, "raw", "articles"),
               file.path(path, "raw", "chats"),
               file.path(path, "raw", "briefings"),
-              file.path(path, "raw", "matrix"),
-              file.path(path, "wiki")
-    )
+              file.path(path, "raw", "matrix"), file.path(path, "wiki"))
     for (d in dirs) {
         dir.create(d, recursive = TRUE, showWarnings = FALSE)
     }
@@ -84,45 +81,29 @@ init_vault <- function(path = default_vault(), rproj = TRUE,
 #' Agent instructions template (CLAUDE.md / AGENTS.md)
 #' @noRd
 agent_instructions_template <- function() {
-    c(
-        "# Agent Instructions",
-        "",
+    c("# Agent Instructions", "",
         "You're in a pensar vault. This is a knowledge base, not a code",
         "project. The content is plain markdown; the tooling is the",
-        "`pensar` R package.",
-        "",
-        "## What lives here",
-        "",
-        "```",
+        "`pensar` R package.", "", "## What lives here", "", "```",
         "raw/              immutable source documents",
         "wiki/             LLM-maintained synthesis pages",
         "index.md          auto-generated catalog",
         "log.md            append-only operation log",
-        "schema.md         vault conventions (read first if in doubt)",
-        "```",
-        "",
-        "## How to converse with the vault",
-        "",
+        "schema.md         vault conventions (read first if in doubt)", "```",
+        "", "## How to converse with the vault", "",
         "Use the `pensar` CLI instead of reading files blindly. It's",
         "faster, surfaces connections, and makes behavior consistent",
-        "across sessions.",
-        "",
-        "```",
+        "across sessions.", "", "```",
         "pensar status              page counts by category",
         "pensar lint                orphans, broken wikilinks, gaps",
         "pensar show \"<page>\"       content + outlinks + backlinks",
         "pensar back \"<page>\"       what links to this page",
         "pensar tag <tag>           pages with this tag",
         "pensar log [n]             last n log entries",
-        "pensar export [out-dir]    render to static HTML",
-        "```",
-        "",
+        "pensar export [out-dir]    render to static HTML", "```", "",
         "Before making any claim about a wiki page, run",
         "`pensar show \"<page>\"` first so you can see what it cites and",
-        "what cites it.",
-        "",
-        "## Editing rules",
-        "",
+        "what cites it.", "", "## Editing rules", "",
         "- **Raw sources are immutable.** Never edit files in `raw/`.",
         "  If a raw source is wrong, treat it as a data point and",
         "  correct the interpretation in wiki pages.",
@@ -130,72 +111,40 @@ agent_instructions_template <- function() {
         "  Every claim should cite a raw source via `[[wikilinks]]`.",
         "- **Fix the wiki, never the raw.** Raw is ground truth for",
         "  what was said; wiki is interpretation. If they disagree,",
-        "  wiki is wrong.",
-        "",
-        "## Ingesting new content",
-        "",
-        "Two paths:",
-        "",
-        "1. Slash command `/pensar <pasted content>` (if the skill is",
+        "  wiki is wrong.", "", "## Ingesting new content", "", "Two paths:",
+        "", "1. Slash command `/pensar <pasted content>` (if the skill is",
         "   installed) infers type/source/title/tags and files it.",
-        "2. Direct R call: `pensar::ingest(content, type, source, ...)`",
-        "",
-        "Don't edit `raw/` files by hand. Always go through `ingest()`.",
-        "",
-        "## After edits, rebuild the site",
-        "",
-        "```",
-        "pensar export",
-        "```",
-        "",
-        "Set `PENSAR_SITE_DIR` to where you want the rendered site",
+        "2. Direct R call: `pensar::ingest(content, type, source, ...)`", "",
+        "Don't edit `raw/` files by hand. Always go through `ingest()`.", "",
+        "## After edits, rebuild the site", "", "```", "pensar export",
+        "```", "", "Set `PENSAR_SITE_DIR` to where you want the rendered site",
         "(e.g. a Syncthing folder), or pass `out_dir =` explicitly to",
         "`vault_export()`. Per CRAN policy pensar will not silently",
         "render to a home-filespace cache. Run after any wiki edit or",
-        "ingest so downstream viewers show current state.",
-        "",
-        "## When something seems off",
-        "",
+        "ingest so downstream viewers show current state.", "",
+        "## When something seems off", "",
         "Run `pensar lint`. It surfaces orphans (no backlinks), broken",
-        "wikilinks, and tag clusters with no wiki synthesis.",
-        "",
-        "## Versioning",
-        "",
+        "wikilinks, and tag clusters with no wiki synthesis.", "",
+        "## Versioning", "",
         "If the vault is a git repo (there's a `.git/` directory),",
         "pensar auto-commits after `ingest()` and `init_vault()`.",
         "Pushes to configured remotes happen automatically when",
         "`PENSAR_AUTO_PUSH` is truthy (default: push if any remote is",
-        "set). Manual commit after wiki edits:",
-        "",
-        "```",
-        "pensar commit \"Revised torch ecosystem synthesis\"",
-        "```",
-        "",
+        "set). Manual commit after wiki edits:", "", "```",
+        "pensar commit \"Revised torch ecosystem synthesis\"", "```", "",
         "Non-standard git usage: the vault is typically a local-only",
         "repo on one authoritative machine (e.g., troy-ai). Other",
         "machines clone read-only over Tailscale/SSH. No GitHub",
-        "required for privacy."
-    )
+        "required for privacy.")
 }
 
 #' RStudio project file template
 #' @noRd
 rproj_template <- function() {
-    c(
-        "Version: 1.0",
-        "",
-        "RestoreWorkspace: No",
-        "SaveWorkspace: No",
-        "AlwaysSaveHistory: Default",
-        "",
-        "EnableCodeIndexing: No",
-        "UseSpacesForTab: Yes",
-        "NumSpacesForTab: 2",
-        "Encoding: UTF-8",
-        "",
-        "RnwWeave: Sweave",
-        "LaTeX: pdfLaTeX"
-    )
+    c("Version: 1.0", "", "RestoreWorkspace: No", "SaveWorkspace: No",
+        "AlwaysSaveHistory: Default", "", "EnableCodeIndexing: No",
+        "UseSpacesForTab: Yes", "NumSpacesForTab: 2", "Encoding: UTF-8", "",
+        "RnwWeave: Sweave", "LaTeX: pdfLaTeX")
 }
 
 #' Schema template
@@ -286,27 +235,10 @@ schema_template <- function() {
 #' Index seed content
 #' @noRd
 index_seed <- function() {
-    c(
-        "---",
-        paste0("title: Vault Index"),
-        paste0("updated: ", now_ts()),
-        "---",
-        "",
-        "# Vault Index",
-        "",
-        "## Raw: Articles (0)",
-        "",
-        "## Raw: Chats (0)",
-        "",
-        "## Raw: Briefings (0)",
-        "",
-        "## Raw: Matrix (0)",
-        "",
-        "## Raw: Repos (0)",
-        "",
-        "## Wiki (0)",
-        ""
-    )
+    c("---", paste0("title: Vault Index"), paste0("updated: ", now_ts()),
+        "---", "", "# Vault Index", "", "## Raw: Articles (0)", "",
+        "## Raw: Chats (0)", "", "## Raw: Briefings (0)", "",
+        "## Raw: Matrix (0)", "", "## Raw: Repos (0)", "", "## Wiki (0)", "")
 }
 
 #' Log seed content

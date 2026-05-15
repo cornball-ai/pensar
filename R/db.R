@@ -41,8 +41,7 @@ default_vault <- function() {
          "(persist via ~/.Rprofile)\n",
          "  - Run from inside a directory containing schema.md\n",
          "  - Pass vault = '/path' (or path = '/path' for ",
-         "init_vault()) explicitly",
-         call. = FALSE)
+         "init_vault()) explicitly", call. = FALSE)
 }
 
 #' Walk up from a starting directory looking for a vault marker

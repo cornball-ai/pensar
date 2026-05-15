@@ -49,8 +49,8 @@ ingest_briefing <- function(project = NULL, scan_dir = path.expand("~"),
 #' @noRd
 infer_project_from_git <- function() {
     root <- suppressWarnings(tryCatch(
-                                      trimws(system2("git", c("-C", getwd(), "rev-parse",
-                        "--show-toplevel"),
+                                      trimws(system2("git",
+                    c("-C", getwd(), "rev-parse", "--show-toplevel"),
                     stdout = TRUE, stderr = FALSE)[[1L]]),
                                       error = function(e) ""
         ))
