@@ -30,17 +30,11 @@ show_page <- function(page, vault = default_vault()) {
     out <- outlinks(page, vault)
     back <- backlinks(page, vault)
 
-    result <- list(
-                   page = page,
-                   file = make_relative(fp, vault),
+    result <- list(page = page, file = make_relative(fp, vault),
                    title = fm$title %||% page,
                    type = fm$type %||% NA_character_,
-                   tags = fm$tags %||% character(0L),
-                   content = content,
-                   outlinks = out,
-                   backlinks = back,
-                   vault = vault
-    )
+                   tags = fm$tags %||% character(0L), content = content,
+                   outlinks = out, backlinks = back, vault = vault)
     class(result) <- "pensar_page"
     result
 }
@@ -75,8 +69,7 @@ print.pensar_page <- function(x, ...) {
     cat(sprintf("\nBacklinks (%d): what cites this page\n", nrow(x$backlinks)))
     if (nrow(x$backlinks) > 0L) {
         for (i in seq_len(nrow(x$backlinks))) {
-            cat(sprintf("  <- [[%s]] (%s)\n",
-                        x$backlinks$source[i],
+            cat(sprintf("  <- [[%s]] (%s)\n", x$backlinks$source[i],
                         x$backlinks$file[i]))
         }
     }

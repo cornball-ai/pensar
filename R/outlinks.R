@@ -28,8 +28,7 @@ outlinks <- function(page, vault = default_vault()) {
 
     links <- parse_wikilinks(fp)
     if (length(links) == 0L) {
-        return(data.frame(target = character(0L),
-                          exists = logical(0L),
+        return(data.frame(target = character(0L), exists = logical(0L),
                           stringsAsFactors = FALSE))
     }
 

@@ -30,15 +30,9 @@ status <- function(vault = default_vault()) {
     wiki <- count_md(file.path(vault, "wiki"))
     total <- raw_articles + raw_chats + raw_briefings + raw_matrix + wiki
 
-    result <- list(
-                   raw_articles = raw_articles,
-                   raw_chats = raw_chats,
-                   raw_briefings = raw_briefings,
-                   raw_matrix = raw_matrix,
-                   wiki = wiki,
-                   total = total,
-                   vault = vault
-    )
+    result <- list(raw_articles = raw_articles, raw_chats = raw_chats,
+                   raw_briefings = raw_briefings, raw_matrix = raw_matrix,
+                   wiki = wiki, total = total, vault = vault)
     class(result) <- "pensar_status"
     result
 }

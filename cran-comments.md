@@ -1,75 +1,63 @@
 ## Submission summary
 
-This is a resubmission of pensar (now 0.4.2) addressing the three
-points from Konstanze Lauseker's review of 0.4.0 / 0.4.1.
+pensar 0.5.0 follows 0.4.2 on CRAN. It folds in the 0.4.3 macOS
+idempotency fix (never submitted) and the new repo-ingest workflow.
 
-## Changes addressing reviewer feedback
+The package still ships with a single hard dependency (`yaml`); `saber`
+remains in `Suggests` and every call site is guarded by
+`requireNamespace("saber", quietly = TRUE)` or
+`getExportedValue("saber", ...)`, so optional features degrade
+gracefully when `saber` is absent.
 
-### 1. Title
+## Changes since 0.4.2
 
-> please omit the single quotes around LLM and frontmatter and the
-> "for R" from the title.
+### 0.5.0 -- repo-aware ingest and provenance
 
-`Title:` is now `LLM Wiki Engine`. The Description text also drops
-the single quotes around `frontmatter` and `wikilinks`. `'YAML'` is
-kept single-quoted as a serialization-format name.
+- New `ingest_repo(path)` writes per-repo provenance under
+  `raw/repos/<repo>/`: `briefing.md` (via `saber::briefing()`),
+  `ast.md` (via `saber::symbols()`), and `snapshot.md` (commit-pinned
+  git metadata: SHA, origin URL, branch, tracked file listing). Wiki
+  pages cite them with path-style wikilinks like
+  `[[corteza/briefing]]`.
+- `name_from_path()` is now path-aware: files under
+  `raw/repos/<repo>/` resolve to `<repo>/<basename>`, so identically
+  named artifacts (`briefing.md`) across different repos no longer
+  collide. Files outside `raw/repos/` are unchanged.
+- `update_index()` reports a new `Raw: Repos` category.
+- `ingest_briefing()` is deprecated; calls warn and delegate to
+  `ingest_repo(path, artifacts = "briefing")`.
+- New `migrate_briefings_to_repos(vault, dry_run = TRUE)` moves legacy
+  `raw/briefings/*.md` content into the new layout. Defaults to
+  dry-run; review the plan before applying.
+- Schema doc updated to describe the new layout and mark
+  `briefings/` deprecated.
 
-### 2. Examples in Rd files
+### 0.4.3 -- macOS idempotency fix (rolled into 0.5.0)
 
-> Please add small executable examples in your Rd-files to
-> illustrate the use of the exported function but also enable
-> automatic testing.
+- `vault_export()` returns a canonicalized `out_dir` so the path is
+  stable across repeated calls. On macOS `tempdir()` lives under
+  `/var/...` which is a symlink to `/private/var/...`;
+  `normalizePath()` only resolves symlinks for existing paths, so the
+  first call returned the unresolved form and the second the resolved
+  form, breaking idempotency. Re-normalizing after `dir.create()`
+  fixes the M1mac CRAN check failure reported against 0.4.2.
 
-Every exported function now has a runnable `\examples{}` block.
-Examples write only to `tempfile()` / `tempdir()` and clean up with
-`unlink(..., recursive = TRUE)`. The three exceptions wrapped in
-`\dontrun{}` and the reason for each:
+## Test environments
 
-- `ingest_briefing()` -- needs the `saber` package and a git project
-  context so a briefing can be generated.
-- `vault_export()` -- shells out to `pandoc`, which is declared in
-  `SystemRequirements:` but not guaranteed to be present in the
-  CRAN check environment.
-- `vault_graph()` -- needs a version of `saber` that exports
-  `graph_svg()`. The function probes for it via `getExportedValue()`
-  and errors gracefully when the symbol is absent.
-
-### 3. No writes to the home filespace by default
-
-> Please ensure that your functions do not write by default or in
-> your examples/vignettes/tests in the user's home filespace
-> (including the package directory and getwd())... Please omit any
-> default path in writing functions.
-
-`default_vault()` and `default_site_dir()` no longer fall back to
-`tools::R_user_dir()`. Both are now strict opt-in resolvers:
-
-- `default_vault()` resolves via `PENSAR_VAULT` (env), walk-up from
-  `getwd()` for a `schema.md` marker, then `options("pensar.vault")`
-  set by `use_vault()`. If none of those is configured, it errors
-  with a setup hint listing the four ways to point pensar at a
-  vault. There is no implicit home-filespace fallback.
-- `default_site_dir()` resolves via `PENSAR_SITE_DIR` only and
-  errors otherwise. Callers must pass `out_dir =` explicitly.
-
-`init_vault()` and `vault_export()` accept an explicit path and
-otherwise propagate the `default_vault()` / `default_site_dir()`
-error -- so calling them with no arguments and no opt-in
-configuration produces an error before any write happens.
-
-`inst/scripts/session-start.R` (a saber session-start hook) was
-updated to drop its hardcoded `tools::R_user_dir(...)` write; it now
-delegates entirely to `ingest_briefing()` and exits cleanly when no
-vault is configured.
-
-Tests already wrote only to `tempfile()` / `tempdir()` and clean up
-with `unlink(..., recursive = TRUE)`; this hasn't changed.
+- Local: Ubuntu 24.04 LTS, R 4.6.0
+- Local: Windows 10, R 4.6.0 (release) and R-devel (r90050)
+- GitHub Actions via r-ci: ubuntu-latest, macos-latest
 
 ## R CMD check results
 
 - 0 errors
 - 0 warnings
-- 1 NOTE expected ("Days since last update", as a resubmission)
+- 0 notes on all environments (against current CRAN `saber` 0.7.1).
+
+## Downstream dependencies
+
+None on CRAN. Verified via
+`tools::package_dependencies("pensar", reverse = TRUE)`.
 
 ## Notes for reviewers
 
@@ -81,20 +69,24 @@ vault_commit())`. Both are checked at runtime via `Sys.which()`;
 `vault_export()` errors with a clear message asking the user to
 install pandoc.
 
-### Imports
+### Imports / Suggests
 
-Only `yaml`, which is on CRAN.
+- `Imports`: `yaml` (CRAN).
+- `Suggests`: `saber` (CRAN) and `tinytest` (CRAN). `saber` is used
+  by `ingest_briefing()`, `ingest_repo()`, and `vault_graph()`,
+  always behind `requireNamespace()` or `getExportedValue()` so
+  optional features degrade gracefully.
 
-### Suggests
+### Writes to the home filespace
 
-- `saber` -- on CRAN. Used by `ingest_briefing()` and `vault_graph()`,
-  guarded by `requireNamespace("saber", quietly = TRUE)` and
-  `getExportedValue("saber", ...)` so optional features degrade
-  gracefully.
-- `tinytest` -- on CRAN. Test framework.
+Unchanged from 0.4.2: `default_vault()` and `default_site_dir()` are
+strict opt-in resolvers (env var, walk-up `schema.md`, or
+`options("pensar.vault")` set by `use_vault()`); both error if no
+opt-in path is configured. No package code writes to the home
+filespace by default, and examples/tests write only to `tempfile()` /
+`tempdir()` with cleanup.
 
 ### Non-interactive guard
 
-No package code runs during `library(pensar)` that could surprise a
-user. There are no `.onLoad` or `.onAttach` hooks; no file-system
-writes at load time; no network activity at load time.
+No `.onLoad` or `.onAttach` hooks; no file-system writes at load
+time; no network activity at load time.

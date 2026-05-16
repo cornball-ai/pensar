@@ -8,13 +8,12 @@
 #' site that can be served from any static file server or opened via
 #' \code{file://}.
 #'
-#' The rendered site is regenerable from the vault, so it defaults to
-#' the R user cache directory (\code{tools::R_user_dir("pensar",
-#' "cache")/site}) rather than living inside the vault itself. Pass a
-#' different \code{out_dir} to override, or set the
-#' \code{PENSAR_SITE_DIR} environment variable to change the default
-#' globally (e.g., point it at a Syncthing folder so edits propagate
-#' to other devices on export).
+#' No default \code{out_dir}: pass an explicit path or set the
+#' \code{PENSAR_SITE_DIR} environment variable. Per CRAN policy
+#' pensar will not silently render into a home-filespace location
+#' (e.g., \code{tools::R_user_dir()}). \code{PENSAR_SITE_DIR} is the
+#' recommended escape hatch -- point it at a Syncthing folder so edits
+#' propagate to other devices on export.
 #'
 #' Requires the \code{pandoc} command-line tool to be available.
 #'
@@ -124,8 +123,8 @@ render_page <- function(fp, vault, out_dir, page_map) {
     on.exit(unlink(c(tf_in, tf_out)), add = TRUE)
     writeLines(content, tf_in)
     status <- system2("pandoc",
-                      c("-f", "markdown+yaml_metadata_block",
-                        "-t", "html", "-o", tf_out, tf_in),
+                      c("-f", "markdown+yaml_metadata_block", "-t", "html", "-o",
+                        tf_out, tf_in),
                       stdout = FALSE, stderr = FALSE)
     if (status != 0L) {
         warning("pandoc failed for: ", fp)
@@ -213,104 +212,69 @@ html_escape <- function(x) {
 #' Default CSS for the exported site
 #' @noRd
 default_css <- function() {
-    c(
-        ":root {",
-        "  --fg: #1a1a1a; --fg-muted: #555; --bg: #fefefe;",
+    c(":root {", "  --fg: #1a1a1a; --fg-muted: #555; --bg: #fefefe;",
         "  --accent: #0066cc; --accent-visited: #6a4fcf;",
         "  --rule: #e5e5e5; --code-bg: #f4f4f4; --broken: #c00;",
-        "  --card-bg: #fafafa; --card-border: #e5e5e5;",
-        "}",
-        "@media (prefers-color-scheme: dark) {",
-        "  :root {",
+        "  --card-bg: #fafafa; --card-border: #e5e5e5;", "}",
+        "@media (prefers-color-scheme: dark) {", "  :root {",
         "    --fg: #e8e8e8; --fg-muted: #9aa0a6; --bg: #1a1b1e;",
         "    --accent: #66b3ff; --accent-visited: #b392f0;",
         "    --rule: #2b2d31; --code-bg: #26282d; --broken: #ff6b6b;",
-        "    --card-bg: #1f2024; --card-border: #2b2d31;",
-        "  }",
-        "}",
-        "* { box-sizing: border-box; }",
-        "body {",
+        "    --card-bg: #1f2024; --card-border: #2b2d31;", "  }", "}",
+        "* { box-sizing: border-box; }", "body {",
         "  font-family: ui-sans-serif, -apple-system, system-ui, sans-serif;",
         "  max-width: 820px; margin: 0 auto; padding: 1.5em 1.2em 4em;",
         "  line-height: 1.65; color: var(--fg); background: var(--bg);",
-        "  font-size: 16px;",
-        "}",
-        "nav {",
+        "  font-size: 16px;", "}", "nav {",
         "  margin-bottom: 2em; font-size: 0.85em;",
-        "  padding-bottom: 0.8em; border-bottom: 1px solid var(--rule);",
-        "}",
+        "  padding-bottom: 0.8em; border-bottom: 1px solid var(--rule);", "}",
         "nav a { color: var(--fg-muted); text-decoration: none; }",
         "nav a:hover { color: var(--accent); text-decoration: underline; }",
         "main { font-size: 1em; }",
         "h1, h2, h3, h4 { line-height: 1.25; margin-top: 1.6em;",
-        "  margin-bottom: 0.5em; }",
-        "h1 {",
+        "  margin-bottom: 0.5em; }", "h1 {",
         "  font-size: 1.8em; border-bottom: 1px solid var(--rule);",
-        "  padding-bottom: 0.25em; margin-top: 0.5em;",
-        "}",
+        "  padding-bottom: 0.25em; margin-top: 0.5em;", "}",
         "h2 { font-size: 1.35em; color: var(--fg); }",
         "h3 { font-size: 1.1em; color: var(--fg-muted); }",
         "p { margin: 0.8em 0; }",
         "a { color: var(--accent); text-decoration: none; }",
         "a:hover { text-decoration: underline; }",
-        "a:visited { color: var(--accent-visited); }",
-        "code {",
+        "a:visited { color: var(--accent-visited); }", "code {",
         "  background: var(--code-bg); padding: 0.12em 0.35em;",
         "  border-radius: 3px; font-size: 0.88em;",
         "  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;",
-        "}",
-        "pre {",
-        "  background: var(--code-bg); padding: 0.9em 1em;",
+        "}", "pre {", "  background: var(--code-bg); padding: 0.9em 1em;",
         "  overflow-x: auto; border-radius: 5px; line-height: 1.45;",
-        "  font-size: 0.88em;",
-        "}",
+        "  font-size: 0.88em;", "}",
         "pre code { background: none; padding: 0; font-size: 1em; }",
-        "blockquote {",
-        "  border-left: 3px solid var(--rule); margin: 1em 0;",
-        "  padding: 0.2em 1em; color: var(--fg-muted);",
-        "}",
-        "table {",
+        "blockquote {", "  border-left: 3px solid var(--rule); margin: 1em 0;",
+        "  padding: 0.2em 1em; color: var(--fg-muted);", "}", "table {",
         "  border-collapse: collapse; margin: 1em 0; width: 100%;",
-        "  font-size: 0.95em;",
-        "}",
-        "th, td {",
+        "  font-size: 0.95em;", "}", "th, td {",
         "  border: 1px solid var(--rule); padding: 0.5em 0.8em;",
-        "  text-align: left; vertical-align: top;",
-        "}",
+        "  text-align: left; vertical-align: top;", "}",
         "th { background: var(--code-bg); font-weight: 600; }",
-        "ul, ol { padding-left: 1.6em; }",
-        "li { margin: 0.2em 0; }",
+        "ul, ol { padding-left: 1.6em; }", "li { margin: 0.2em 0; }",
         "hr { border: none; border-top: 1px solid var(--rule); margin: 2em 0; }",
         ".broken-link {",
         "  color: var(--broken); text-decoration: line-through;",
-        "  font-style: italic;",
-        "}",
+        "  font-style: italic;", "}",
         "/* Index page: category cards + two-column on wide screens */",
-        "main > h1:first-child { font-size: 2em; }",
-        "main > h2 {",
+        "main > h1:first-child { font-size: 2em; }", "main > h2 {",
         "  margin-top: 1.5em; padding: 0.5em 0.8em;",
         "  background: var(--card-bg); border: 1px solid var(--card-border);",
-        "  border-radius: 6px; font-size: 1.1em;",
-        "}",
-        "main > h2 + ul {",
-        "  list-style: none; padding: 0.5em 0 0 0.8em; margin-top: 0.3em;",
-        "}",
+        "  border-radius: 6px; font-size: 1.1em;", "}", "main > h2 + ul {",
+        "  list-style: none; padding: 0.5em 0 0 0.8em; margin-top: 0.3em;", "}",
         "main > h2 + ul li {",
-        "  padding: 0.15em 0; border-bottom: 1px dotted var(--rule);",
-        "}",
+        "  padding: 0.15em 0; border-bottom: 1px dotted var(--rule);", "}",
         "main > h2 + ul li:last-child { border-bottom: none; }",
-        "@media (min-width: 900px) {",
-        "  body.index main {",
+        "@media (min-width: 900px) {", "  body.index main {",
         "    display: grid; grid-template-columns: 1fr 1fr; gap: 1.5em 2em;",
-        "  }",
-        "  body.index main > h1 { grid-column: 1 / -1; }",
-        "}",
+        "  }", "  body.index main > h1 { grid-column: 1 / -1; }", "}",
         "@media (max-width: 520px) {",
         "  body { padding: 1em 0.8em 3em; font-size: 15px; }",
-        "  h1 { font-size: 1.5em; }",
-        "  pre { font-size: 0.82em; }",
-        "}"
-    )
+        "  h1 { font-size: 1.5em; }", "  pre { font-size: 0.82em; }", "}")
 }
 
 #' Write a top-level site index listing all pages
@@ -320,13 +284,11 @@ write_site_index <- function(all_md, vault, out_dir) {
     rel_md <- vapply(all_md, make_relative, character(1L), base = vault)
     rel_html <- sub("\\.md$", ".html", rel_md)
 
-    categories <- list(
-                       "Wiki" = file.path("wiki", ""),
+    categories <- list("Wiki" = file.path("wiki", ""),
                        "Raw: Articles" = file.path("raw", "articles", ""),
                        "Raw: Chats" = file.path("raw", "chats", ""),
                        "Raw: Briefings" = file.path("raw", "briefings", ""),
-                       "Raw: Matrix" = file.path("raw", "matrix", "")
-    )
+                       "Raw: Matrix" = file.path("raw", "matrix", ""))
     controls <- c("index.md", "log.md", "schema.md")
 
     body_lines <- c("<h1>Vault</h1>")

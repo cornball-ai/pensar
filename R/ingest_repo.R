@@ -125,8 +125,8 @@ ingest_repo <- function(path, name = NULL, ref = "HEAD",
 repo_git_meta <- function(path, ref = "HEAD") {
     git1 <- function(...) {
         out <- suppressWarnings(tryCatch(
-                system2("git", c("-C", path, ...),
-                        stdout = TRUE, stderr = FALSE),
+                system2("git", c("-C", path, ...), stdout = TRUE,
+                        stderr = FALSE),
                 error = function(e) character(0L)))
         if (length(out) == 0L) {
             ""
@@ -161,16 +161,11 @@ write_repo_artifact <- function(outpath, type, name, git_meta, content,
                source = if (nzchar(git_meta$origin)) git_meta$origin else
                git_meta$path,
                date = format(Sys.Date(), "%Y-%m-%d"),
-               repo = list(
-                           name = name,
-                           path = git_meta$path,
-                           origin = git_meta$origin,
-                           branch = git_meta$branch,
-                           commit = git_meta$sha,
-                           commit_short = git_meta$short_sha,
+               repo = list(name = name, path = git_meta$path,
+                           origin = git_meta$origin, branch = git_meta$branch,
+                           commit = git_meta$sha, commit_short = git_meta$short_sha,
                            commit_date = git_meta$commit_date,
-                           commit_subject = git_meta$commit_subject
-        )
+                           commit_subject = git_meta$commit_subject)
     )
     if (!is.null(tags)) {
         fm$tags <- tags
@@ -207,8 +202,7 @@ format_repo_ast <- function(name, path) {
             return("_(none)_")
         }
         vapply(seq_len(nrow(rows)),
-               function(i) fmt_def(rows[i,, drop = FALSE]),
-               character(1L))
+               function(i) fmt_def(rows[i,, drop = FALSE]), character(1L))
     }
 
     c(sprintf("# AST: %s", name),

@@ -77,8 +77,8 @@ push_all_remotes <- function(vault) {
     }
     for (r in remotes) {
         tryCatch(
-                 system2("git", c("-C", vault, "push", r),
-                         stdout = FALSE, stderr = FALSE),
+                 system2("git", c("-C", vault, "push", r), stdout = FALSE,
+                         stderr = FALSE),
                  error = function(e) NULL
         )
     }

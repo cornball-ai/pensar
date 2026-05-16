@@ -31,8 +31,7 @@ vault_graph <- function(vault = default_vault(), width = 1600L,
                         height = 1200L, ...) {
     if (!requireNamespace("saber", quietly = TRUE)) {
         stop("Package 'saber' is required for vault_graph(). ",
-             "Install it before calling this function.",
-             call. = FALSE)
+             "Install it before calling this function.", call. = FALSE)
     }
     vault <- normalizePath(vault, mustWork = TRUE)
 
