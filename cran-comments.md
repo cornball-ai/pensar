@@ -52,9 +52,7 @@ gracefully when `saber` is absent.
 
 - 0 errors
 - 0 warnings
-- 0 notes on all environments (against current CRAN `saber` 0.3.0;
-  the one repo-ingest test that needs newer `saber` is guarded by
-  `packageVersion("saber") < "0.6.0"` and skips cleanly)
+- 0 notes on all environments (against current CRAN `saber` 0.7.1).
 
 ## Downstream dependencies
 
