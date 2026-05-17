@@ -233,3 +233,34 @@ li <- lint(v19)
 expect_false("Notes/Foo" %in% li$broken_links$link)
 expect_false("Foo" %in% li$orphans)
 unlink(v19, recursive = TRUE)
+
+# --- 20. lint() tag clusters key raw pages by path so duplicate
+#    basenames count separately ---
+v20 <- file.path(tempdir(), paste0("reg-lint-tags-",
+                                   format(Sys.time(), "%H%M%OS3")))
+init_vault(v20, rproj = FALSE, agent_instructions = FALSE)
+make_page(v20, "raw/articles/Foo.md",
+          frontmatter = list(title = "Foo A", tags = c("topic-x")))
+make_page(v20, "raw/chats/Foo.md",
+          frontmatter = list(title = "Foo B", tags = c("topic-x")))
+li <- lint(v20, min_cluster_size = 2L)
+expect_true("topic-x" %in% li$suggested_clusters$tag)
+unlink(v20, recursive = TRUE)
+
+# --- 21. outlinks() surfaces ambiguity warnings to the caller ---
+v21 <- file.path(tempdir(), paste0("reg-out-amb-",
+                                   format(Sys.time(), "%H%M%OS3")))
+init_vault(v21, rproj = FALSE, agent_instructions = FALSE)
+make_page(v21, "A/Foo.md", frontmatter = list(title = "Foo A"))
+make_page(v21, "B/Foo.md", frontmatter = list(title = "Foo B"))
+make_page(v21, "wiki/Caller.md", frontmatter = list(title = "Caller"),
+          body = "Cites [[Foo]].")
+warns <- character(0L)
+ol <- withCallingHandlers(outlinks("Caller", vault = v21),
+                          warning = function(w) {
+                              warns <<- c(warns, conditionMessage(w))
+                              invokeRestart("muffleWarning")
+                          })
+expect_true(any(grepl("ambiguous wikilink", warns)))
+expect_true(ol$exists[ol$target == "Foo"])
+unlink(v21, recursive = TRUE)

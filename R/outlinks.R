@@ -35,15 +35,12 @@ outlinks <- function(page, vault = default_vault()) {
     unique_links <- unique(links)
     # Existence check goes through find_page() so path-style links
     # (`[[Notes/Foo]]`), .md-suffix links, frontmatter aliases, and
-    # block-anchor variants all resolve correctly.
+    # block-anchor variants all resolve correctly. Ambiguity warnings
+    # from find_page() surface to the caller; this is an interactive
+    # entry point and the user wants to know.
     exists_vec <- vapply(unique_links,
-                         function(t) {
-                             withCallingHandlers(
-                                 !is.null(find_page(t, vault)),
-                                 warning = function(w) {
-                                     invokeRestart("muffleWarning")
-                                 })
-                         }, logical(1L))
+                         function(t) !is.null(find_page(t, vault)),
+                         logical(1L))
     data.frame(target = unique_links, exists = exists_vec,
                stringsAsFactors = FALSE)
 }

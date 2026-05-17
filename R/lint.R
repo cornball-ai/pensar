@@ -81,7 +81,10 @@ lint <- function(vault = default_vault(), min_cluster_size = 3L) {
         if (is_wiki[i]) {
             wiki_tags <- c(wiki_tags, tags)
         } else {
-            raw_tags[[page_names[i]]] <- tags
+            # Key by relative path so two raw pages with the same
+            # basename in different folders don't overwrite each other
+            # and undercount tag clusters.
+            raw_tags[[page_paths[i]]] <- tags
         }
     }
     wiki_tag_set <- unique(wiki_tags)
