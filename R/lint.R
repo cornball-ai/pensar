@@ -22,53 +22,60 @@
 lint <- function(vault = default_vault(), min_cluster_size = 3L) {
     vault <- normalizePath(vault, mustWork = TRUE)
 
-    all_md <- list.files(vault, pattern = "\\.md$", recursive = TRUE,
-                         full.names = TRUE)
-    control <- c("index.md", "log.md", "schema.md")
-    all_md <- all_md[!basename(all_md) %in% control |
-        dirname(all_md) != vault]
+    # Registry-driven so existence checks, orphan calculations, and
+    # link extraction all agree with find_page() / outlinks() /
+    # backlinks() on path-style links and aliases.
+    reg <- vault_registry(vault)
+    page_rows <- reg[!reg$system_file, , drop = FALSE]
+    all_md <- file.path(vault, page_rows$path)
+    page_names <- page_rows$node_id
+    page_paths <- page_rows$path
 
-    page_names <- vapply(all_md, name_from_path, character(1L))
     is_wiki <- startsWith(normalizePath(all_md, mustWork = FALSE),
-                          normalizePath(file.path(vault, "wiki"), mustWork = FALSE))
+                          normalizePath(file.path(vault, "wiki"),
+                                        mustWork = FALSE))
 
-    # Build link graph
-    all_links <- character(0L)
-    link_source <- character(0L)
-    link_file <- character(0L)
-    for (fp in all_md) {
-        links <- parse_wikilinks(fp)
-        if (length(links) > 0L) {
-            all_links <- c(all_links, links)
-            link_source <- c(link_source, rep(name_from_path(fp),
-                    length(links)))
-            link_file <- c(link_file, rep(make_relative(fp, vault),
-                    length(links)))
+    # Build link graph: resolve every outbound link to its target path.
+    # Broken links are the ones that don't resolve at all.
+    referenced_paths <- character(0L)
+    broken_source <- character(0L)
+    broken_link <- character(0L)
+    broken_file <- character(0L)
+    for (i in seq_len(nrow(page_rows))) {
+        links <- page_rows$links_out[[i]]
+        if (length(links) == 0L) {
+            next
+        }
+        for (link in links) {
+            resolved <- resolve_target_path(link, vault)
+            if (is.na(resolved)) {
+                broken_source <- c(broken_source, page_rows$node_id[i])
+                broken_link <- c(broken_link, link)
+                broken_file <- c(broken_file, page_rows$path[i])
+            } else {
+                referenced_paths <- c(referenced_paths, resolved)
+            }
         }
     }
 
-    # Orphan pages: pages with no incoming wikilinks
-    referenced <- unique(all_links)
-    orphan_names <- setdiff(page_names, referenced)
+    # Orphan pages: paths that nothing points to.
+    referenced_paths <- unique(referenced_paths)
+    orphan_idx <- !(page_paths %in% referenced_paths)
+    orphan_names <- sort(page_names[orphan_idx])
 
-    # Broken wikilinks: targets that don't exist as pages
-    broken <- !all_links %in% page_names
-    broken_df <- data.frame(
-                            source = link_source[broken],
-                            link = all_links[broken],
-                            file = link_file[broken],
-                            stringsAsFactors = FALSE
-    )
+    broken_df <- data.frame(source = broken_source, link = broken_link,
+                            file = broken_file, stringsAsFactors = FALSE)
     broken_df <- unique(broken_df)
+    rownames(broken_df) <- NULL
 
     # Tag clusters: tags shared by >= min_cluster_size raw pages,
-    # with no wiki page tagged the same
+    # with no wiki page tagged the same. Data is read from the registry
+    # so we don't rescan files.
     raw_tags <- list()
     wiki_tags <- character(0L)
-    for (i in seq_along(all_md)) {
-        fm <- parse_frontmatter(all_md[i])
-        tags <- fm$tags
-        if (is.null(tags) || length(tags) == 0L) {
+    for (i in seq_len(nrow(page_rows))) {
+        tags <- page_rows$tags[[i]]
+        if (length(tags) == 0L) {
             next
         }
         if (is_wiki[i]) {

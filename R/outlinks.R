@@ -48,6 +48,29 @@ outlinks <- function(page, vault = default_vault()) {
                stringsAsFactors = FALSE)
 }
 
+#' Resolve a wikilink target to a relative vault path
+#'
+#' Thin wrapper over \code{find_page()} that returns the canonical
+#' relative path the target resolves to (or \code{NA_character_} if
+#' nothing matches). Used by graph consumers (\code{backlinks()},
+#' \code{lint()}) so two queries pointing at the same page (e.g.,
+#' \code{"Foo"} and \code{"Notes/Foo"}) compare equal.
+#'
+#' Suppresses the ambiguous-basename warning from \code{find_page()};
+#' graph operations don't surface it on every iteration. Interactive
+#' callers of \code{find_page()} / \code{outlinks()} still see it.
+#' @noRd
+resolve_target_path <- function(query, vault) {
+    fp <- withCallingHandlers(find_page(query, vault),
+                              warning = function(w) {
+                                  invokeRestart("muffleWarning")
+                              })
+    if (is.null(fp)) {
+        return(NA_character_)
+    }
+    substring(fp, nchar(vault) + 2L)
+}
+
 #' Find a page file by name
 #'
 #' Registry-aware resolution. The query is first normalized by
