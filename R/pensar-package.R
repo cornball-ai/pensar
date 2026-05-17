@@ -11,8 +11,9 @@
 #'   \item \code{Sys.setenv(PENSAR_VAULT = "/path/to/vault")}
 #'   \item \code{pensar::use_vault("/path/to/vault")} (typically in
 #'     \code{~/.Rprofile})
-#'   \item Working from a directory containing \code{schema.md}
-#'     (auto-detected via walk-up from \code{getwd()})
+#'   \item Working from a directory containing \code{schema.md}, or
+#'     whose \code{vault/} subdir contains it (auto-detected via
+#'     walk-up from \code{getwd()})
 #'   \item Passing \code{vault =} (or \code{path =} for \code{init_vault()})
 #'     explicitly to each call
 #' }

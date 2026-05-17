@@ -2,62 +2,87 @@
 #' @description Internal helpers for vault path resolution, timestamps,
 #'   slug generation, and path manipulation.
 
-#' Default vault path
+#' Resolve a vault path and report where it came from
 #'
-#' Resolves to a user-configured vault path. Per CRAN policy, pensar
-#' will not silently write to the user's home filespace, so there is
-#' no implicit fallback location -- the user must opt in.
+#' Tries the configured sources in order and returns the first hit
+#' along with a label describing which source matched. Used by
+#' \code{default_vault()} (which discards the label) and by callers
+#' that surface provenance to the user, e.g. \code{status()}.
 #'
 #' Resolution order (all opt-in):
 #' \enumerate{
 #'   \item The \code{PENSAR_VAULT} environment variable.
-#'   \item Walk-up from \code{getwd()} looking for a \code{schema.md} marker
-#'     (project-local vault; mirrors how git finds \code{.git}).
+#'   \item Walk-up from \code{start} looking for \code{schema.md} in
+#'     the current rung, then \code{vault/schema.md} one level down,
+#'     then climb.
 #'   \item \code{options("pensar.vault")} (set by \code{use_vault()},
 #'     typically in \code{~/.Rprofile} as a global default).
 #' }
-#' If none of these resolves, \code{default_vault()} errors with a
-#' setup hint. Callers wanting a one-off path should pass
-#' \code{vault =} explicitly (examples and tests use \code{tempfile()}
-#' / \code{tempdir()}).
-#' @return Character string.
+#' Per CRAN policy, no implicit home-filespace fallback. If none of
+#' these resolves, errors with a setup hint.
+#' @param start Starting directory for walk-up. Defaults to
+#'   \code{getwd()}. Exposed for testability.
+#' @return Named list with \code{path} (normalized) and \code{source}
+#'   (one of \code{"env"}, \code{"walkup"}, \code{"walkup-subdir"},
+#'   \code{"option"}).
 #' @noRd
-default_vault <- function() {
+resolve_vault <- function(start = getwd()) {
     env <- Sys.getenv("PENSAR_VAULT", unset = "")
     if (nzchar(env)) {
-        return(path.expand(env))
+        return(list(path = normalizePath(path.expand(env), mustWork = FALSE),
+                    source = "env"))
     }
-    proj <- find_vault_walkup()
+    proj <- find_vault_walkup(start)
     if (!is.null(proj)) {
         return(proj)
     }
     opt <- getOption("pensar.vault", NULL)
     if (!is.null(opt)) {
-        return(path.expand(opt))
+        return(list(path = normalizePath(path.expand(opt), mustWork = FALSE),
+                    source = "option"))
     }
     stop("No pensar vault configured. Choose one of:\n",
          "  - Set PENSAR_VAULT=/path/to/vault in your environment\n",
          "  - Call pensar::use_vault('/path/to/vault') ",
          "(persist via ~/.Rprofile)\n",
-         "  - Run from inside a directory containing schema.md\n",
+         "  - Run from inside a directory containing schema.md, or ",
+         "from a parent directory whose vault/ subdir contains it\n",
          "  - Pass vault = '/path' (or path = '/path' for ",
          "init_vault()) explicitly", call. = FALSE)
+}
+
+#' Default vault path
+#'
+#' Thin wrapper around \code{resolve_vault()} that returns just the
+#' path. Most callers want this; \code{status()} calls
+#' \code{resolve_vault()} directly to keep the source label.
+#' @return Character string.
+#' @noRd
+default_vault <- function() {
+    resolve_vault()$path
 }
 
 #' Walk up from a starting directory looking for a vault marker
 #'
 #' A directory containing \code{schema.md} is treated as a vault root.
 #' \code{init_vault()} seeds \code{schema.md} and refuses to overwrite,
-#' so its presence is a reliable marker.
+#' so its presence is a reliable marker. At each rung the current
+#' directory is preferred over a \code{vault/} subdir.
 #' @param start Starting directory. Defaults to \code{getwd()}.
-#' @return Vault path, or \code{NULL} if no vault is found before reaching
-#'   the filesystem root.
+#' @return Named list with \code{path} and \code{source}
+#'   (\code{"walkup"} or \code{"walkup-subdir"}), or \code{NULL} if no
+#'   vault is found before reaching the filesystem root.
 #' @noRd
 find_vault_walkup <- function(start = getwd()) {
     dir <- normalizePath(start, mustWork = FALSE)
     repeat {
         if (file.exists(file.path(dir, "schema.md"))) {
-            return(dir)
+            return(list(path = dir, source = "walkup"))
+        }
+        sub <- file.path(dir, "vault")
+        if (file.exists(file.path(sub, "schema.md"))) {
+            return(list(path = normalizePath(sub, mustWork = FALSE),
+                        source = "walkup-subdir"))
         }
         parent <- dirname(dir)
         if (parent == dir) {
@@ -73,7 +98,8 @@ find_vault_walkup <- function(start = getwd()) {
 #' resolve to \code{path} without repeating the argument. Persist by
 #' adding \code{pensar::use_vault("~/wiki")} to \code{~/.Rprofile} as
 #' a global default. Both \code{PENSAR_VAULT} and a project-local
-#' \code{schema.md} found via walk-up will override this option (see
+#' \code{schema.md} found via walk-up (in the current directory or a
+#' \code{vault/} subdir) will override this option (see
 #' \code{default_vault} resolution order).
 #' @param path Path to your pensar vault directory.
 #' @return The resolved path, invisibly.
