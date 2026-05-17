@@ -39,8 +39,11 @@
 #' @param refresh If \code{TRUE}, rebuild and overwrite the cache.
 #' @return A data.frame with columns: \code{path}, \code{node_id},
 #'   \code{page_uid}, \code{title}, \code{aliases}, \code{type},
-#'   \code{tags}, \code{sources}, \code{links_out}, \code{system_file}.
-#'   Aliases / tags / links_out are list-columns.
+#'   \code{category}, \code{tags}, \code{sources}, \code{links_out},
+#'   \code{system_file}. Aliases / tags / links_out are list-columns.
+#'   The \code{type} and \code{category} fields come from frontmatter
+#'   verbatim; callers compute an effective type as \code{type}
+#'   when present, falling back to \code{category} otherwise.
 #' @examples
 #' v <- tempfile("vault-")
 #' init_vault(v, rproj = FALSE, agent_instructions = FALSE)
@@ -109,6 +112,12 @@ build_registry_row <- function(filepath, vault) {
     }
     type <- as.character(type)
 
+    category <- fm$category %||% NA_character_
+    if (is.list(category) || length(category) != 1L) {
+        category <- NA_character_
+    }
+    category <- as.character(category)
+
     sources <- fm$source %||% NA_character_
     if (is.list(sources) || length(sources) != 1L) {
         sources <- NA_character_
@@ -125,7 +134,7 @@ build_registry_row <- function(filepath, vault) {
 
     data.frame(path = rel_path, node_id = node_id, page_uid = page_uid,
                title = title, aliases = I(aliases), type = type,
-               tags = I(tags), sources = sources,
+               category = category, tags = I(tags), sources = sources,
                links_out = I(links_out), system_file = system_file,
                stringsAsFactors = FALSE)
 }
@@ -135,7 +144,8 @@ build_registry_row <- function(filepath, vault) {
 empty_registry <- function() {
     data.frame(path = character(0L), node_id = character(0L),
                page_uid = character(0L), title = character(0L),
-               aliases = I(list()), type = character(0L), tags = I(list()),
+               aliases = I(list()), type = character(0L),
+               category = character(0L), tags = I(list()),
                sources = character(0L), links_out = I(list()),
                system_file = logical(0L), stringsAsFactors = FALSE)
 }
@@ -143,7 +153,9 @@ empty_registry <- function() {
 # --- cache ------------------------------------------------------------
 
 #' Session-level cache. Keyed by SHA-1 of normalized vault path.
-#' Each entry is list(mtimes = ..., df = ...).
+#' Each entry is list(sig = ..., df = ...). The signature is a sorted
+#' character vector of \code{"<relpath>\\t<mtime>\\t<size>"} triples,
+#' keyed by relative path so renames invalidate the cache.
 #' @noRd
 .registry_cache <- new.env(parent = emptyenv())
 
@@ -153,7 +165,28 @@ registry_cache_key <- function(vault) {
     digest::digest(vault, algo = "sha1")
 }
 
-#' Get a cached registry if present and still valid (mtimes match)
+#' Build the registry cache signature for a vault
+#'
+#' Triples of relative path / mtime / size, sorted by relative path.
+#' Catches renames (path changes), edits (mtime changes), and partial
+#' rewrites (size changes), unlike a sorted-mtime-only check which
+#' could miss in-session renames between same-mtime files.
+#' @noRd
+registry_signature <- function(vault) {
+    all_md <- list.files(vault, pattern = "\\.md$", recursive = TRUE,
+                         full.names = TRUE)
+    if (length(all_md) == 0L) {
+        return(character(0L))
+    }
+    rel <- substring(all_md, nchar(vault) + 2L)
+    info <- file.info(all_md)
+    sig <- sprintf("%s\t%s\t%d", rel,
+                   format(info$mtime, "%Y-%m-%dT%H:%M:%OS6"),
+                   as.integer(info$size))
+    sort(sig)
+}
+
+#' Get a cached registry if present and still valid
 #' @noRd
 registry_cache_get <- function(vault, cache, key) {
     holder <- if (cache == "session") {
@@ -171,13 +204,8 @@ registry_cache_get <- function(vault, cache, key) {
         return(NULL)
     }
 
-    all_md <- list.files(vault, pattern = "\\.md$", recursive = TRUE,
-                         full.names = TRUE)
-    if (length(all_md) != length(holder$mtimes)) {
-        return(NULL)
-    }
-    current_mtimes <- unname(file.info(all_md)$mtime)
-    if (!identical(sort(holder$mtimes), sort(current_mtimes))) {
+    current_sig <- registry_signature(vault)
+    if (!identical(holder$sig, current_sig)) {
         return(NULL)
     }
     holder$df
@@ -186,10 +214,7 @@ registry_cache_get <- function(vault, cache, key) {
 #' Store a registry in the chosen cache
 #' @noRd
 registry_cache_put <- function(vault, cache, key, df) {
-    all_md <- list.files(vault, pattern = "\\.md$", recursive = TRUE,
-                         full.names = TRUE)
-    mtimes <- unname(file.info(all_md)$mtime)
-    holder <- list(mtimes = mtimes, df = df)
+    holder <- list(sig = registry_signature(vault), df = df)
     if (cache == "session") {
         .registry_cache[[key]] <- holder
     } else {

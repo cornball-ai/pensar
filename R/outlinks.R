@@ -32,43 +32,62 @@ outlinks <- function(page, vault = default_vault()) {
                           stringsAsFactors = FALSE))
     }
 
-    all_md <- list.files(vault, pattern = "\\.md$", recursive = TRUE,
-                         full.names = TRUE)
-    control <- c("index.md", "log.md", "schema.md")
-    all_md <- all_md[!basename(all_md) %in% control |
-        dirname(all_md) != vault]
-    page_names <- vapply(all_md, name_from_path, character(1L))
-
     unique_links <- unique(links)
-    data.frame(
-               target = unique_links,
-               exists = unique_links %in% page_names,
-               stringsAsFactors = FALSE
-    )
+    # Existence check goes through find_page() so path-style links
+    # (`[[Notes/Foo]]`), .md-suffix links, frontmatter aliases, and
+    # block-anchor variants all resolve correctly.
+    exists_vec <- vapply(unique_links,
+                         function(t) {
+                             withCallingHandlers(
+                                 !is.null(find_page(t, vault)),
+                                 warning = function(w) {
+                                     invokeRestart("muffleWarning")
+                                 })
+                         }, logical(1L))
+    data.frame(target = unique_links, exists = exists_vec,
+               stringsAsFactors = FALSE)
 }
 
 #' Find a page file by name
 #'
-#' Registry-aware resolution. Resolution order:
+#' Registry-aware resolution. The query is first normalized by
+#' \code{normalize_wikilink_target()} so anchors (\code{#section},
+#' \code{#^block-id}) and surrounding whitespace are stripped.
+#' Resolution order:
 #' \enumerate{
-#'   \item exact relative-path match;
-#'   \item exact \code{page_uid} match (from frontmatter \code{id}/\code{address});
+#'   \item exact relative-path match (with or without a \code{.md} suffix);
+#'   \item path match against \code{tools::file_path_sans_ext(reg$path)}
+#'     so \code{[[Notes/Foo]]} resolves to \code{Notes/Foo.md};
+#'   \item exact \code{page_uid} match (from frontmatter
+#'     \code{id}/\code{address});
 #'   \item unique \code{node_id} (basename) match;
-#'   \item ambiguous \code{node_id} match - warns and returns the
-#'     first-sorted candidate, preserving today's behavior;
+#'   \item ambiguous \code{node_id} - warns and returns the first-sorted
+#'     candidate, preserving today's silent first-match behavior;
 #'   \item frontmatter \code{aliases} match.
 #' }
 #' Returns \code{NULL} when nothing matches.
 #' @noRd
 find_page <- function(page, vault) {
+    page <- normalize_wikilink_target(page)
+    if (!nzchar(page)) {
+        return(NULL)
+    }
+
     reg <- vault_registry(vault)
     if (nrow(reg) == 0L) {
         return(NULL)
     }
 
-    path_match <- reg$path == page
+    path_candidates <- c(page, paste0(page, ".md"))
+    path_match <- reg$path %in% path_candidates
     if (any(path_match)) {
         return(file.path(vault, reg$path[which(path_match)[1L]]))
+    }
+
+    paths_no_ext <- tools::file_path_sans_ext(reg$path)
+    no_ext_match <- paths_no_ext == page
+    if (any(no_ext_match)) {
+        return(file.path(vault, reg$path[which(no_ext_match)[1L]]))
     }
 
     uid_match <- !is.na(reg$page_uid) & reg$page_uid == page
@@ -84,7 +103,8 @@ find_page <- function(page, vault) {
     if (nmatches > 1L) {
         candidates <- sort(reg$path[nid_match])
         warning("ambiguous wikilink: '", page, "' matches ", nmatches,
-                " pages: ", paste(candidates, collapse = ", "), call. = FALSE)
+                " pages: ", paste(candidates, collapse = ", "),
+                call. = FALSE)
         return(file.path(vault, candidates[1L]))
     }
 
