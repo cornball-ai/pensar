@@ -60,31 +60,52 @@ init_vault <- function(path = default_vault(), rproj = TRUE,
                        agent_instructions = TRUE, adopt = FALSE,
                        commit = NULL, force = FALSE) {
     path <- normalizePath(path, mustWork = FALSE)
-    if (file.exists(file.path(path, "schema.md"))) {
-        message("Vault already exists at: ", path)
-        return(invisible(path))
-    }
 
+    # Adopt mode is checked first so a foreign vault that happens to
+    # already carry a schema.md doesn't slip past with the "Vault
+    # already exists" early return.
     if (isTRUE(adopt)) {
         if (!dir.exists(path)) {
             dir.create(path, recursive = TRUE, showWarnings = FALSE)
         }
         path <- normalizePath(path)
-        schema_path <- file.path(path, "schema.md")
-        if (!file.exists(schema_path)) {
-            writeLines(adopted_schema_template(), schema_path)
+
+        if (file.exists(file.path(path, "schema.md"))) {
+            if (vault_is_adopted(path)) {
+                message("Vault already adopted at: ", path)
+                return(invisible(path))
+            }
+            message("Refusing to convert existing pensar vault to ",
+                    "adopt mode: ", path,
+                    "\n  Existing schema.md is native (no adopted: ",
+                    "true). Move or edit it explicitly first.")
+            return(invisible(NULL))
         }
-        if (!file.exists(file.path(path, "log.md"))) {
+
+        # Track which files pensar creates here so we don't append a
+        # log entry into a pre-existing user log.md.
+        log_existed_before <- file.exists(file.path(path, "log.md"))
+
+        writeLines(adopted_schema_template(),
+                   file.path(path, "schema.md"))
+        if (!log_existed_before) {
             writeLines(log_seed(), file.path(path, "log.md"))
         }
         if (!file.exists(file.path(path, "index.md"))) {
             writeLines(index_seed(), file.path(path, "index.md"))
         }
-        log_entry("Vault adopted (read-only)", operation = "adopt",
-                  vault = path)
+        if (!log_existed_before) {
+            log_entry("Vault adopted (read-only)", operation = "adopt",
+                      vault = path)
+        }
         message("Adopt mode: read-first. ingest() refuses writes ",
                 "unless force = TRUE.")
         message("Vault adopted at: ", path)
+        return(invisible(path))
+    }
+
+    if (file.exists(file.path(path, "schema.md"))) {
+        message("Vault already exists at: ", path)
         return(invisible(path))
     }
 

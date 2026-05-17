@@ -136,3 +136,65 @@ expect_true(any(grepl("^## concept ", ix)))
 st <- status(d10)
 expect_equal(unname(st$by_type[["concept"]]), 1L)
 unlink(d10, recursive = TRUE)
+
+# --- 11. init_vault(adopt = TRUE) on a foreign schema.md refuses ---
+d11 <- file.path(tempdir(),
+                 paste0("adopt-foreign-schema-",
+                        format(Sys.time(), "%H%M%OS3")))
+dir.create(d11, recursive = TRUE)
+writeLines(c("---", "title: pre-existing schema", "type: schema",
+             "---", "", "# Foreign"),
+           file.path(d11, "schema.md"))
+result <- init_vault(d11, rproj = FALSE, agent_instructions = FALSE,
+                     adopt = TRUE)
+expect_null(result)
+expect_false(pensar:::vault_is_adopted(d11))
+# Schema.md untouched
+expect_identical(readLines(file.path(d11, "schema.md"))[2L],
+                 "title: pre-existing schema")
+unlink(d11, recursive = TRUE)
+
+# --- 12. init_vault(adopt = TRUE) on an already-adopted vault returns
+#    early with a message and doesn't disturb anything ---
+d12 <- file.path(tempdir(),
+                 paste0("adopt-re-adopt-",
+                        format(Sys.time(), "%H%M%OS3")))
+init_vault(d12, rproj = FALSE, agent_instructions = FALSE, adopt = TRUE)
+schema_before <- readLines(file.path(d12, "schema.md"))
+log_before <- readLines(file.path(d12, "log.md"))
+init_vault(d12, rproj = FALSE, agent_instructions = FALSE, adopt = TRUE)
+expect_identical(readLines(file.path(d12, "schema.md")), schema_before)
+expect_identical(readLines(file.path(d12, "log.md")), log_before)
+unlink(d12, recursive = TRUE)
+
+# --- 13. init_vault(adopt = TRUE) does not append to a pre-existing
+#    log.md (leaves user content untouched) ---
+d13 <- file.path(tempdir(),
+                 paste0("adopt-preexist-log-",
+                        format(Sys.time(), "%H%M%OS3")))
+dir.create(d13, recursive = TRUE)
+my_log <- c("# My personal log", "", "- 2026-05-17 caught a fish")
+writeLines(my_log, file.path(d13, "log.md"))
+init_vault(d13, rproj = FALSE, agent_instructions = FALSE, adopt = TRUE)
+expect_identical(readLines(file.path(d13, "log.md")), my_log)
+unlink(d13, recursive = TRUE)
+
+# --- 14. Adopted index uses path-style links when basenames collide ---
+d14 <- file.path(tempdir(),
+                 paste0("adopt-idx-amb-",
+                        format(Sys.time(), "%H%M%OS3")))
+dir.create(d14, recursive = TRUE)
+dir.create(file.path(d14, "A"), recursive = TRUE)
+dir.create(file.path(d14, "B"), recursive = TRUE)
+writeLines(c("---", "title: Foo A", "type: concept", "---"),
+           file.path(d14, "A", "Foo.md"))
+writeLines(c("---", "title: Foo B", "type: concept", "---"),
+           file.path(d14, "B", "Foo.md"))
+init_vault(d14, rproj = FALSE, agent_instructions = FALSE, adopt = TRUE)
+update_index(d14)
+ix <- readLines(file.path(d14, "index.md"))
+# Both pages link as path-style targets, not the ambiguous basename
+expect_true(any(grepl("\\[\\[A/Foo\\]\\]", ix)))
+expect_true(any(grepl("\\[\\[B/Foo\\]\\]", ix)))
+expect_false(any(grepl("\\[\\[Foo\\]\\]", ix)))
+unlink(d14, recursive = TRUE)

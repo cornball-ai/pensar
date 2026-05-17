@@ -90,19 +90,32 @@ update_index_adopted <- function(vault) {
                             page_rows$category, page_rows$type)
         type_col <- ifelse(is.na(effective) | effective == "",
                            "(untyped)", effective)
+        # Disambiguate links: when node_id is unique, link as
+        # `[[node_id]]`. When two or more pages share a node_id, link
+        # as `[[path/without-ext]]` so the index doesn't emit two
+        # identical wikilinks that both resolve to the same page.
+        nid_counts <- table(page_rows$node_id)
+        ambiguous <- names(nid_counts)[nid_counts > 1L]
+        link_text <- ifelse(page_rows$node_id %in% ambiguous,
+                            tools::file_path_sans_ext(page_rows$path),
+                            page_rows$node_id)
         sorted_types <- sort(unique(type_col))
         for (t in sorted_types) {
-            in_type <- page_rows[type_col == t,, drop = FALSE]
-            lines <- c(lines, sprintf("## %s (%d)", t, nrow(in_type)), "")
+            in_type_idx <- type_col == t
+            in_type <- page_rows[in_type_idx, , drop = FALSE]
+            in_type_links <- link_text[in_type_idx]
+            lines <- c(lines, sprintf("## %s (%d)", t, nrow(in_type)),
+                       "")
             for (i in seq_len(nrow(in_type))) {
                 title <- if (!is.na(in_type$title[i]) &&
-                    nzchar(in_type$title[i])) {
+                             nzchar(in_type$title[i])) {
                     in_type$title[i]
                 } else {
                     in_type$node_id[i]
                 }
                 lines <- c(lines,
-                           sprintf("- [[%s]] -- %s", in_type$node_id[i], title))
+                           sprintf("- [[%s]] -- %s",
+                                   in_type_links[i], title))
             }
             lines <- c(lines, "")
         }
