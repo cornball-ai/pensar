@@ -126,6 +126,48 @@ mp <- manifest_path(v9)
 expect_true(endsWith(mp, ".pensar/manifest.yml"))
 unlink(v9, recursive = TRUE)
 
+# --- 11. Structurally invalid manifest fields coerce to empty + warn ---
+v11 <- file.path(tempdir(), paste0("man-shape-",
+                                   format(Sys.time(), "%H%M%OS3")))
+init_vault(v11, rproj = FALSE, agent_instructions = FALSE)
+dir.create(file.path(v11, ".pensar"), showWarnings = FALSE)
+# Valid YAML, but sources is a scalar and address_map is an unnamed list
+writeLines(c("version: 1",
+             "created: 2026-05-17",
+             "sources: bad",
+             "address_map:",
+             "  - a",
+             "  - b"),
+           file.path(v11, ".pensar", "manifest.yml"))
+warns <- character(0L)
+m <- withCallingHandlers(read_manifest(v11),
+                         warning = function(w) {
+                             warns <<- c(warns, conditionMessage(w))
+                             invokeRestart("muffleWarning")
+                         })
+expect_true(any(grepl("sources", warns)))
+expect_true(any(grepl("address_map", warns)))
+expect_true(is.list(m$sources) && length(m$sources) == 0L)
+expect_true(is.list(m$address_map) && length(m$address_map) == 0L)
+# An ingest on top of the recovered manifest still works
+ingest("After bad manifest.", type = "articles", source = "demo",
+       vault = v11)
+m2 <- read_manifest(v11)
+expect_true(length(m2$sources) > 0L)
+unlink(v11, recursive = TRUE)
+
+# --- 12. update_manifest() requires path when other fields are set ---
+v12 <- file.path(tempdir(), paste0("man-nopath-",
+                                   format(Sys.time(), "%H%M%OS3")))
+init_vault(v12, rproj = FALSE, agent_instructions = FALSE)
+err <- tryCatch(update_manifest(v12, source = "demo",
+                                hash = "sha1:abc"),
+                error = function(e) conditionMessage(e))
+expect_true(grepl("`path` is required", err))
+# But calling with no fields at all is still fine (returns path)
+expect_silent(update_manifest(v12))
+unlink(v12, recursive = TRUE)
+
 # --- 10. Malformed manifest yields empty struct with warning ---
 v10 <- file.path(tempdir(), paste0("man-bad-",
                                    format(Sys.time(), "%H%M%OS3")))

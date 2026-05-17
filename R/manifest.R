@@ -62,9 +62,32 @@ read_manifest <- function(vault) {
     }
     parsed$version <- parsed$version %||% 1L
     parsed$created <- parsed$created %||% format(Sys.Date(), "%Y-%m-%d")
-    parsed$sources <- parsed$sources %||% list()
-    parsed$address_map <- parsed$address_map %||% list()
+    parsed$sources <- coerce_manifest_map(parsed$sources, "sources",
+                                          fp)
+    parsed$address_map <- coerce_manifest_map(parsed$address_map,
+                                              "address_map", fp)
     parsed
+}
+
+#' Coerce a manifest sub-field to a (possibly empty) named list
+#'
+#' YAML files in the wild sometimes use \code{sources: bad} (a scalar)
+#' or \code{sources: []} (an unnamed list). Either would crash callers
+#' that index with \code{[[path]]}. Coerce anything non-list to an
+#' empty list and warn, so a corrupt manifest doesn't abort an ingest
+#' midway.
+#' @noRd
+coerce_manifest_map <- function(x, field, fp) {
+    if (is.null(x)) {
+        return(list())
+    }
+    if (!is.list(x) || (length(x) > 0L && is.null(names(x)))) {
+        warning("manifest field '", field, "' at ", fp,
+                " is not a named list; treating as empty",
+                call. = FALSE)
+        return(list())
+    }
+    x
 }
 
 #' Update the pensar manifest for a vault
@@ -109,7 +132,14 @@ update_manifest <- function(vault, source = NULL, path = NULL,
                             page_uid = NULL, address = NULL, hash = NULL,
                             ingested_at = NULL) {
     vault <- normalizePath(vault, mustWork = TRUE)
+    other_fields_set <- !is.null(source) || !is.null(page_uid) ||
+        !is.null(address) || !is.null(hash) || !is.null(ingested_at)
     if (is.null(path)) {
+        if (other_fields_set) {
+            stop("update_manifest(): `path` is required when any of ",
+                 "source, page_uid, address, hash, or ingested_at is ",
+                 "set.", call. = FALSE)
+        }
         return(invisible(file.path(vault, ".pensar", "manifest.yml")))
     }
 
