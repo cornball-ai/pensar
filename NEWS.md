@@ -1,3 +1,23 @@
+# pensar 0.5.0.6
+
+* Four new retrieval primitives in `R/retrieval.R`, all registry-backed
+  and write-free:
+  * `search_pages(query, vault, type, in_body)` does substring search
+    over title, tags, and frontmatter aliases by default; with
+    `in_body = TRUE` it also scans page bodies. Returns a data.frame
+    with a `matched_in` column identifying where the substring hit.
+  * `page_context(name, vault, body_chars)` returns a structured view
+    of one page: `frontmatter`, `body_head`, `outlinks`, `backlinks`.
+    Resolves `name` through the registry, so path-style queries work
+    alongside the basename style.
+  * `related_pages(name, vault, k)` ranks other pages by shared tags
+    plus shared outlinks (co-citation). Returns top-k with a `score`
+    column.
+  * `recent_activity(vault, days)` parses `log.md` and returns recent
+    entries newest-first within the window.
+* All four read from the existing registry / log; none write anything
+  to the vault or to `.pensar/`.
+
 # pensar 0.5.0.5
 
 * New `manifest_path(vault)`, `read_manifest(vault)`, and
