@@ -16,6 +16,7 @@ export(use_vault)
 export(vault_commit)
 export(vault_export)
 export(vault_graph)
+export(vault_registry)
 
 S3method(print,pensar_lint)
 S3method(print,pensar_page)

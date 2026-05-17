@@ -1,3 +1,22 @@
+# pensar 0.5.0.3
+
+* New `vault_registry(vault, cache, refresh)` exported. Builds a
+  data.frame with one row per page in the vault: `path`, `node_id` (the
+  current link-resolution identity), `page_uid` (stable identity from
+  frontmatter `id:`/`address:`, `NA` otherwise), `title`, `aliases`,
+  `type`, `tags`, `sources`, `links_out`, `system_file`. Caches in a
+  session env by default; `cache = "user"` persists to
+  `tools::R_user_dir("pensar", "cache")`. Never writes inside the vault
+  itself - `.pensar/` is reserved for vault-owned state.
+* `find_page()` (used by `outlinks()` and other link callers) now
+  resolves through the registry. New order: exact path → `page_uid` →
+  unique `node_id` → ambiguous-basename warning + first-sorted →
+  frontmatter alias. Preserves today's behavior for unique basenames;
+  warns where today it would silently pick one of several pages with
+  the same basename.
+* New Import: `digest` (used internally to hash vault paths for cache
+  keys).
+
 # pensar 0.5.0.1
 
 * Walk-up vault discovery now also checks `<dir>/vault/schema.md` at
