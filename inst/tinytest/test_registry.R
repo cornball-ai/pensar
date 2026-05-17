@@ -208,3 +208,28 @@ r2 <- vault_registry(v17, cache = "session")
 expect_false("A" %in% r2$node_id)
 expect_true("B" %in% r2$node_id)
 unlink(v17, recursive = TRUE)
+
+# --- 18. backlinks() resolves path-style wikilinks ---
+v18 <- file.path(tempdir(), paste0("reg-bl-path-",
+                                   format(Sys.time(), "%H%M%OS3")))
+init_vault(v18, rproj = FALSE, agent_instructions = FALSE)
+make_page(v18, "Notes/Foo.md", frontmatter = list(title = "Foo"))
+make_page(v18, "Notes/Bar.md", frontmatter = list(title = "Bar"),
+          body = "Body cites [[Notes/Foo]].")
+bl_by_basename <- backlinks("Foo", vault = v18)
+bl_by_path <- backlinks("Notes/Foo", vault = v18)
+expect_true("Bar" %in% bl_by_basename$source)
+expect_true("Bar" %in% bl_by_path$source)
+unlink(v18, recursive = TRUE)
+
+# --- 19. lint() does not flag path-style links as broken, Foo not orphan ---
+v19 <- file.path(tempdir(), paste0("reg-lint-path-",
+                                   format(Sys.time(), "%H%M%OS3")))
+init_vault(v19, rproj = FALSE, agent_instructions = FALSE)
+make_page(v19, "Notes/Foo.md", frontmatter = list(title = "Foo"))
+make_page(v19, "Notes/Bar.md", frontmatter = list(title = "Bar"),
+          body = "Body cites [[Notes/Foo]].")
+li <- lint(v19)
+expect_false("Notes/Foo" %in% li$broken_links$link)
+expect_false("Foo" %in% li$orphans)
+unlink(v19, recursive = TRUE)
