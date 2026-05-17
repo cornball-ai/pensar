@@ -93,8 +93,10 @@ status_adopted <- function(vault, src) {
         by_type <- integer(0L)
         names(by_type) <- character(0L)
     } else {
-        type_col <- ifelse(is.na(page_rows$type) | page_rows$type == "",
-                           "(untyped)", page_rows$type)
+        effective <- ifelse(is.na(page_rows$type) | page_rows$type == "",
+                            page_rows$category, page_rows$type)
+        type_col <- ifelse(is.na(effective) | effective == "",
+                           "(untyped)", effective)
         by_type <- sort(table(type_col), decreasing = TRUE)
     }
 

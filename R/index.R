@@ -86,8 +86,10 @@ update_index_adopted <- function(vault) {
     if (nrow(page_rows) == 0L) {
         lines <- c(lines, "(no pages found)")
     } else {
-        type_col <- ifelse(is.na(page_rows$type) | page_rows$type == "",
-                           "(untyped)", page_rows$type)
+        effective <- ifelse(is.na(page_rows$type) | page_rows$type == "",
+                            page_rows$category, page_rows$type)
+        type_col <- ifelse(is.na(effective) | effective == "",
+                           "(untyped)", effective)
         sorted_types <- sort(unique(type_col))
         for (t in sorted_types) {
             in_type <- page_rows[type_col == t,, drop = FALSE]

@@ -119,3 +119,20 @@ d9 <- file.path(tempdir(),
 dir.create(d9)
 expect_false(pensar:::vault_is_adopted(d9))
 unlink(d9, recursive = TRUE)
+
+# --- 10. Frontmatter `category` falls back to type for adopted vault ---
+d10 <- file.path(tempdir(),
+                 paste0("adopt-cat-",
+                        format(Sys.time(), "%H%M%OS3")))
+dir.create(d10, recursive = TRUE)
+notes_dir <- file.path(d10, "Notes")
+dir.create(notes_dir, recursive = TRUE)
+writeLines(c("---", "title: Foo", "category: concept", "---", "",
+             "# Foo"), file.path(notes_dir, "Foo.md"))
+init_vault(d10, rproj = FALSE, agent_instructions = FALSE, adopt = TRUE)
+update_index(d10)
+ix <- readLines(file.path(d10, "index.md"))
+expect_true(any(grepl("^## concept ", ix)))
+st <- status(d10)
+expect_equal(unname(st$by_type[["concept"]]), 1L)
+unlink(d10, recursive = TRUE)

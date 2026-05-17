@@ -28,10 +28,16 @@
 #'   orienting an AI agent to work in this vault (CLI reminders,
 #'   editing rules, ingest workflow). If you don't plan to start an
 #'   AI agent session in the vault, pass \code{FALSE}.
-#' @param adopt Reserved for read-only adopt mode (full implementation
-#'   ships in a later PR). When \code{TRUE} the function emits a notice
-#'   and returns without writing anything. Use this when pointing
-#'   pensar at an existing Obsidian vault you don't want to scaffold.
+#' @param adopt Opt-in read-only adopt mode. When \code{TRUE} the
+#'   function writes only a minimal adopted \code{schema.md} (carrying
+#'   \code{adopted: true} frontmatter), plus \code{log.md} and
+#'   \code{index.md} if absent. No \code{raw/} or \code{wiki/}
+#'   scaffolding is created and no auto-commit runs. Use this when
+#'   pointing pensar at an existing Obsidian vault whose layout you
+#'   don't want to change. After adoption, \code{update_index()} and
+#'   \code{status()} switch to registry-driven enumeration; reads
+#'   work normally and \code{ingest()} refuses writes unless
+#'   \code{force = TRUE}.
 #' @param commit Auto-commit gate. \code{NULL} (default) commits the
 #'   initial scaffold only when the target directory is pensar-owned
 #'   (empty, or already shaped like a pensar vault). \code{TRUE} commits
