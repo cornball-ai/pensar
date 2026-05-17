@@ -16,6 +16,10 @@
 #' @param title Optional title. If \code{NULL}, derived from source.
 #' @param tags Optional character vector of tags.
 #' @param vault Path to the vault directory.
+#' @param force In adopted vaults (\code{init_vault(adopt = TRUE)}),
+#'   \code{ingest()} refuses to write by default. Pass \code{TRUE} to
+#'   write into the adopted tree anyway. Native vaults ignore this
+#'   parameter.
 #' @return The path to the written file, invisibly.
 #' @examples
 #' v <- tempfile("vault-")
@@ -27,12 +31,24 @@
 #' @export
 ingest <- function(content,
                    type = c("articles", "chats", "briefings", "matrix"),
-                   source, title = NULL, tags = NULL, vault = default_vault()) {
+                   source, title = NULL, tags = NULL,
+                   vault = default_vault(), force = FALSE) {
     type <- match.arg(type)
     vault <- normalizePath(vault, mustWork = TRUE)
 
     if (!file.exists(file.path(vault, "schema.md"))) {
         stop("Not a pensar vault: ", vault, ". Run init_vault() first.")
+    }
+
+    if (vault_is_adopted(vault) && !isTRUE(force)) {
+        stop("Adopt mode: this vault is read-only. Pass force = TRUE ",
+             "to write into the adopted vault tree.", call. = FALSE)
+    }
+
+    # raw/{type}/ may not exist in adopted vaults; create lazily.
+    type_dir <- file.path(vault, "raw", type)
+    if (!dir.exists(type_dir)) {
+        dir.create(type_dir, recursive = TRUE, showWarnings = FALSE)
     }
 
     slug <- slugify(source)

@@ -60,8 +60,25 @@ init_vault <- function(path = default_vault(), rproj = TRUE,
     }
 
     if (isTRUE(adopt)) {
-        message("Adopt mode: PR 3 will add adopted-mode scaffolding. ",
-                "For now, this is a no-op.")
+        if (!dir.exists(path)) {
+            dir.create(path, recursive = TRUE, showWarnings = FALSE)
+        }
+        path <- normalizePath(path)
+        schema_path <- file.path(path, "schema.md")
+        if (!file.exists(schema_path)) {
+            writeLines(adopted_schema_template(), schema_path)
+        }
+        if (!file.exists(file.path(path, "log.md"))) {
+            writeLines(log_seed(), file.path(path, "log.md"))
+        }
+        if (!file.exists(file.path(path, "index.md"))) {
+            writeLines(index_seed(), file.path(path, "index.md"))
+        }
+        log_entry("Vault adopted (read-only)", operation = "adopt",
+                  vault = path)
+        message("Adopt mode: read-first. ingest() refuses writes ",
+                "unless force = TRUE.")
+        message("Vault adopted at: ", path)
         return(invisible(path))
     }
 
@@ -193,6 +210,45 @@ rproj_template <- function() {
         "AlwaysSaveHistory: Default", "", "EnableCodeIndexing: No",
         "UseSpacesForTab: Yes", "NumSpacesForTab: 2", "Encoding: UTF-8", "",
         "RnwWeave: Sweave", "LaTeX: pdfLaTeX")
+}
+
+#' Adopted-vault schema template
+#'
+#' Smaller and explicit about the read-only contract. Written by
+#' \code{init_vault(adopt = TRUE)}. The \code{adopted: true} frontmatter
+#' field is what \code{vault_is_adopted()} reads to detect adopt mode.
+#' @noRd
+adopted_schema_template <- function() {
+    c("---", "title: Vault Schema (adopted)", "type: schema",
+        "adopted: true", "---", "", "# Vault Schema (adopted)", "",
+        "This directory was adopted by pensar in read-only mode.",
+        "Pensar indexes pages by frontmatter type but does not write",
+        "scaffolding (`raw/`, `wiki/`) or auto-commit here.", "",
+        "## What works", "", "- `vault_registry()` indexes every `.md` file.",
+        "- `update_index()` writes `index.md` grouped by frontmatter",
+        "  `type` (or `category`).",
+        "- `status()` reports page counts by frontmatter type.",
+        "- Read-only operations: `backlinks()`, `outlinks()`,",
+        "  `show_page()`, plus any retrieval primitives that ship later.", "",
+        "## What doesn't", "",
+        "- `ingest()` refuses to write unless `force = TRUE`.",
+        "- `init_vault()` does not auto-commit in adopt mode.", "",
+        "Remove or set `adopted: false` in this file's frontmatter to",
+        "switch to native pensar mode.")
+}
+
+#' Detect whether a vault was adopted (read-only mode)
+#'
+#' Reads \code{schema.md} frontmatter. Returns \code{TRUE} iff the
+#' \code{adopted} field is truthy.
+#' @noRd
+vault_is_adopted <- function(vault) {
+    schema_path <- file.path(vault, "schema.md")
+    if (!file.exists(schema_path)) {
+        return(FALSE)
+    }
+    fm <- parse_frontmatter(schema_path)
+    isTRUE(fm$adopted)
 }
 
 #' Schema template

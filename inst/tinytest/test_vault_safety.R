@@ -81,10 +81,16 @@ expect_true(file.exists(file.path(d5, "schema.md")))
 expect_true(has_init_commit(d5))
 unlink(d5, recursive = TRUE)
 
-# --- 6. adopt = TRUE → no scaffolding even with foreign content ---
+# --- 6. adopt = TRUE writes adopted schema only; leaves foreign content
+#    untouched and skips raw/wiki scaffolding ---
 d6 <- make_dir(files = list("Notes/foo.md" = "foreign content"))
 init_vault(d6, rproj = FALSE, agent_instructions = FALSE, adopt = TRUE)
-expect_false(file.exists(file.path(d6, "schema.md")))
+expect_true(file.exists(file.path(d6, "schema.md")))
+schema_lines <- readLines(file.path(d6, "schema.md"))
+expect_true(any(grepl("^adopted: true", schema_lines)))
+expect_false(dir.exists(file.path(d6, "raw")))
+expect_false(dir.exists(file.path(d6, "wiki")))
+expect_true(file.exists(file.path(d6, "Notes", "foo.md")))
 unlink(d6, recursive = TRUE)
 
 # --- 7. Existing pensar vault re-init → early return, unchanged ---

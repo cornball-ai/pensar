@@ -1,3 +1,20 @@
+# pensar 0.5.0.4
+
+* `init_vault(path, adopt = TRUE)` now implements read-only adopt mode.
+  Writes only `schema.md` (with `adopted: true` frontmatter), `log.md`,
+  and `index.md` if missing; no `raw/*` or `wiki/` scaffolding, no
+  auto-commits. Use it to point pensar at an existing Obsidian vault
+  without disturbing its layout.
+* `update_index()` and `status()` are registry-driven for adopted
+  vaults. `update_index()` groups pages by frontmatter `type` (or
+  `category`) into an "(untyped)" bucket when neither is present.
+  `status()` returns a `by_type` table plus `total`. Native pensar
+  vaults are unaffected: hard-coded `Raw: Articles / Chats / ...`
+  categories and counters stay the default.
+* `ingest()` refuses to write into an adopted vault by default. Pass
+  `force = TRUE` to write into the adopted tree anyway. Native vaults
+  ignore the new parameter.
+
 # pensar 0.5.0.3
 
 * New `vault_registry(vault, cache, refresh)` exported. Builds a

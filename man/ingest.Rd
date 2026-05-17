@@ -4,7 +4,7 @@
 \title{Source ingestion}
 \usage{
 ingest(content, type = c("articles", "chats", "briefings", "matrix"), source,
-       title = NULL, tags = NULL, vault = default_vault())
+       title = NULL, tags = NULL, vault = default_vault(), force = FALSE)
 }
 \arguments{
 \item{content}{Character string or character vector (lines) of content.}
@@ -21,6 +21,11 @@ session ID, project name).}
 \item{tags}{Optional character vector of tags.}
 
 \item{vault}{Path to the vault directory.}
+
+\item{force}{In adopted vaults (\code{init_vault(adopt = TRUE)}),
+\code{ingest()} refuses to write by default. Pass \code{TRUE} to
+write into the adopted tree anyway. Native vaults ignore this
+parameter.}
 }
 \value{
 The path to the written file, invisibly.

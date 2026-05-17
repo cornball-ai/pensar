@@ -31,6 +31,10 @@ status <- function(vault = NULL) {
         src <- "explicit"
     }
 
+    if (vault_is_adopted(vault)) {
+        return(status_adopted(vault, src))
+    }
+
     count_md <- function(dir) {
         if (!dir.exists(dir)) {
             return(0L)
@@ -58,6 +62,17 @@ print.pensar_status <- function(x, ...) {
                     "walkup-subdir" = "./vault walk-up",
                     option = "options(\"pensar.vault\")",
                     explicit = "explicit vault argument", x$source)
+    if (isTRUE(x$adopted)) {
+        cat(sprintf("Vault status: %s (via %s) [adopted]\n", x$vault, label))
+        if (length(x$by_type) > 0L) {
+            type_names <- names(x$by_type)
+            for (i in seq_along(x$by_type)) {
+                cat(sprintf("  %-14s %d\n", type_names[i], x$by_type[i]))
+            }
+        }
+        cat(sprintf("  %-14s %d\n", "Total", x$total))
+        return(invisible(x))
+    }
     cat(sprintf("Vault status: %s (via %s)\n", x$vault, label))
     cat(sprintf("  Raw: articles  %d\n", x$raw_articles))
     cat(sprintf("  Raw: chats     %d\n", x$raw_chats))
@@ -66,5 +81,26 @@ print.pensar_status <- function(x, ...) {
     cat(sprintf("  Wiki           %d\n", x$wiki))
     cat(sprintf("  Total          %d\n", x$total))
     invisible(x)
+}
+
+#' Registry-driven status for adopted vaults
+#' @noRd
+status_adopted <- function(vault, src) {
+    reg <- vault_registry(vault)
+    page_rows <- reg[!reg$system_file,, drop = FALSE]
+
+    if (nrow(page_rows) == 0L) {
+        by_type <- integer(0L)
+        names(by_type) <- character(0L)
+    } else {
+        type_col <- ifelse(is.na(page_rows$type) | page_rows$type == "",
+                           "(untyped)", page_rows$type)
+        by_type <- sort(table(type_col), decreasing = TRUE)
+    }
+
+    result <- list(adopted = TRUE, by_type = by_type,
+                   total = nrow(page_rows), vault = vault, source = src)
+    class(result) <- "pensar_status"
+    result
 }
 
