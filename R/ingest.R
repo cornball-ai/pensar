@@ -67,6 +67,15 @@ ingest <- function(content,
         if (is.character(content)) content else as.character(content))
     writeLines(lines, outpath)
 
+    # Record the ingest in .pensar/manifest.yml. Hash the just-written
+    # file so re-ingests with the same content can be detected.
+    rel_outpath <- substring(outpath, nchar(vault) + 2L)
+    file_hash <- tryCatch(
+                          paste0("sha1:", digest::digest(file = outpath, algo = "sha1")),
+                          error = function(e) NULL)
+    update_manifest(vault, source = source, path = rel_outpath,
+                    hash = file_hash)
+
     update_index(vault)
     log_entry(sprintf("Ingested %s: %s", type, basename(outpath)),
               operation = "ingest", vault = vault)

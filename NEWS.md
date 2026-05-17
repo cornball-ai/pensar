@@ -1,3 +1,22 @@
+# pensar 0.5.0.5
+
+* New `manifest_path(vault)`, `read_manifest(vault)`, and
+  `update_manifest(vault, ...)` for pensar-owned bookkeeping at
+  `.pensar/manifest.yml`. Schema: `version`, `created`, per-source
+  `sources` records (source identifier, ingested_at, hash, page_uid),
+  and an opt-in `address_map` keyed by relative path.
+* `ingest()` and `ingest_repo()` now call `update_manifest()` after a
+  successful page write. Each entry stores a `sha1:` content hash so
+  re-ingests can be detected later.
+* Read-only operations (`vault_registry()` at any cache level,
+  `update_index()`, `status()`, `backlinks()`, `outlinks()`, `lint()`)
+  never write the manifest. The first manifest write to a long-lived
+  pensar vault therefore only happens on the next `ingest()` /
+  `ingest_repo()` after this version.
+* Read-side compatibility with `.manifest.json` and
+  `.raw/.manifest.json` is deferred until there is a real consumer;
+  it would require `jsonlite` in Imports.
+
 # pensar 0.5.0.4
 
 * `init_vault(path, adopt = TRUE)` now implements read-only adopt mode.
