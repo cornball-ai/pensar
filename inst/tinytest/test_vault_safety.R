@@ -118,3 +118,27 @@ unlink(d10, recursive = TRUE)
 d11 <- make_dir(files = list("random.txt" = "foreign"))
 expect_false(pensar:::vault_is_pensar_owned(d11))
 unlink(d11, recursive = TRUE)
+
+# --- 12. Foreign dir with top-level wiki/ but no schema.md → not owned ---
+d12 <- make_dir(files = list("wiki/Foo.md" = "foreign wiki content"))
+expect_false(pensar:::vault_is_pensar_owned(d12))
+result <- init_vault(d12, rproj = FALSE, agent_instructions = FALSE)
+expect_null(result)
+expect_false(file.exists(file.path(d12, "schema.md")))
+expect_true(file.exists(file.path(d12, "wiki", "Foo.md")))
+unlink(d12, recursive = TRUE)
+
+# --- 13. Foreign dir with top-level raw/ but no schema.md → not owned ---
+d13 <- make_dir(files = list("raw/articles/foo.md" = "foreign raw content"))
+expect_false(pensar:::vault_is_pensar_owned(d13))
+result <- init_vault(d13, rproj = FALSE, agent_instructions = FALSE)
+expect_null(result)
+expect_false(file.exists(file.path(d13, "schema.md")))
+expect_true(file.exists(file.path(d13, "raw", "articles", "foo.md")))
+unlink(d13, recursive = TRUE)
+
+# --- 14. Foreign git repo with tracked wiki/ → not owned ---
+d14 <- make_dir(files = list("wiki/Foo.md" = "foreign wiki content"),
+                git = TRUE, commit_initial = TRUE)
+expect_false(pensar:::vault_is_pensar_owned(d14))
+unlink(d14, recursive = TRUE)

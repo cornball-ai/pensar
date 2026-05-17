@@ -67,29 +67,33 @@ should_push <- function(push) {
 
 #' Detect whether a directory is safe for pensar to scaffold and commit into
 #'
-#' Returns \code{TRUE} when \code{path} is either empty, contains only
-#' pensar-known files (control files, raw/, wiki/, .Rproj, .gitignore,
-#' README.md, .Rproj.user), or has a git history whose tracked files at
-#' HEAD are similarly pensar-shaped. Returns \code{FALSE} when foreign
-#' tracked files or foreign working-tree entries exist.
+#' Called by \code{init_vault()} only after the early-return on an
+#' existing \code{schema.md}. By that point we know there is no pensar
+#' vault here; the question is whether the directory is empty enough
+#' (or contains only benign development scaffolding) that pensar can
+#' safely write its layout in.
 #'
-#' Used by \code{init_vault()} as the default ownership gate for both
-#' scaffolding writes and the auto-commit step.
+#' "Pensar-owned" here means: nothing in the way. Empty directories
+#' qualify; directories containing only \code{.gitignore},
+#' \code{README.md}, \code{.Rproj} / \code{.Rproj.user}, or a \code{.git}
+#' dir whose history contains only those same benign files, qualify.
+#'
+#' Top-level \code{raw/} or \code{wiki/} without \code{schema.md} does
+#' \strong{not} count as pensar-owned: those could be a foreign project's
+#' directories, and a wrongly-positive check would have pensar
+#' overwriting non-pensar content.
 #' @noRd
 vault_is_pensar_owned <- function(path) {
     if (!dir.exists(path)) {
         return(TRUE)
     }
 
-    pensar_top <- c("schema.md", "log.md", "index.md", "CLAUDE.md",
-                    "AGENTS.md", "raw", "wiki", ".gitignore", "README.md",
-                    ".git", ".Rproj.user")
+    benign_top <- c(".gitignore", "README.md", ".git", ".Rproj.user")
     rproj_pattern <- "\\.Rproj$"
 
     top <- list.files(path, all.files = TRUE, no.. = TRUE)
-    is_rproj <- grepl(rproj_pattern, top)
-    is_pensar <- top %in% pensar_top | is_rproj
-    if (any(!is_pensar)) {
+    is_benign <- top %in% benign_top | grepl(rproj_pattern, top)
+    if (any(!is_benign)) {
         return(FALSE)
     }
 
@@ -106,14 +110,13 @@ vault_is_pensar_owned <- function(path) {
         return(TRUE)
     }
     tracked <- suppressWarnings(system2("git",
-                                        c("-C", path, "ls-tree", "-r", "HEAD", "--name-only"),
+                                        c("-C", path, "ls-tree", "-r", "HEAD",
+                                          "--name-only"),
                                         stdout = TRUE, stderr = FALSE))
     if (length(tracked) == 0L) {
         return(TRUE)
     }
-    tracked_pattern <- paste0("^(schema|log|index|CLAUDE|AGENTS)\\.md$",
-                              "|^raw/", "|^wiki/", "|\\.Rproj$",
-                              "|^\\.gitignore$", "|^README\\.md$")
+    tracked_pattern <- "^\\.gitignore$|^README\\.md$|\\.Rproj$"
     foreign_tracked <- !grepl(tracked_pattern, tracked)
     !any(foreign_tracked)
 }
