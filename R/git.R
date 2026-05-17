@@ -65,6 +65,59 @@ should_push <- function(push) {
     !(env %in% c("0", "false", "no", "off", ""))
 }
 
+#' Detect whether a directory is safe for pensar to scaffold and commit into
+#'
+#' Returns \code{TRUE} when \code{path} is either empty, contains only
+#' pensar-known files (control files, raw/, wiki/, .Rproj, .gitignore,
+#' README.md, .Rproj.user), or has a git history whose tracked files at
+#' HEAD are similarly pensar-shaped. Returns \code{FALSE} when foreign
+#' tracked files or foreign working-tree entries exist.
+#'
+#' Used by \code{init_vault()} as the default ownership gate for both
+#' scaffolding writes and the auto-commit step.
+#' @noRd
+vault_is_pensar_owned <- function(path) {
+    if (!dir.exists(path)) {
+        return(TRUE)
+    }
+
+    pensar_top <- c("schema.md", "log.md", "index.md", "CLAUDE.md",
+                    "AGENTS.md", "raw", "wiki", ".gitignore", "README.md",
+                    ".git", ".Rproj.user")
+    rproj_pattern <- "\\.Rproj$"
+
+    top <- list.files(path, all.files = TRUE, no.. = TRUE)
+    is_rproj <- grepl(rproj_pattern, top)
+    is_pensar <- top %in% pensar_top | is_rproj
+    if (any(!is_pensar)) {
+        return(FALSE)
+    }
+
+    if (!dir.exists(file.path(path, ".git"))) {
+        return(TRUE)
+    }
+    if (nchar(Sys.which("git")) == 0L) {
+        return(TRUE)
+    }
+    log_out <- suppressWarnings(system2("git",
+                                        c("-C", path, "log", "--oneline", "-1"),
+                                        stdout = TRUE, stderr = FALSE))
+    if (length(log_out) == 0L) {
+        return(TRUE)
+    }
+    tracked <- suppressWarnings(system2("git",
+                                        c("-C", path, "ls-tree", "-r", "HEAD", "--name-only"),
+                                        stdout = TRUE, stderr = FALSE))
+    if (length(tracked) == 0L) {
+        return(TRUE)
+    }
+    tracked_pattern <- paste0("^(schema|log|index|CLAUDE|AGENTS)\\.md$",
+                              "|^raw/", "|^wiki/", "|\\.Rproj$",
+                              "|^\\.gitignore$", "|^README\\.md$")
+    foreign_tracked <- !grepl(tracked_pattern, tracked)
+    !any(foreign_tracked)
+}
+
 #' Push to all configured remotes (best-effort, errors swallowed)
 #' @noRd
 push_all_remotes <- function(vault) {

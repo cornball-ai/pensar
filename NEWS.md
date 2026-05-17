@@ -17,6 +17,19 @@
 * New Import: `digest` (used internally to hash vault paths for cache
   keys).
 
+# pensar 0.5.0.2
+
+* `init_vault()` now refuses to scaffold into directories that already
+  contain non-pensar files or a foreign git history. Pass `adopt = TRUE`
+  to use the directory in (forthcoming) read-only adopt mode, or
+  `force = TRUE` to scaffold anyway. The auto-commit step is gated
+  separately by a new `commit` parameter (default `NULL`): commits only
+  when the directory was pensar-owned before the scaffold, never as a
+  side effect of `force = TRUE`. Fixes a destructive default where
+  pointing `init_vault()` at someone else's git repo would write
+  scaffolding and an auto-commit into their history. The `adopt`
+  parameter is plumbed for the upcoming read-only adopt mode.
+
 # pensar 0.5.0.1
 
 * Walk-up vault discovery now also checks `<dir>/vault/schema.md` at
