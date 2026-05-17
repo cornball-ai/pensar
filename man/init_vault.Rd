@@ -8,8 +8,9 @@ init_vault(path = default_vault(), rproj = TRUE, agent_instructions = TRUE)
 \arguments{
 \item{path}{Path to the vault directory. No implicit default: pass
 an explicit path, or configure one via \code{PENSAR_VAULT},
-\code{use_vault()}, or a walk-up \code{schema.md} marker. Per
-CRAN policy pensar will not silently write to the user's home
+\code{use_vault()}, or a walk-up \code{schema.md} marker (either
+in the current directory or in a \code{vault/} subdir). Per CRAN
+policy pensar will not silently write to the user's home
 filespace.}
 
 \item{rproj}{If \code{TRUE} (default), also write an RStudio project

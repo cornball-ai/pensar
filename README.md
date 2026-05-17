@@ -50,7 +50,7 @@ Per CRAN policy, pensar **never writes to a default home-filespace location**. Y
 
 1. The `vault =` argument (or `path =` for `init_vault()`) when passed explicitly.
 2. The `PENSAR_VAULT` environment variable.
-3. Walk-up from `getwd()` for a directory containing `schema.md` (project-local vaults).
+3. Walk-up from `getwd()` for a directory containing `schema.md`, or one whose `vault/` subdir contains it (project-local vaults; mirrors how git finds `.git`).
 4. `options("pensar.vault")`, set by `use_vault()` -- typically in `~/.Rprofile` as a global default.
 
 If none of these resolves, pensar errors with a setup hint. There is no implicit fallback. Same shape for `vault_export()`'s `out_dir`: pass it explicitly or set `PENSAR_SITE_DIR`.
