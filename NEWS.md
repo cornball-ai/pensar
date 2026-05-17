@@ -1,3 +1,16 @@
+# pensar 0.5.0.1
+
+* Walk-up vault discovery now also checks `<dir>/vault/schema.md` at
+  each rung, so running pensar from a project root whose vault lives
+  one level down (e.g., `cornelius/vault/`) resolves correctly. The
+  current directory's own `schema.md` still wins at each rung.
+* `status()` now records the resolver source on the returned
+  `pensar_status` object (`$source` is one of `"env"`, `"walkup"`,
+  `"walkup-subdir"`, `"option"`, `"explicit"`) and surfaces it in the
+  print method, e.g. `Vault status: /path (via ./vault walk-up)`.
+  Makes "which vault did I just get?" answerable from the output
+  alone on multi-vault setups.
+
 # pensar 0.5.0
 
 * New `ingest_repo(path)` writes per-repo provenance under
