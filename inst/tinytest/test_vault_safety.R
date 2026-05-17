@@ -20,13 +20,19 @@ make_dir <- function(files = NULL, git = FALSE, commit_initial = FALSE) {
     if (isTRUE(git)) {
         system2("git", c("-C", d, "init", "-q"),
                 stdout = FALSE, stderr = FALSE)
+        # Configure local git identity so pensar's vault_commit() can
+        # actually commit on CI runners without a global user.email /
+        # user.name.
+        system2("git", c("-C", d, "config", "user.email",
+                         "test@example.invalid"),
+                stdout = FALSE, stderr = FALSE)
+        system2("git", c("-C", d, "config", "user.name", "test"),
+                stdout = FALSE, stderr = FALSE)
         if (isTRUE(commit_initial) && !is.null(files)) {
             system2("git", c("-C", d, "add", "-A"),
                     stdout = FALSE, stderr = FALSE)
             system2("git",
-                    c("-C", d, "-c", "user.email=test@example.invalid",
-                      "-c", "user.name=test", "commit", "-m", "initial",
-                      "-q"),
+                    c("-C", d, "commit", "-m", "initial", "-q"),
                     stdout = FALSE, stderr = FALSE)
         }
     }
