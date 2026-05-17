@@ -59,6 +59,19 @@ parse_wikilink <- function(link) {
     list(target = target, label = label)
 }
 
+#' Normalize a wikilink target for registry resolution
+#'
+#' Strips block anchors (\code{#^block-id}) and section anchors
+#' (\code{#Heading}) from a target string, leaving the bare page
+#' reference. Used by \code{find_page()} when matching against the
+#' registry so \code{[[Notes/Foo#section]]} resolves the same as
+#' \code{[[Notes/Foo]]}.
+#' @noRd
+normalize_wikilink_target <- function(target) {
+    target <- sub("[#^].*$", "", target)
+    trimws(target)
+}
+
 #' Derive the term name from a filepath
 #'
 #' Path-aware: files under \code{raw/repos/<repo>/} return

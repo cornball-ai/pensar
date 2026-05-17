@@ -17,8 +17,11 @@ or \code{"none"}.}
 \value{
 A data.frame with columns: \code{path}, \code{node_id},
   \code{page_uid}, \code{title}, \code{aliases}, \code{type},
-  \code{tags}, \code{sources}, \code{links_out}, \code{system_file}.
-  Aliases / tags / links_out are list-columns.
+  \code{category}, \code{tags}, \code{sources}, \code{links_out},
+  \code{system_file}. Aliases / tags / links_out are list-columns.
+  The \code{type} and \code{category} fields come from frontmatter
+  verbatim; callers compute an effective type as \code{type}
+  when present, falling back to \code{category} otherwise.
 }
 \description{
 Build a structured index of every page in a vault for

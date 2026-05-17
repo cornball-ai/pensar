@@ -153,3 +153,58 @@ make_page(v12, "wiki/B.md", frontmatter = list(title = "B"))
 r2 <- vault_registry(v12, cache = "session")
 expect_equal(nrow(r2), n1 + 1L)
 unlink(v12, recursive = TRUE)
+
+# --- 13. find_page() resolves path-style wikilinks ---
+v13 <- file.path(tempdir(), paste0("reg-path-", format(Sys.time(), "%H%M%OS3")))
+init_vault(v13, rproj = FALSE, agent_instructions = FALSE)
+make_page(v13, "Notes/Foo.md", frontmatter = list(title = "Foo"))
+expect_true(grepl("Notes/Foo\\.md$",
+                  pensar:::find_page("Notes/Foo", v13)))
+expect_true(grepl("Notes/Foo\\.md$",
+                  pensar:::find_page("Notes/Foo.md", v13)))
+unlink(v13, recursive = TRUE)
+
+# --- 14. find_page() strips anchors and block IDs ---
+v14 <- file.path(tempdir(), paste0("reg-anch-", format(Sys.time(), "%H%M%OS3")))
+init_vault(v14, rproj = FALSE, agent_instructions = FALSE)
+make_page(v14, "wiki/Foo.md", frontmatter = list(title = "Foo"))
+expect_true(grepl("Foo\\.md$", pensar:::find_page("Foo#section", v14)))
+expect_true(grepl("Foo\\.md$",
+                  pensar:::find_page("Foo#^block-id", v14)))
+unlink(v14, recursive = TRUE)
+
+# --- 15. outlinks() existence resolves path-style links ---
+v15 <- file.path(tempdir(), paste0("reg-out-", format(Sys.time(), "%H%M%OS3")))
+init_vault(v15, rproj = FALSE, agent_instructions = FALSE)
+make_page(v15, "Notes/Foo.md", frontmatter = list(title = "Foo"))
+make_page(v15, "Notes/Bar.md", frontmatter = list(title = "Bar"),
+          body = "Body cites [[Notes/Foo]] and [[ghost]].")
+ol <- outlinks("Notes/Bar", vault = v15)
+expect_true(ol$exists[ol$target == "Notes/Foo"])
+expect_false(ol$exists[ol$target == "ghost"])
+unlink(v15, recursive = TRUE)
+
+# --- 16. Registry exposes `category` field ---
+v16 <- file.path(tempdir(), paste0("reg-cat-", format(Sys.time(), "%H%M%OS3")))
+init_vault(v16, rproj = FALSE, agent_instructions = FALSE)
+make_page(v16, "wiki/Foo.md",
+          frontmatter = list(title = "Foo", category = "concept"))
+reg <- vault_registry(v16, cache = "none")
+expect_true("category" %in% names(reg))
+foo <- reg[reg$node_id == "Foo", ]
+expect_equal(foo$category, "concept")
+unlink(v16, recursive = TRUE)
+
+# --- 17. Cache invalidates on rename (path+mtime+size signature) ---
+v17 <- file.path(tempdir(), paste0("reg-ren-", format(Sys.time(), "%H%M%OS3")))
+init_vault(v17, rproj = FALSE, agent_instructions = FALSE)
+p_old <- make_page(v17, "wiki/A.md", frontmatter = list(title = "A"))
+r1 <- vault_registry(v17, cache = "session")
+expect_true("A" %in% r1$node_id)
+# Rename A.md -> B.md (same content, same size, same mtime preserved)
+p_new <- file.path(v17, "wiki/B.md")
+file.rename(p_old, p_new)
+r2 <- vault_registry(v17, cache = "session")
+expect_false("A" %in% r2$node_id)
+expect_true("B" %in% r2$node_id)
+unlink(v17, recursive = TRUE)
