@@ -205,3 +205,32 @@ recent_activity(v14, days = 1L)
 mtime_after <- file.info(file.path(v14, "log.md"))$mtime
 expect_equal(mtime_before, mtime_after)
 unlink(v14, recursive = TRUE)
+
+# --- 15. related_pages scores co-citation by resolved path ---
+# Target cites [[Foo]] and peer cites [[Notes/Foo]]; both should
+# resolve to Notes/Foo.md and count as a shared outlink.
+v15 <- file.path(tempdir(), paste0("ret-rel-canon-",
+                                   format(Sys.time(), "%H%M%OS3")))
+init_vault(v15, rproj = FALSE, agent_instructions = FALSE)
+make_page(v15, "Notes/Foo.md", frontmatter = list(title = "Foo"))
+make_page(v15, "Notes/Target.md",
+          frontmatter = list(title = "Target"),
+          body = "Cites [[Foo]].")
+make_page(v15, "Notes/Peer.md",
+          frontmatter = list(title = "Peer"),
+          body = "Cites [[Notes/Foo]].")
+res <- related_pages("Target", vault = v15, k = 10L)
+expect_true("Peer" %in% res$node_id)
+expect_true(res$score[res$node_id == "Peer"] >= 1L)
+unlink(v15, recursive = TRUE)
+
+# --- 16. search_pages excludes system control files by default ---
+v16 <- file.path(tempdir(), paste0("ret-search-sys-",
+                                   format(Sys.time(), "%H%M%OS3")))
+init_vault(v16, rproj = FALSE, agent_instructions = FALSE)
+# Fresh vault: schema.md / log.md / index.md all contain the word "vault"
+res <- search_pages("vault", vault = v16, in_body = TRUE)
+expect_false("schema.md" %in% res$path)
+expect_false("log.md" %in% res$path)
+expect_false("index.md" %in% res$path)
+unlink(v16, recursive = TRUE)

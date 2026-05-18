@@ -37,6 +37,9 @@ search_pages <- function(query, vault = default_vault(), type = NULL,
     if (nrow(reg) == 0L) {
         return(empty_search_result())
     }
+    # Drop system control files (schema.md, log.md, index.md) so a
+    # query like "vault" doesn't surface the seeded index/log/schema.
+    reg <- reg[!reg$system_file, , drop = FALSE]
     if (!is.null(type)) {
         reg <- reg[!is.na(reg$type) & reg$type == type, , drop = FALSE]
     }
@@ -203,12 +206,19 @@ related_pages <- function(name, vault = default_vault(), k = 10L) {
         return(empty_related_result())
     }
 
+    # Canonicalize the target's outlinks to resolved relative paths.
+    # Co-citation scoring then intersects on path, so [[Foo]] and
+    # [[Notes/Foo]] are recognized as the same target.
+    target_link_paths <- resolved_link_set(target_links, vault)
+
     scores <- integer(nrow(others))
     for (i in seq_len(nrow(others))) {
         shared_tags <- length(intersect(target_tags,
                                         others$tags[[i]]))
-        shared_links <- length(intersect(target_links,
-                                         others$links_out[[i]]))
+        peer_link_paths <- resolved_link_set(others$links_out[[i]],
+                                             vault)
+        shared_links <- length(intersect(target_link_paths,
+                                         peer_link_paths))
         scores[i] <- shared_tags + shared_links
     }
     keep <- scores > 0L
@@ -222,6 +232,21 @@ related_pages <- function(name, vault = default_vault(), k = 10L) {
     data.frame(path = others$path[top], node_id = others$node_id[top],
                title = others$title[top], score = scores[top],
                stringsAsFactors = FALSE)
+}
+
+#' Resolve a set of wikilink targets to unique relative paths
+#'
+#' Unresolvable targets drop out. Used by \code{related_pages()} so
+#' co-citation scoring treats \code{[[Foo]]} and \code{[[Notes/Foo]]}
+#' as the same target when both resolve to \code{Notes/Foo.md}.
+#' @noRd
+resolved_link_set <- function(links, vault) {
+    if (length(links) == 0L) {
+        return(character(0L))
+    }
+    resolved <- vapply(links, resolve_target_path, character(1L),
+                       vault = vault)
+    unique(resolved[!is.na(resolved)])
 }
 
 #' @noRd
