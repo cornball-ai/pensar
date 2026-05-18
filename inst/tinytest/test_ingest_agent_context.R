@@ -20,6 +20,22 @@ if (!requireNamespace("saber", quietly = TRUE)) {
     exit_file("saber not installed; skipping rest of test_ingest_agent_context")
 }
 
+# --- 1b. Saber installed but agent_context not exported (CRAN saber
+#         pre-0.4) → clear stop message, no crash ---
+if (!"agent_context" %in% getNamespaceExports("saber")) {
+    v_old_saber <- file.path(tempdir(),
+                             paste0("iac-old-saber-",
+                                    format(Sys.time(), "%H%M%OS3")))
+    init_vault(v_old_saber, rproj = FALSE,
+               agent_instructions = FALSE)
+    err <- tryCatch(ingest_agent_context("claude",
+                                         vault = v_old_saber),
+                    error = function(e) conditionMessage(e))
+    expect_true(grepl("agent_context.*function", err))
+    unlink(v_old_saber, recursive = TRUE)
+    exit_file("installed saber lacks agent_context(); skipping rest")
+}
+
 # --- 2. Fixture project with CLAUDE.md → writes raw/chats/ page ---
 v2 <- file.path(tempdir(), paste0("iac-",
                                   format(Sys.time(), "%H%M%OS3")))

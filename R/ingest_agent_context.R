@@ -13,9 +13,13 @@
 #' and auto-commit all kick in).
 #'
 #' Saber stays in pensar's \code{Suggests}: the wrapper guards with
-#' \code{requireNamespace("saber")} and errors with an install hint if
-#' the package isn't available. Users who don't want this wrapper pay
-#' no mandatory dependency cost.
+#' \code{requireNamespace("saber")} and errors with an install hint
+#' if the package isn't available. It also gates on the
+#' \code{agent_context()} export specifically so the wrapper degrades
+#' cleanly against older saber versions (pre-0.4) that don't ship the
+#' function, instead of failing R CMD check's static analysis or
+#' crashing at runtime. Users who don't want this wrapper pay no
+#' mandatory dependency cost.
 #'
 #' Returns silently with a message (and no write) when saber returns
 #' an empty context, so the vault doesn't accumulate empty snapshots.
@@ -51,12 +55,24 @@ ingest_agent_context <- function(agent = c("claude", "codex",
              "  Install with: install.packages('saber')",
              call. = FALSE)
     }
+    # Dynamic resolution: gates on the agent_context export so older
+    # saber versions (pre-0.4 on CRAN) that lack the function fail
+    # cleanly here instead of tripping R CMD check's "Missing or
+    # unexported object" static analysis.
+    if (!"agent_context" %in% getNamespaceExports("saber")) {
+        stop("ingest_agent_context() requires saber with an exported ",
+             "agent_context() function. The installed saber (",
+             utils::packageVersion("saber"),
+             ") does not provide it; upgrade saber and retry.",
+             call. = FALSE)
+    }
+    saber_agent_context <- getExportedValue("saber", "agent_context")
     vault <- normalizePath(vault, mustWork = TRUE)
 
-    context <- saber::agent_context(agent = agent,
-                                    project_dir = project_dir,
-                                    workspace_dir = workspace_dir,
-                                    ...)
+    context <- saber_agent_context(agent = agent,
+                                   project_dir = project_dir,
+                                   workspace_dir = workspace_dir,
+                                   ...)
     if (!is.character(context) || length(context) == 0L ||
         !nzchar(trimws(paste(context, collapse = "\n")))) {
         message("saber::agent_context(", agent, ") returned an empty ",

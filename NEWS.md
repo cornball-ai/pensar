@@ -1,3 +1,14 @@
+# pensar 0.6.0.1
+
+* `ingest_agent_context()` now resolves `saber::agent_context()`
+  dynamically via `getExportedValue()` instead of a static reference.
+  Older saber versions (pre-0.4, including CRAN's current 0.3.0) that
+  don't export `agent_context()` get a clean error message instead of
+  tripping R CMD check's "Missing or unexported object" static
+  analysis and failing the test suite. Test gates symmetrically so it
+  exercises either the success path or the missing-export path
+  depending on which saber is installed.
+
 # pensar 0.6.0
 
 A foundation release that fixes a destructive bug in `init_vault()`,
