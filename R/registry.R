@@ -128,9 +128,16 @@ build_registry_row <- function(filepath, vault) {
     tags <- list(as.character(unlist(fm$tags) %||% character(0L)))
     links_out <- list(unique(parse_wikilinks(filepath)))
 
-    system_file <- basename(filepath) %in% c("schema.md", "index.md",
-        "log.md") &&
-    identical(dirname(filepath), vault)
+    # System / pensar-managed files we don't want to treat as content
+    # in the registry: vault root control files (schema/index/log) and
+    # anything under _proposals/ (audit outputs from dedup() / tags()).
+    parent <- dirname(filepath)
+    is_root_ctrl <- basename(filepath) %in%
+        c("schema.md", "index.md", "log.md") &&
+        identical(parent, vault)
+    in_proposals <- identical(basename(parent), "_proposals") &&
+        identical(dirname(parent), vault)
+    system_file <- is_root_ctrl || in_proposals
 
     data.frame(path = rel_path, node_id = node_id, page_uid = page_uid,
                title = title, aliases = I(aliases), type = type,

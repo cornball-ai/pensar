@@ -201,8 +201,13 @@ tags <- function(vault = default_vault(), taxonomy = NULL,
         if (file.exists(default_taxonomy)) {
             taxonomy <- default_taxonomy
         }
+    } else if (!file.exists(taxonomy)) {
+        # Explicit taxonomy path that doesn't exist is a caller error,
+        # not a reason to silently degrade to "no taxonomy" mode and
+        # produce a false clean audit.
+        stop("Taxonomy file not found: ", taxonomy, call. = FALSE)
     }
-    allowed <- if (is.null(taxonomy) || !file.exists(taxonomy)) {
+    allowed <- if (is.null(taxonomy)) {
         character(0L)
     } else {
         read_taxonomy(taxonomy)

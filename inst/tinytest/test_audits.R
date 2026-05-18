@@ -145,3 +145,37 @@ tags(v8)
 after <- list(a = readLines(fp_a), b = readLines(fp_b))
 expect_identical(before, after)
 unlink(v8, recursive = TRUE)
+
+# --- 9. _proposals/*.md is marked system_file in the registry, so
+#    lint() doesn't flag them as orphans ---
+v9 <- file.path(tempdir(), paste0("aud-lint-",
+                                  format(Sys.time(), "%H%M%OS3")))
+init_vault(v9, rproj = FALSE, agent_instructions = FALSE)
+make_page(v9, "wiki/Foo.md", frontmatter = list(title = "Foo"))
+make_page(v9, "wiki/Foos.md", frontmatter = list(title = "Foos"))
+dedup(v9, threshold = 0.5)
+tags(v9)
+expect_true(file.exists(file.path(v9, "_proposals", "dedup.md")))
+expect_true(file.exists(file.path(v9, "_proposals", "tags.md")))
+li <- lint(v9)
+expect_false("dedup" %in% li$orphans)
+expect_false("tags" %in% li$orphans)
+reg <- vault_registry(v9, cache = "none")
+expect_true(all(reg$system_file[reg$path %in%
+                                c("_proposals/dedup.md",
+                                  "_proposals/tags.md")]))
+unlink(v9, recursive = TRUE)
+
+# --- 10. tags(taxonomy = "missing/path") errors instead of silently
+#    skipping validation ---
+v10 <- file.path(tempdir(), paste0("aud-bad-tax-",
+                                   format(Sys.time(), "%H%M%OS3")))
+init_vault(v10, rproj = FALSE, agent_instructions = FALSE)
+make_page(v10, "wiki/A.md",
+          frontmatter = list(title = "A", tags = c("foo")))
+err <- tryCatch(tags(v10, taxonomy = "/no/such/file.md"),
+                error = function(e) conditionMessage(e))
+expect_true(grepl("Taxonomy file not found", err))
+# Implicit NULL on a vault without a default taxonomy still works
+expect_silent(tags(v10))
+unlink(v10, recursive = TRUE)
