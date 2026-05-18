@@ -1,0 +1,16 @@
+max_rounds: 3
+max_queries_per_round: 5
+max_sources_per_round: 5
+max_pages: 15
+source_preferences:
+  - official documentation
+  - primary sources
+  - peer-reviewed papers
+  - established publications
+confidence:
+  high: multiple independent authoritative sources agree
+  medium: one good source, or sources partially agree
+  low: speculation, opinion, informal source, or unverified claim
+stale_after_days: 1095
+required_tags:
+  - research

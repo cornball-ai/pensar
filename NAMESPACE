@@ -1,5 +1,6 @@
 # tinyrox says don't edit this manually, but it can't stop you!
 
+export(autoresearch)
 export(backlinks)
 export(dedup)
 export(ingest)
@@ -32,6 +33,7 @@ export(vault_registry)
 
 S3method(print,pensar_lint)
 S3method(print,pensar_page)
+S3method(print,pensar_research)
 S3method(print,pensar_status)
 
 importFrom(stats,setNames)

@@ -23,6 +23,8 @@ Imports:
     stringdist,
     yaml
 Suggests:
+    jsonlite,
+    llm.api,
     saber,
     tinytest
 Encoding: UTF-8
