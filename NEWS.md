@@ -1,163 +1,146 @@
-# pensar 0.5.0.10
+# pensar 0.6.0
 
-* New `ingest_agent_context(agent, vault, ...)` wraps
-  `saber::agent_context()` to snapshot the current agent
-  context (memory, project / global instructions, identity files)
-  into the vault as a `raw/chats/` page. Goes through the regular
-  `ingest()` path so the manifest, index, log, and auto-commit all
-  kick in. Frontmatter tags the page with `agent-context` and the
-  agent name so it's easy to search later.
-* `saber` stays in `Suggests`; the wrapper guards with
-  `requireNamespace()` and errors with an install hint when saber
-  isn't present.
-* Returns `NULL` invisibly with a message when saber's assembled
-  context is empty, so empty snapshots don't accumulate in the
-  vault.
+A foundation release that fixes a destructive bug in `init_vault()`,
+introduces an adopt mode for existing Obsidian vaults, adds a
+registry-based identity layer, ships per-source manifest bookkeeping,
+exposes retrieval primitives, brings in URL ingest, dedup / tag
+audits, an agent-context snapshot wrapper, and a markdown skill
+bundle for autonomous web research.
 
-# pensar 0.5.0.9
+## Safety
 
+* `init_vault()` refuses to scaffold into directories that already
+  contain non-pensar files or a foreign git history. Pass
+  `adopt = TRUE` for read-only adoption (below) or `force = TRUE` to
+  scaffold anyway. The auto-commit step is gated separately via a
+  new `commit` parameter (default `NULL`): commits only when the
+  directory was pensar-owned before scaffolding, never as a side
+  effect of `force = TRUE`. Fixes a destructive default where
+  pointing `init_vault()` at someone else's git repo would write
+  scaffolding and an auto-commit into their history.
+* The ownership heuristic requires `schema.md` as the load-bearing
+  marker. Top-level `raw/` or `wiki/` directories without
+  `schema.md` are treated as foreign.
+
+## Foundation
+
+* New `vault_registry(vault, cache, refresh)` builds a data.frame
+  with one row per page: `path`, `node_id` (current link-resolution
+  identity), `page_uid` (stable identity from frontmatter `id:` /
+  `address:`; `NA` otherwise), `title`, `aliases`, `type`,
+  `category`, `tags`, `sources`, `links_out`, `system_file`. Caches
+  in a session env by default; `cache = "user"` persists to
+  `tools::R_user_dir("pensar", "cache")`. Never writes inside the
+  vault. Cache invalidates on rename via per-file path+mtime+size
+  signature.
+* `find_page()` and all its consumers (`outlinks()`, `backlinks()`,
+  `lint()`) resolve through the registry: exact path → `page_uid` →
+  unique `node_id` → ambiguous-basename warning → frontmatter
+  alias. Path-style wikilinks (`[[Notes/Foo]]`), `.md`-suffix links,
+  and `#section` / `#^block-id` anchors all resolve correctly.
+  System files (`schema.md`, `index.md`, `log.md`, `_proposals/*`)
+  are skipped in fuzzy resolution so user pages always win shadow
+  conflicts.
+* New `init_vault(adopt = TRUE)` for opt-in read-only adoption of
+  existing Obsidian vaults. Writes only a minimal adopted
+  `schema.md` (`adopted: true` frontmatter), `log.md`, and
+  `index.md` if missing. No `raw/`/`wiki/` scaffolding, no
+  auto-commit, leaves user content untouched. Pre-existing `log.md`
+  is preserved. `update_index()` and `status()` switch to
+  registry-driven enumeration for adopted vaults, grouping by
+  frontmatter `type` (falling back to `category`). `ingest()`
+  refuses to write into adopted vaults unless `force = TRUE`.
+  Path-disambiguated index links (`[[A/Foo]]` / `[[B/Foo]]`) when
+  basenames collide.
+* New `manifest_path()`, `read_manifest()`, `update_manifest()`.
+  Per-source ingest provenance plus an opt-in `address_map`. Lives
+  at `.pensar/manifest.yml`. `ingest()` and `ingest_repo()` hook
+  into the manifest after successful writes with a `sha1:` content
+  hash. Read-only ops never touch it. Malformed sub-fields and
+  per-entry records degrade safely instead of crashing.
+* Read-side compatibility with `.manifest.json` and
+  `.raw/.manifest.json` is deferred; would require `jsonlite` in
+  Imports.
+
+## New features
+
+* Retrieval primitives (registry-backed, write-free):
+  - `search_pages(query, vault, type, in_body)` substring-matches
+    over title / tags / aliases by default; `in_body = TRUE` also
+    scans page bodies. Returns a `matched_in` column. Excludes
+    system control files.
+  - `page_context(name, vault, body_chars)` returns a structured
+    view of one page: frontmatter, body_head, outlinks, backlinks.
+  - `related_pages(name, vault, k)` ranks top-k by shared tags +
+    shared outlinks (canonical-path co-citation).
+  - `recent_activity(vault, days)` parses `log.md`, newest first.
+* New `ingest_url(url, vault, type, title, tags)` fetches via
+  `curl::curl_fetch_memory()` (10s timeout, follow-redirects, TLS
+  verify on). Refuses non-2xx and content types outside
+  `text/html`, `text/plain`, `text/markdown`, `application/json`,
+  `application/xml`, `text/xml`. HTML responses use `<title>` as
+  the page title when none is supplied. Dedup against the manifest:
+  same URL twice doesn't re-fetch. Skips and re-fetches when the
+  recorded file has been deleted or the entry is malformed.
 * New `dedup(vault, threshold)` proposes candidate duplicate pages
   by combining Jaro-Winkler title similarity (60%) and tag-set
-  Jaccard overlap (40%). Writes a markdown report to
-  `_proposals/dedup.md`. Returns the proposals data.frame invisibly.
-  Never auto-merges; the file is for human review.
+  Jaccard overlap (40%). Writes to `_proposals/dedup.md`. Never
+  auto-merges.
 * New `tags(vault, taxonomy)` audits used tags against an optional
-  controlled vocabulary. The taxonomy defaults to
-  `<vault>/_meta/taxonomy.md` (a markdown bullet list of allowed
-  tags); pass an explicit path with `taxonomy =`. Unknown tags get
-  near-miss suggestions via Jaro-Winkler. Reports to
-  `_proposals/tags.md`. Never auto-renames.
-* `_proposals/` is the deliberate user-visible write target for
-  audits, distinct from `.pensar/` (pensar-owned state) and the
-  cache under `tools::R_user_dir()`.
-* New Import: `stringdist` (used for both title similarity and
-  near-miss tag detection).
+  controlled vocabulary at `_meta/taxonomy.md` (markdown bullet
+  list). Unknown tags get near-miss suggestions via Jaro-Winkler.
+  Writes to `_proposals/tags.md`. Never auto-renames. Explicit
+  missing taxonomy path errors instead of silently degrading.
+* New `ingest_agent_context(agent, vault, ...)` wraps
+  `saber::agent_context()` to snapshot the live agent context
+  (memory, project / global instructions, identity files) into the
+  vault as a `raw/chats/` page. Saber stays in Suggests; missing
+  saber errors with an install hint.
 
-# pensar 0.5.0.8
+## Skills
 
-* Pensar now ships an agent skill bundle under
-  `inst/skills/pensar/autoresearch/`: a `SKILL.md` driving a bounded
-  3-round web-research loop (decompose, fetch, gap-fill, synthesize)
-  plus a configurable `references/program.md`. The loop files results
-  through `ingest_url()`, dedups concepts with `search_pages()`, and
-  suggests cross-links via `related_pages()`.
-* New `pensar_skill_path(skill = NULL)` returns the absolute path to
-  the bundle root or to a specific skill. Symlink it into an agent's
-  skill directory, e.g.
-  `ln -s $(Rscript -e 'cat(pensar::pensar_skill_path())') ~/.claude/skills/pensar`.
+* Pensar ships an agent skill bundle at
+  `inst/skills/pensar/autoresearch/`: `SKILL.md` driving a bounded
+  3-round web-research loop (decompose → search/fetch → gap fill →
+  synthesize) and a configurable `references/program.md`. The loop
+  files results through `ingest_url()`, dedups concepts with
+  `search_pages()`, suggests cross-links via `related_pages()`, and
+  refreshes the index plus log on completion.
+* New `pensar_skill_path(skill = NULL)` returns the absolute path
+  to the bundle root or a specific skill. Symlink it into an
+  agent's skill directory:
+  `ln -s $(Rscript -e 'cat(pensar::pensar_skill_path())') \`
+  `~/.claude/skills/pensar`.
 
-# pensar 0.5.0.7
+## Internals
 
-* New `ingest_url(url, vault, type, title, tags)` fetches a URL with
-  `curl::curl_fetch_memory()` and writes the body into the vault via
-  the existing `ingest()` path. Refuses non-2xx responses and content
-  types outside `text/html`, `text/plain`, `text/markdown`,
-  `application/json`, `application/xml`, `text/xml`. HTML responses
-  use the page's `<title>` as the page title when none is supplied.
-* Dedup: if the manifest already records the URL as a source, the
-  call returns the existing page path without re-fetching.
-* New Import: `curl`.
+* Read-only operations (`vault_registry()`, `update_index()`,
+  `status()`, `backlinks()`, `outlinks()`, `lint()`,
+  `search_pages()`, `page_context()`, `related_pages()`,
+  `recent_activity()`) never write vault state. `.pensar/` is
+  reserved for vault-owned bookkeeping; derived caches live in
+  `tools::R_user_dir("pensar", "cache")`.
+* `lint()` now reads tag and link data from the registry instead
+  of re-parsing files, and keys tag-cluster raw pages by relative
+  path so duplicate basenames in different folders no longer
+  collide and undercount clusters.
+* `outlinks()` surfaces ambiguous-target warnings to interactive
+  callers; `backlinks()` and `lint()` continue to use a muffling
+  resolver helper since they iterate.
+* Walk-up vault discovery also checks `<dir>/vault/schema.md` at
+  each rung, so running pensar from a project root whose vault
+  lives one level down (e.g., `cornelius/vault/`) resolves
+  correctly.
+* `status()` records the resolver source on the returned
+  `pensar_status` object (`$source` is one of `"env"`,
+  `"walkup"`, `"walkup-subdir"`, `"option"`, `"explicit"`) and
+  surfaces it in the print method.
 
-# pensar 0.5.0.6
+## Dependencies
 
-* Four new retrieval primitives in `R/retrieval.R`, all registry-backed
-  and write-free:
-  * `search_pages(query, vault, type, in_body)` does substring search
-    over title, tags, and frontmatter aliases by default; with
-    `in_body = TRUE` it also scans page bodies. Returns a data.frame
-    with a `matched_in` column identifying where the substring hit.
-  * `page_context(name, vault, body_chars)` returns a structured view
-    of one page: `frontmatter`, `body_head`, `outlinks`, `backlinks`.
-    Resolves `name` through the registry, so path-style queries work
-    alongside the basename style.
-  * `related_pages(name, vault, k)` ranks other pages by shared tags
-    plus shared outlinks (co-citation). Returns top-k with a `score`
-    column.
-  * `recent_activity(vault, days)` parses `log.md` and returns recent
-    entries newest-first within the window.
-* All four read from the existing registry / log; none write anything
-  to the vault or to `.pensar/`.
-
-# pensar 0.5.0.5
-
-* New `manifest_path(vault)`, `read_manifest(vault)`, and
-  `update_manifest(vault, ...)` for pensar-owned bookkeeping at
-  `.pensar/manifest.yml`. Schema: `version`, `created`, per-source
-  `sources` records (source identifier, ingested_at, hash, page_uid),
-  and an opt-in `address_map` keyed by relative path.
-* `ingest()` and `ingest_repo()` now call `update_manifest()` after a
-  successful page write. Each entry stores a `sha1:` content hash so
-  re-ingests can be detected later.
-* Read-only operations (`vault_registry()` at any cache level,
-  `update_index()`, `status()`, `backlinks()`, `outlinks()`, `lint()`)
-  never write the manifest. The first manifest write to a long-lived
-  pensar vault therefore only happens on the next `ingest()` /
-  `ingest_repo()` after this version.
-* Read-side compatibility with `.manifest.json` and
-  `.raw/.manifest.json` is deferred until there is a real consumer;
-  it would require `jsonlite` in Imports.
-
-# pensar 0.5.0.4
-
-* `init_vault(path, adopt = TRUE)` now implements read-only adopt mode.
-  Writes only `schema.md` (with `adopted: true` frontmatter), `log.md`,
-  and `index.md` if missing; no `raw/*` or `wiki/` scaffolding, no
-  auto-commits. Use it to point pensar at an existing Obsidian vault
-  without disturbing its layout.
-* `update_index()` and `status()` are registry-driven for adopted
-  vaults. `update_index()` groups pages by frontmatter `type` (or
-  `category`) into an "(untyped)" bucket when neither is present.
-  `status()` returns a `by_type` table plus `total`. Native pensar
-  vaults are unaffected: hard-coded `Raw: Articles / Chats / ...`
-  categories and counters stay the default.
-* `ingest()` refuses to write into an adopted vault by default. Pass
-  `force = TRUE` to write into the adopted tree anyway. Native vaults
-  ignore the new parameter.
-
-# pensar 0.5.0.3
-
-* New `vault_registry(vault, cache, refresh)` exported. Builds a
-  data.frame with one row per page in the vault: `path`, `node_id` (the
-  current link-resolution identity), `page_uid` (stable identity from
-  frontmatter `id:`/`address:`, `NA` otherwise), `title`, `aliases`,
-  `type`, `tags`, `sources`, `links_out`, `system_file`. Caches in a
-  session env by default; `cache = "user"` persists to
-  `tools::R_user_dir("pensar", "cache")`. Never writes inside the vault
-  itself - `.pensar/` is reserved for vault-owned state.
-* `find_page()` (used by `outlinks()` and other link callers) now
-  resolves through the registry. New order: exact path → `page_uid` →
-  unique `node_id` → ambiguous-basename warning + first-sorted →
-  frontmatter alias. Preserves today's behavior for unique basenames;
-  warns where today it would silently pick one of several pages with
-  the same basename.
-* New Import: `digest` (used internally to hash vault paths for cache
-  keys).
-
-# pensar 0.5.0.2
-
-* `init_vault()` now refuses to scaffold into directories that already
-  contain non-pensar files or a foreign git history. Pass `adopt = TRUE`
-  to use the directory in (forthcoming) read-only adopt mode, or
-  `force = TRUE` to scaffold anyway. The auto-commit step is gated
-  separately by a new `commit` parameter (default `NULL`): commits only
-  when the directory was pensar-owned before the scaffold, never as a
-  side effect of `force = TRUE`. Fixes a destructive default where
-  pointing `init_vault()` at someone else's git repo would write
-  scaffolding and an auto-commit into their history. The `adopt`
-  parameter is plumbed for the upcoming read-only adopt mode.
-
-# pensar 0.5.0.1
-
-* Walk-up vault discovery now also checks `<dir>/vault/schema.md` at
-  each rung, so running pensar from a project root whose vault lives
-  one level down (e.g., `cornelius/vault/`) resolves correctly. The
-  current directory's own `schema.md` still wins at each rung.
-* `status()` now records the resolver source on the returned
-  `pensar_status` object (`$source` is one of `"env"`, `"walkup"`,
-  `"walkup-subdir"`, `"option"`, `"explicit"`) and surfaces it in the
-  print method, e.g. `Vault status: /path (via ./vault walk-up)`.
-  Makes "which vault did I just get?" answerable from the output
-  alone on multi-vault setups.
+* New Imports: `curl` (URL ingest), `digest` (registry cache key
+  + content hashes), `stringdist` (Jaro-Winkler for dedup and
+  near-miss tags). `saber` remains in Suggests.
 
 # pensar 0.5.0
 
