@@ -69,6 +69,7 @@
                extract_claims = .heuristic_extract_claims(input, program),
                analyze_gaps = .heuristic_analyze_gaps(input, program),
                plan_pages = .heuristic_plan_pages(input, program),
+               revise_page = .heuristic_revise_page(input, program),
                stop("Unknown autoresearch model task: ", task, call. = FALSE))
     }
     attr(backend, "usage_env") <- usage_env
@@ -147,6 +148,13 @@
                                       "Prefer updating an existing page when existing_pages contains a matching node_id, title, alias, or page_uid.",
                                       "Return JSON: {\"headline\":\"...\",\"pages\":[{\"slug\":\"Research-topic\",\"title\":\"Research: topic\",\"type\":\"analysis\",\"source\":\"autoresearch session ...\",\"body\":\"markdown\"}]}",
                                       payload, sep = "\n\n"),
+                   revise_page = paste(
+                                       "Revise an existing wiki page using new research evidence.",
+                                       "Preserve user-written prose that is still accurate.",
+                                       "Update outdated claims and add new source-cited findings; cite raw source wikilinks for non-obvious claims.",
+                                       "Do not duplicate content. Do not invent a synthesis tone where the existing prose has a different one.",
+                                       "Return JSON: {\"body\":\"...\"} containing only the revised markdown body (no frontmatter).",
+                                       payload, sep = "\n\n"),
                    stop("Unknown autoresearch task: ", task, call. = FALSE))
     list(system = system, user = user)
 }
@@ -226,6 +234,25 @@
 #' @noRd
 .heuristic_analyze_gaps <- function(input, program) {
     list(gaps = list(), queries = list())
+}
+
+#' @noRd
+.heuristic_revise_page <- function(input, program) {
+    existing <- as.character(input$existing_body %||% "")
+    new_draft <- as.character(input$new_draft_body %||% "")
+    if (!nzchar(existing)) {
+        return(list(body = new_draft))
+    }
+    if (!nzchar(new_draft)) {
+        return(list(body = existing))
+    }
+    revised <- paste(existing,
+                     "",
+                     sprintf("## Update %s", as.character(Sys.Date())),
+                     "",
+                     new_draft,
+                     sep = "\n")
+    list(body = revised)
 }
 
 #' @noRd

@@ -214,6 +214,43 @@ autoresearch_plan_pages <- function(topic, claims, sources, existing_pages,
 }
 
 #' @noRd
+autoresearch_revise_pages <- function(planned, claims, sources, vault,
+                                      program, model_backend) {
+    if (nrow(planned) == 0L) {
+        return(planned)
+    }
+    for (i in seq_len(nrow(planned))) {
+        slug <- planned$slug[[i]]
+        path <- file.path(vault, "wiki", paste0(slug, ".md"))
+        if (!file.exists(path)) {
+            next
+        }
+        existing_body <- tryCatch(extract_body(path, n_chars = NULL),
+                                  error = function(e) "")
+        if (!nzchar(existing_body)) {
+            next
+        }
+        res <- model_backend("revise_page",
+                             list(slug = slug,
+                                  topic = planned$title[[i]],
+                                  type = planned$type[[i]],
+                                  existing_body = existing_body,
+                                  new_draft_body = planned$body[[i]],
+                                  claims = claims,
+                                  sources = .autoresearch_source_records(
+                                      sources, include_body = FALSE)),
+                             program)
+        revised <- if (!is.null(res$body) && nzchar(res$body)) {
+            as.character(res$body)
+        } else {
+            planned$body[[i]]
+        }
+        planned$body[[i]] <- revised
+    }
+    planned
+}
+
+#' @noRd
 autoresearch_write_pages <- function(pages, vault, program, overwrite = TRUE,
                                      force = FALSE) {
     if (nrow(pages) == 0L) {

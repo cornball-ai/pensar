@@ -5,7 +5,7 @@
 \usage{
 autoresearch(topic, vault = default_vault(), search_backend = NULL,
              fetch_backend = NULL, model_backend = NULL, program = NULL,
-             force = FALSE, overwrite = TRUE, provider = "anthropic",
+             force = FALSE, overwrite = TRUE, update = TRUE, provider = "auto",
              model = NULL, verbose = TRUE)
 }
 \arguments{
@@ -36,9 +36,19 @@ overrides package defaults when \code{program} is \code{NULL}.}
 existing wiki files. Set \code{FALSE} to make existing-page updates
 fail instead of replacing content.}
 
+\item{update}{Logical. When \code{TRUE} (default), planned pages whose
+slug matches an existing wiki page run through a \code{revise_page}
+model task that reads the existing body and produces an edit-aware
+revision, so hand-written prose survives a re-run. When
+\code{FALSE}, the planner's new draft body replaces the existing
+body wholesale.}
+
 \item{provider}{Provider for the default \code{llm.api} model backend:
+\code{"auto"} (default; picks whichever of \code{ANTHROPIC_API_KEY},
+\code{OPENAI_API_KEY}, or \code{MOONSHOT_API_KEY} is set),
 \code{"anthropic"}, \code{"openai"}, \code{"moonshot"},
-\code{"ollama"}, \code{"auto"}, or \code{"heuristic"}.}
+\code{"ollama"}, or \code{"heuristic"} (force the deterministic
+fallback).}
 
 \item{model}{Optional model name for the default \code{llm.api}
 backend.}

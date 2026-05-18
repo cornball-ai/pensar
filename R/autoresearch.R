@@ -30,6 +30,12 @@
 #' @param overwrite Logical. Allow planned wiki pages to overwrite
 #'   existing wiki files. Set \code{FALSE} to make existing-page updates
 #'   fail instead of replacing content.
+#' @param update Logical. When \code{TRUE} (default), planned pages whose
+#'   slug matches an existing wiki page run through a \code{revise_page}
+#'   model task that reads the existing body and produces an edit-aware
+#'   revision, so hand-written prose survives a re-run. When
+#'   \code{FALSE}, the planner's new draft body replaces the existing
+#'   body wholesale.
 #' @param force Logical. Allow writes into adopted vaults.
 #' @param provider Provider for the default \code{llm.api} model backend:
 #'   \code{"auto"} (default; picks whichever of \code{ANTHROPIC_API_KEY},
@@ -54,7 +60,7 @@
 autoresearch <- function(topic, vault = default_vault(),
                          search_backend = NULL, fetch_backend = NULL,
                          model_backend = NULL, program = NULL, force = FALSE,
-                         overwrite = TRUE, provider = "auto",
+                         overwrite = TRUE, update = TRUE, provider = "auto",
                          model = NULL, verbose = TRUE) {
     if (!is.character(topic) || length(topic) != 1L || !nzchar(topic)) {
         stop("`topic` must be a single non-empty string.", call. = FALSE)
@@ -168,6 +174,14 @@ autoresearch <- function(topic, vault = default_vault(),
     }
     pages <- autoresearch_plan_pages(topic, claims, sources, existing_pages,
                                      program, model_backend)
+
+    if (isTRUE(update) && nrow(pages$pages) > 0L) {
+        if (isTRUE(verbose)) {
+            message("autoresearch: revising pages with existing prose")
+        }
+        pages$pages <- autoresearch_revise_pages(pages$pages, claims, sources,
+                                                 vault, program, model_backend)
+    }
 
     if (isTRUE(verbose)) {
         message("autoresearch: writing ", nrow(pages$pages), " wiki pages")

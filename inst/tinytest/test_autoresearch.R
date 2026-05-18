@@ -313,6 +313,7 @@ res_merge <- autoresearch("skills", vault = v_merge,
                           model_backend = fake_model,
                           program = list(required_tags = c("research", "skills"),
                                          max_rounds = 1L),
+                          update = FALSE,
                           verbose = FALSE)
 fm_merged <- pensar:::parse_frontmatter(
     file.path(v_merge, "wiki", "Research-skills.md"))
@@ -429,6 +430,7 @@ err <- tryCatch(
                  model_backend = existing_model,
                  program = list(max_rounds = 1L),
                  overwrite = FALSE,
+                 update = FALSE,
                  verbose = FALSE),
     error = function(e) conditionMessage(e))
 expect_true(isTRUE(seen_existing$ok))
@@ -438,3 +440,88 @@ existing_body <- readLines(file.path(v_existing, "wiki", "Research-skills.md"),
 expect_true(any(grepl("Old body", existing_body)))
 expect_false(any(grepl("New body", existing_body)))
 unlink(v_existing, recursive = TRUE)
+
+# update = TRUE feeds the existing body through revise_page and preserves prose.
+v_revise <- tempfile("ar-revise-")
+init_vault(v_revise, rproj = FALSE, agent_instructions = FALSE)
+dir.create(file.path(v_revise, "wiki"), showWarnings = FALSE, recursive = TRUE)
+writeLines(c("---",
+             "title: \"Research: skills\"",
+             "type: analysis",
+             "source: \"original\"",
+             "id: keep-this-id",
+             "tags:",
+             "  - research",
+             "---", "",
+             "My carefully crafted analysis from before."),
+           file.path(v_revise, "wiki", "Research-skills.md"))
+
+revise_seen <- new.env(parent = emptyenv())
+revise_seen$existing_body <- NULL
+revise_seen$new_draft <- NULL
+revise_model <- function(task, input, program) {
+    if (task == "revise_page") {
+        revise_seen$existing_body <- input$existing_body
+        revise_seen$new_draft <- input$new_draft_body
+        return(list(body = paste(input$existing_body,
+                                 "",
+                                 "## Revised additions",
+                                 input$new_draft_body, sep = "\n")))
+    }
+    fake_model(task, input, program)
+}
+res_rev <- autoresearch("skills", vault = v_revise,
+                        search_backend = fake_search,
+                        fetch_backend = fake_fetch,
+                        model_backend = revise_model,
+                        program = list(max_rounds = 1L),
+                        verbose = FALSE)
+expect_true(!is.null(revise_seen$existing_body))
+expect_true(grepl("carefully crafted analysis", revise_seen$existing_body))
+expect_true(grepl("Claude Code skills use SKILL.md", revise_seen$new_draft))
+revised_body <- paste(readLines(file.path(v_revise, "wiki", "Research-skills.md"),
+                                warn = FALSE),
+                      collapse = "\n")
+expect_true(grepl("carefully crafted analysis", revised_body))
+expect_true(grepl("Revised additions", revised_body))
+unlink(v_revise, recursive = TRUE)
+
+# Heuristic backend's revise_page appends the new draft under a dated header.
+v_heur <- tempfile("ar-heuristic-revise-")
+init_vault(v_heur, rproj = FALSE, agent_instructions = FALSE)
+dir.create(file.path(v_heur, "wiki"), showWarnings = FALSE, recursive = TRUE)
+writeLines(c("---",
+             "title: \"Research: heuristic\"",
+             "type: analysis",
+             "source: \"original\"",
+             "tags:",
+             "  - research",
+             "---", "",
+             "Preserve-me prose."),
+           file.path(v_heur, "wiki", "Research-heuristic.md"))
+heuristic_backend <- pensar:::.autoresearch_heuristic_model_backend()
+heur_search <- function(query, n) {
+    data.frame(title = "Some page",
+               url = "https://example.test/heuristic",
+               snippet = "snippet body",
+               stringsAsFactors = FALSE)
+}
+heur_fetch <- function(url) {
+    list(url = url, status_code = 200L, content_type = "text/plain",
+         body = "heuristic body content",
+         fetched_at = "2026-05-18T00:00:00")
+}
+res_heur <- autoresearch("heuristic", vault = v_heur,
+                         search_backend = heur_search,
+                         fetch_backend = heur_fetch,
+                         model_backend = heuristic_backend,
+                         program = list(max_rounds = 1L,
+                                        max_queries_per_round = 1L,
+                                        max_sources_per_round = 1L),
+                         verbose = FALSE)
+heur_body <- paste(readLines(file.path(v_heur, "wiki", "Research-heuristic.md"),
+                             warn = FALSE),
+                   collapse = "\n")
+expect_true(grepl("Preserve-me prose", heur_body))
+expect_true(grepl("## Update", heur_body))
+unlink(v_heur, recursive = TRUE)
