@@ -131,12 +131,14 @@ build_registry_row <- function(filepath, vault) {
     # System / pensar-managed files we don't want to treat as content
     # in the registry: vault root control files (schema/index/log) and
     # anything under _proposals/ (audit outputs from dedup() / tags()).
-    parent <- dirname(filepath)
+    # Checked against the relative path so it's portable to Windows,
+    # where list.files() uses forward slashes but normalizePath()
+    # returns backslashes (so `dirname(filepath) == vault` was false).
+    rel_dir <- dirname(rel_path)
     is_root_ctrl <- basename(filepath) %in%
         c("schema.md", "index.md", "log.md") &&
-        identical(parent, vault)
-    in_proposals <- identical(basename(parent), "_proposals") &&
-        identical(dirname(parent), vault)
+        identical(rel_dir, ".")
+    in_proposals <- identical(rel_dir, "_proposals")
     system_file <- is_root_ctrl || in_proposals
 
     data.frame(path = rel_path, node_id = node_id, page_uid = page_uid,
