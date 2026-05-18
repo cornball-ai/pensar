@@ -21,6 +21,22 @@ Pensar provides the filing primitives (`ingest_url()`, `search_pages()`,
 `related_pages()`, `update_index()`, `log_entry()`). The skill drives
 the loop and writes synthesis pages directly via standard file tools.
 
+## Acknowledgments
+
+This skill and `references/program.md` are adapted from the
+`autoresearch` skill in
+[AgriciDaniel/claude-obsidian](https://github.com/AgriciDaniel/claude-obsidian),
+licensed under MIT. See `NOTICE.md` in this directory for the full
+copyright and permission notice.
+
+The broader LLM wiki concept comes from Andrej Karpathy's
+[LLM Wiki gist](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f).
+The `autoresearch` name and the program-driven bounded-loop framing
+reference Karpathy's
+[autoresearch](https://github.com/karpathy/autoresearch) repository
+(different domain — overnight LLM-training experiments — same
+"configurable program + bounded autonomous loop" architecture).
+
 ## Before starting
 
 1. Read `references/program.md` for per-domain objectives, confidence
