@@ -28,7 +28,22 @@
 #'   orienting an AI agent to work in this vault (CLI reminders,
 #'   editing rules, ingest workflow). If you don't plan to start an
 #'   AI agent session in the vault, pass \code{FALSE}.
-#' @return The vault path, invisibly.
+#' @param adopt Reserved for read-only adopt mode (full implementation
+#'   ships in a later PR). When \code{TRUE} the function emits a notice
+#'   and returns without writing anything. Use this when pointing
+#'   pensar at an existing Obsidian vault you don't want to scaffold.
+#' @param commit Auto-commit gate. \code{NULL} (default) commits the
+#'   initial scaffold only when the target directory is pensar-owned
+#'   (empty, or already shaped like a pensar vault). \code{TRUE} commits
+#'   unconditionally (after \code{force = TRUE} writes); \code{FALSE}
+#'   skips the commit even for pensar-owned directories. Forcing pensar
+#'   into foreign content does not by itself grant permission to commit
+#'   to that content's history.
+#' @param force Write gate. \code{FALSE} (default) refuses to scaffold
+#'   when the target directory already contains files or a git history
+#'   that aren't pensar's. \code{TRUE} scaffolds anyway. Use sparingly.
+#' @return The vault path, invisibly. Returns \code{NULL} invisibly when
+#'   the safety gate refused to scaffold.
 #' @examples
 #' v <- tempfile("vault-")
 #' init_vault(v, rproj = FALSE, agent_instructions = FALSE)
@@ -36,11 +51,30 @@
 #' unlink(v, recursive = TRUE)
 #' @export
 init_vault <- function(path = default_vault(), rproj = TRUE,
-                       agent_instructions = TRUE) {
+                       agent_instructions = TRUE, adopt = FALSE,
+                       commit = NULL, force = FALSE) {
     path <- normalizePath(path, mustWork = FALSE)
     if (file.exists(file.path(path, "schema.md"))) {
         message("Vault already exists at: ", path)
         return(invisible(path))
+    }
+
+    if (isTRUE(adopt)) {
+        message("Adopt mode: PR 3 will add adopted-mode scaffolding. ",
+                "For now, this is a no-op.")
+        return(invisible(path))
+    }
+
+    # Capture ownership *before* writing so the commit gate uses the
+    # original state, not the post-scaffold state.
+    pensar_owned <- vault_is_pensar_owned(path)
+    if (!isTRUE(force) && !pensar_owned) {
+        message(sprintf(paste0(
+                               "Refusing to scaffold pensar into existing content at: %s\n",
+                               "  Pass adopt = TRUE to use this directory in read-only ",
+                               "adopt mode, or pass force = TRUE to scaffold pensar into ",
+                               "the existing tree."), path))
+        return(invisible(NULL))
     }
 
     dirs <- c(file.path(path, "raw", "articles"),
@@ -73,7 +107,20 @@ init_vault <- function(path = default_vault(), rproj = TRUE,
     }
 
     log_entry("Vault initialized", operation = "init", vault = path)
-    vault_commit("Vault initialized", vault = path)
+
+    # Commit gate is separate from the write gate.
+    # commit = NULL (default): auto-commit iff the dir was pensar-owned
+    #   before scaffolding. Forcing into foreign content does NOT imply
+    #   permission to commit to its history.
+    # commit = TRUE / FALSE: explicit override.
+    if (is.null(commit)) {
+        should_commit <- pensar_owned
+    } else {
+        should_commit <- isTRUE(commit)
+    }
+    if (should_commit) {
+        vault_commit("Vault initialized", vault = path)
+    }
 
     message("Vault created at: ", path)
     invisible(path)

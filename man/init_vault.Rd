@@ -3,7 +3,8 @@
 \alias{init_vault}
 \title{Vault initialization}
 \usage{
-init_vault(path = default_vault(), rproj = TRUE, agent_instructions = TRUE)
+init_vault(path = default_vault(), rproj = TRUE, agent_instructions = TRUE,
+           adopt = FALSE, commit = NULL, force = FALSE)
 }
 \arguments{
 \item{path}{Path to the vault directory. No implicit default: pass
@@ -29,9 +30,27 @@ delete it anytime if you prefer not to use RStudio. Pass
 orienting an AI agent to work in this vault (CLI reminders,
 editing rules, ingest workflow). If you don't plan to start an
 AI agent session in the vault, pass \code{FALSE}.}
+
+\item{adopt}{Reserved for read-only adopt mode (full implementation
+ships in a later PR). When \code{TRUE} the function emits a notice
+and returns without writing anything. Use this when pointing
+pensar at an existing Obsidian vault you don't want to scaffold.}
+
+\item{commit}{Auto-commit gate. \code{NULL} (default) commits the
+initial scaffold only when the target directory is pensar-owned
+(empty, or already shaped like a pensar vault). \code{TRUE} commits
+unconditionally (after \code{force = TRUE} writes); \code{FALSE}
+skips the commit even for pensar-owned directories. Forcing pensar
+into foreign content does not by itself grant permission to commit
+to that content's history.}
+
+\item{force}{Write gate. \code{FALSE} (default) refuses to scaffold
+when the target directory already contains files or a git history
+that aren't pensar's. \code{TRUE} scaffolds anyway. Use sparingly.}
 }
 \value{
-The vault path, invisibly.
+The vault path, invisibly. Returns \code{NULL} invisibly when
+  the safety gate refused to scaffold.
 }
 \description{
 Create and seed a pensar vault.
