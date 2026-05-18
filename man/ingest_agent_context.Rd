@@ -41,9 +41,13 @@ existing \code{ingest()} pipeline (so the manifest, index, log,
 and auto-commit all kick in).
 
 Saber stays in pensar's \code{Suggests}: the wrapper guards with
-\code{requireNamespace("saber")} and errors with an install hint if
-the package isn't available. Users who don't want this wrapper pay
-no mandatory dependency cost.
+\code{requireNamespace("saber")} and errors with an install hint
+if the package isn't available. It also gates on the
+\code{agent_context()} export specifically so the wrapper degrades
+cleanly against older saber versions (pre-0.4) that don't ship the
+function, instead of failing R CMD check's static analysis or
+crashing at runtime. Users who don't want this wrapper pay no
+mandatory dependency cost.
 
 Returns silently with a message (and no write) when saber returns
 an empty context, so the vault doesn't accumulate empty snapshots.

@@ -77,11 +77,20 @@ find_vault_walkup <- function(start = getwd()) {
     dir <- normalizePath(start, mustWork = FALSE)
     repeat {
         if (file.exists(file.path(dir, "schema.md"))) {
-            return(list(path = dir, source = "walkup"))
+            # Re-normalize: when `start` doesn't exist (e.g., a
+            # subdir like /vault/wiki that hasn't been created),
+            # normalizePath() with mustWork = FALSE returns the
+            # input unchanged on Windows, keeping forward slashes.
+            # By the time we land here `dir` actually exists, so
+            # we can resolve it to the canonical platform form
+            # (backslashes on Windows) and avoid drifting from
+            # downstream `normalizePath()` calls.
+            return(list(path = normalizePath(dir, mustWork = TRUE),
+                        source = "walkup"))
         }
         sub <- file.path(dir, "vault")
         if (file.exists(file.path(sub, "schema.md"))) {
-            return(list(path = normalizePath(sub, mustWork = FALSE),
+            return(list(path = normalizePath(sub, mustWork = TRUE),
                         source = "walkup-subdir"))
         }
         parent <- dirname(dir)

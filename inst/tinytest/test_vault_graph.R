@@ -5,6 +5,9 @@ library(pensar)
 if (!requireNamespace("saber", quietly = TRUE)) {
     exit_file("saber not installed")
 }
+if (!"graph_svg" %in% getNamespaceExports("saber")) {
+    exit_file("installed saber lacks graph_svg(); skipping")
+}
 
 tmp <- file.path(tempdir(), paste0("vault-graph-",
                                    format(Sys.time(), "%H%M%S")))
