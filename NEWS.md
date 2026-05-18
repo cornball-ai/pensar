@@ -1,3 +1,16 @@
+# pensar 0.5.0.8
+
+* Pensar now ships an agent skill bundle under
+  `inst/skills/pensar/autoresearch/`: a `SKILL.md` driving a bounded
+  3-round web-research loop (decompose, fetch, gap-fill, synthesize)
+  plus a configurable `references/program.md`. The loop files results
+  through `ingest_url()`, dedups concepts with `search_pages()`, and
+  suggests cross-links via `related_pages()`.
+* New `pensar_skill_path(skill = NULL)` returns the absolute path to
+  the bundle root or to a specific skill. Symlink it into an agent's
+  skill directory, e.g.
+  `ln -s $(Rscript -e 'cat(pensar::pensar_skill_path())') ~/.claude/skills/pensar`.
+
 # pensar 0.5.0.7
 
 * New `ingest_url(url, vault, type, title, tags)` fetches a URL with
