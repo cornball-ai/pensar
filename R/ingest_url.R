@@ -88,8 +88,12 @@ ingest_url <- function(url, vault = default_vault(),
 
 #' Look up the relative path of an already-ingested source
 #'
-#' Reads the manifest and returns the first entry whose source field
-#' matches \code{url}, or \code{NULL} if no such entry exists.
+#' Returns the relative path of an existing page whose manifest record
+#' matches \code{url}, or \code{NULL} otherwise. A manifest hit is
+#' ignored when the recorded file has been deleted, so a stale entry
+#' doesn't make \code{ingest_url()} silently return a dead path.
+#' Malformed per-entry records (a scalar where a list was expected)
+#' are skipped, not fatal.
 #' @noRd
 existing_source_path <- function(url, vault) {
     m <- tryCatch(read_manifest(vault),
@@ -99,9 +103,16 @@ existing_source_path <- function(url, vault) {
     }
     for (path in names(m$sources)) {
         entry <- m$sources[[path]]
-        if (identical(entry$source, url)) {
-            return(path)
+        if (!is.list(entry)) {
+            next
         }
+        if (!identical(entry$source, url)) {
+            next
+        }
+        if (!file.exists(file.path(vault, path))) {
+            next
+        }
+        return(path)
     }
     NULL
 }

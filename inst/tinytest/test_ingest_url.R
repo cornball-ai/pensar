@@ -36,6 +36,33 @@ err <- tryCatch(ingest_url(c("a", "b"), vault = v_unit),
 expect_true(grepl("non-empty string", err))
 unlink(v_unit, recursive = TRUE)
 
+# --- existing_source_path() robustness (no network) ---------------------
+
+# Stale manifest entry (file deleted) → returns NULL so caller re-fetches.
+v_stale <- file.path(tempdir(), paste0("iu-stale-",
+                                       format(Sys.time(), "%H%M%OS3")))
+init_vault(v_stale, rproj = FALSE, agent_instructions = FALSE)
+update_manifest(v_stale, source = "https://example.com/foo",
+                path = "raw/articles/missing.md",
+                hash = "sha1:abc")
+expect_null(pensar:::existing_source_path("https://example.com/foo",
+                                          v_stale))
+unlink(v_stale, recursive = TRUE)
+
+# Malformed per-entry record (scalar instead of list) → skipped, not fatal.
+v_bad <- file.path(tempdir(), paste0("iu-bad-entry-",
+                                     format(Sys.time(), "%H%M%OS3")))
+init_vault(v_bad, rproj = FALSE, agent_instructions = FALSE)
+dir.create(file.path(v_bad, ".pensar"), showWarnings = FALSE)
+writeLines(c("version: 1", "created: 2026-05-17",
+             "sources:",
+             "  raw/articles/a.md: bad",
+             "address_map: {}"),
+           file.path(v_bad, ".pensar", "manifest.yml"))
+expect_null(pensar:::existing_source_path("https://example.com",
+                                          v_bad))
+unlink(v_bad, recursive = TRUE)
+
 # --- Network tests, gated by at_home() ----------------------------------
 
 if (tinytest::at_home()) {
