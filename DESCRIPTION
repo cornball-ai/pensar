@@ -26,5 +26,7 @@ Suggests:
     jsonlite,
     llm.api,
     saber,
+    simplermarkdown,
     tinytest
+VignetteBuilder: simplermarkdown
 Encoding: UTF-8
