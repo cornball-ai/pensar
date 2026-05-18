@@ -461,6 +461,8 @@ revise_seen$existing_body <- NULL
 revise_seen$new_draft <- NULL
 revise_model <- function(task, input, program) {
     if (task == "revise_page") {
+        revise_seen$topic <- input$topic
+        revise_seen$page_title <- input$page_title
         revise_seen$existing_body <- input$existing_body
         revise_seen$new_draft <- input$new_draft_body
         return(list(body = paste(input$existing_body,
@@ -477,6 +479,8 @@ res_rev <- autoresearch("skills", vault = v_revise,
                         program = list(max_rounds = 1L),
                         verbose = FALSE)
 expect_true(!is.null(revise_seen$existing_body))
+expect_equal(revise_seen$topic, "skills")
+expect_equal(revise_seen$page_title, "Research: skills")
 expect_true(grepl("carefully crafted analysis", revise_seen$existing_body))
 expect_true(grepl("Claude Code skills use SKILL.md", revise_seen$new_draft))
 revised_body <- paste(readLines(file.path(v_revise, "wiki", "Research-skills.md"),

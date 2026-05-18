@@ -214,7 +214,7 @@ autoresearch_plan_pages <- function(topic, claims, sources, existing_pages,
 }
 
 #' @noRd
-autoresearch_revise_pages <- function(planned, claims, sources, vault,
+autoresearch_revise_pages <- function(planned, topic, claims, sources, vault,
                                       program, model_backend) {
     if (nrow(planned) == 0L) {
         return(planned)
@@ -232,7 +232,8 @@ autoresearch_revise_pages <- function(planned, claims, sources, vault,
         }
         res <- model_backend("revise_page",
                              list(slug = slug,
-                                  topic = planned$title[[i]],
+                                  topic = topic,
+                                  page_title = planned$title[[i]],
                                   type = planned$type[[i]],
                                   existing_body = existing_body,
                                   new_draft_body = planned$body[[i]],

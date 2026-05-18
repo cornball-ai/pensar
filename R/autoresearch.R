@@ -179,8 +179,9 @@ autoresearch <- function(topic, vault = default_vault(),
         if (isTRUE(verbose)) {
             message("autoresearch: revising pages with existing prose")
         }
-        pages$pages <- autoresearch_revise_pages(pages$pages, claims, sources,
-                                                 vault, program, model_backend)
+        pages$pages <- autoresearch_revise_pages(pages$pages, topic, claims,
+                                                 sources, vault, program,
+                                                 model_backend)
     }
 
     if (isTRUE(verbose)) {
