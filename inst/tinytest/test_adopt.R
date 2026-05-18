@@ -198,3 +198,19 @@ expect_true(any(grepl("\\[\\[A/Foo\\]\\]", ix)))
 expect_true(any(grepl("\\[\\[B/Foo\\]\\]", ix)))
 expect_false(any(grepl("\\[\\[Foo\\]\\]", ix)))
 unlink(d14, recursive = TRUE)
+
+# --- 15. init_vault(adopt = TRUE) is idempotent on the returned path.
+#    Captures the symlink-resolution invariant that vault_export()
+#    needed fixed in 0.4.3: on macOS /var/folders/... is a symlink to
+#    /private/var/folders/..., and normalizePath() with mustWork = FALSE
+#    only resolves existing paths. Calling adopt twice on a fresh dir
+#    must return the same canonical path both times. ---
+d15 <- file.path(tempdir(), paste0("adopt-idem-",
+                                   format(Sys.time(), "%H%M%OS3")))
+p1 <- init_vault(d15, rproj = FALSE, agent_instructions = FALSE,
+                 adopt = TRUE)
+p2 <- init_vault(d15, rproj = FALSE, agent_instructions = FALSE,
+                 adopt = TRUE)
+expect_identical(p1, p2)
+expect_equal(p1, normalizePath(d15))
+unlink(d15, recursive = TRUE)
