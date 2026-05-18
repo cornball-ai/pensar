@@ -6,6 +6,10 @@ domain and research style. The skill reads it before every run.
 A vault-level override at `<vault>/_research/program.md` takes
 precedence when present.
 
+> Adapted from
+> [AgriciDaniel/claude-obsidian](https://github.com/AgriciDaniel/claude-obsidian)
+> (MIT). See `../NOTICE.md` for the full notice.
+
 ---
 
 ## Search objectives
