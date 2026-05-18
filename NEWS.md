@@ -1,3 +1,69 @@
+# pensar 0.6.1
+
+## New features
+
+* `autoresearch(topic, vault, ...)` runs a bounded, package-owned
+  research workflow into a pensar vault. R controls the loop, source
+  ingestion, wiki writes, indexing, and logging; model calls are
+  limited to structured decisions returned as JSON (`plan_queries`,
+  `select_sources`, `extract_claims`, `analyze_gaps`, `plan_pages`,
+  `revise_page`). Multi-round gap analysis driven by
+  `program$max_rounds`. Prompt-injection guards flag fetched source
+  bodies. `update = TRUE` (default) preserves user prose on re-runs
+  via a `revise_page` model task; the heuristic fallback appends new
+  findings under a dated section so prose is never lost. Default
+  search backend uses Tavily via `TAVILY_API_KEY`; default model
+  backend uses `llm.api` when any of `ANTHROPIC_API_KEY`,
+  `OPENAI_API_KEY`, or `MOONSHOT_API_KEY` is set, with a
+  deterministic heuristic backend so the full pipeline runs without
+  LLM access.
+* `init_vault(path, adopt = TRUE)` adoption is now verified against
+  six real Obsidian vaults via `inst/tinytest/test_adopt_real.R`
+  (gated by `tinytest::at_home()` and the `PENSAR_TEST_VAULTS` env
+  var). The mechanism was already covered by `test_adopt.R` against
+  synthetic directories; the new test adds real-world coverage for
+  `bramses-highly-opinionated-vault-2023`, `claude-obsidian`,
+  `dusk-obsidian-vault`, `kepano-obsidian`,
+  `Obsidian-Vault-Structure`, and `obsidian-wiki`.
+* New vignette `adopt-obsidian.md` documents adopt-mode semantics
+  and walks through the six-vault sweep.
+
+## Internals
+
+* `ingest_url()` is now layered on `fetch_url_content()` and
+  `ingest_url_content()` (both internal), so the autoresearch loop
+  can fetch once and keep the body in memory for evidence extraction.
+* `write_wiki_page()` (internal) merges frontmatter on update instead
+  of clobbering: existing `id`, `aliases`, `status`, `related`, and
+  any custom keys survive an update; `tags` are set-unioned;
+  caller-supplied fields replace existing values; body is always
+  replaced. Refuses writes into adopted vaults unless `force = TRUE`.
+  Refuses to overwrite an existing wiki file when
+  `overwrite = FALSE`.
+* `autoresearch()` calls `vault_commit()` after writes, matching
+  `ingest()`'s pattern, so git-backed vaults stay clean.
+* `extract_html_title()` handles multi-line HTML titles via PCRE.
+
+## Skill bundle
+
+* `inst/skills/pensar/autoresearch/SKILL.md` rewritten to route
+  research requests through `autoresearch()` rather than reproducing
+  a manual WebSearch/WebFetch/file-edit loop. The runtime program
+  ships as machine-readable YAML at
+  `inst/autoresearch/program.yml`, overridable by
+  `<vault>/_research/program.yml`. Architecture note at
+  `inst/autoresearch/architecture.md`.
+
+## DESCRIPTION
+
+* Recentered prose around personal wiki + LLM research assistant +
+  manual editing. Mentions `autoresearch()`, the `'Claude Code'`
+  skill bundle, the seeded `'CLAUDE.md'` / `'AGENTS.md'` files for
+  `'Codex'` compatibility, and adopt mode for existing `'Obsidian'`
+  vaults.
+* New Suggests: `jsonlite`, `llm.api`, `simplermarkdown`. Vignette
+  builder: `simplermarkdown`.
+
 # pensar 0.6.0.1
 
 * `ingest_agent_context()` now resolves `saber::agent_context()`
