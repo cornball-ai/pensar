@@ -110,29 +110,38 @@ find_page <- function(page, vault) {
         return(file.path(vault, reg$path[which(no_ext_match)[1L]]))
     }
 
-    uid_match <- !is.na(reg$page_uid) & reg$page_uid == page
+    # Fuzzy resolution (page_uid, node_id, alias) prefers non-system
+    # rows so that, e.g., bare `[[tags]]` resolves to a user-authored
+    # `wiki/tags.md` rather than `_proposals/tags.md`. Exact-path
+    # queries above can still target system files when the caller
+    # writes the full path.
+    content <- reg[!reg$system_file, , drop = FALSE]
+
+    uid_match <- !is.na(content$page_uid) & content$page_uid == page
     if (any(uid_match)) {
-        return(file.path(vault, reg$path[which(uid_match)[1L]]))
+        return(file.path(vault,
+                         content$path[which(uid_match)[1L]]))
     }
 
-    nid_match <- reg$node_id == page
+    nid_match <- content$node_id == page
     nmatches <- sum(nid_match)
     if (nmatches == 1L) {
-        return(file.path(vault, reg$path[nid_match]))
+        return(file.path(vault, content$path[nid_match]))
     }
     if (nmatches > 1L) {
-        candidates <- sort(reg$path[nid_match])
+        candidates <- sort(content$path[nid_match])
         warning("ambiguous wikilink: '", page, "' matches ", nmatches,
                 " pages: ", paste(candidates, collapse = ", "),
                 call. = FALSE)
         return(file.path(vault, candidates[1L]))
     }
 
-    alias_match <- vapply(reg$aliases,
+    alias_match <- vapply(content$aliases,
                           function(a) is.character(a) && page %in% a,
                           logical(1L))
     if (any(alias_match)) {
-        return(file.path(vault, reg$path[which(alias_match)[1L]]))
+        return(file.path(vault,
+                         content$path[which(alias_match)[1L]]))
     }
 
     NULL

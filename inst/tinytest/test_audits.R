@@ -179,3 +179,36 @@ expect_true(grepl("Taxonomy file not found", err))
 # Implicit NULL on a vault without a default taxonomy still works
 expect_silent(tags(v10))
 unlink(v10, recursive = TRUE)
+
+# --- 11. find_page("tags") prefers wiki/tags.md over _proposals/tags.md ---
+#    Audit outputs share a basename with real user pages; the registry
+#    marks them system, and find_page() / backlinks() / outlinks()
+#    must skip system rows during fuzzy resolution.
+v11 <- file.path(tempdir(), paste0("aud-shadow-",
+                                   format(Sys.time(), "%H%M%OS3")))
+init_vault(v11, rproj = FALSE, agent_instructions = FALSE)
+make_page(v11, "wiki/tags.md",
+          frontmatter = list(title = "Tags overview", type = "concept"),
+          body = "Real user page.")
+make_page(v11, "wiki/Caller.md",
+          frontmatter = list(title = "Caller"),
+          body = "Cites [[tags]].")
+# Before running tags(): bare [[tags]] resolves to wiki/tags.md.
+expect_equal(pensar:::find_page("tags", v11),
+             file.path(v11, "wiki/tags.md"))
+# Generate _proposals/tags.md
+tags(v11)
+expect_true(file.exists(file.path(v11, "_proposals", "tags.md")))
+# After audit: still resolves to wiki/tags.md, no ambiguity warning
+warns <- character(0L)
+fp <- withCallingHandlers(pensar:::find_page("tags", v11),
+                          warning = function(w) {
+                              warns <<- c(warns, conditionMessage(w))
+                              invokeRestart("muffleWarning")
+                          })
+expect_equal(fp, file.path(v11, "wiki/tags.md"))
+expect_equal(length(warns), 0L)
+# backlinks("tags") still finds Caller as a citing page
+bl <- backlinks("tags", vault = v11)
+expect_true("Caller" %in% bl$source)
+unlink(v11, recursive = TRUE)
