@@ -287,6 +287,95 @@ expect_equal(sort(unique(res_gap$queries$round)), c(1L, 2L))
 expect_true(any(grepl("security", res_gap$queries$query)))
 unlink(v_gap, recursive = TRUE)
 
+# Updating an existing wiki page preserves untouched frontmatter and set-unions tags.
+v_merge <- tempfile("ar-merge-")
+init_vault(v_merge, rproj = FALSE, agent_instructions = FALSE)
+dir.create(file.path(v_merge, "wiki"), showWarnings = FALSE, recursive = TRUE)
+writeLines(c("---",
+             "title: \"Research: skills\"",
+             "type: analysis",
+             "source: \"original-import\"",
+             "id: original-uuid-123",
+             "aliases:",
+             "  - \"skills (research)\"",
+             "  - \"agent skills\"",
+             "status: developing",
+             "related:",
+             "  - \"[[Some Other Page]]\"",
+             "tags:",
+             "  - research",
+             "  - manual",
+             "---", "", "Old body"),
+           file.path(v_merge, "wiki", "Research-skills.md"))
+res_merge <- autoresearch("skills", vault = v_merge,
+                          search_backend = fake_search,
+                          fetch_backend = fake_fetch,
+                          model_backend = fake_model,
+                          program = list(required_tags = c("research", "skills"),
+                                         max_rounds = 1L),
+                          verbose = FALSE)
+fm_merged <- pensar:::parse_frontmatter(
+    file.path(v_merge, "wiki", "Research-skills.md"))
+expect_equal(fm_merged$id, "original-uuid-123")
+expect_true("agent skills" %in% fm_merged$aliases)
+expect_equal(fm_merged$status, "developing")
+expect_true(any(grepl("Some Other Page", unlist(fm_merged$related))))
+expect_true("manual" %in% fm_merged$tags)
+expect_true("research" %in% fm_merged$tags)
+expect_true("skills" %in% fm_merged$tags)
+body_merged <- readLines(file.path(v_merge, "wiki", "Research-skills.md"),
+                         warn = FALSE)
+expect_false(any(grepl("Old body", body_merged)))
+unlink(v_merge, recursive = TRUE)
+
+# autoresearch leaves a git-backed vault clean by committing its writes.
+if (nchar(Sys.which("git")) > 0L) {
+    v_git <- tempfile("ar-git-")
+    init_vault(v_git, rproj = FALSE, agent_instructions = FALSE)
+    system2("git", c("-C", v_git, "init", "-q"))
+    system2("git", c("-C", v_git, "config", "user.email", "test@example.com"))
+    system2("git", c("-C", v_git, "config", "user.name", "Test"))
+    system2("git", c("-C", v_git, "add", "-A"))
+    system2("git", c("-C", v_git, "commit", "-q", "-m", "init"))
+    old_push <- Sys.getenv("PENSAR_AUTO_PUSH", unset = NA)
+    Sys.setenv(PENSAR_AUTO_PUSH = "false")
+    autoresearch("skills", vault = v_git,
+                 search_backend = fake_search,
+                 fetch_backend = fake_fetch,
+                 model_backend = fake_model,
+                 program = list(max_rounds = 1L),
+                 verbose = FALSE)
+    if (is.na(old_push)) {
+        Sys.unsetenv("PENSAR_AUTO_PUSH")
+    } else {
+        Sys.setenv(PENSAR_AUTO_PUSH = old_push)
+    }
+    status_porcelain <- system2("git",
+                                c("-C", v_git, "status", "--porcelain"),
+                                stdout = TRUE, stderr = FALSE)
+    expect_equal(length(status_porcelain), 0L)
+    log_line <- system2("git",
+                        c("-C", v_git, "log", "-1", "--format=%s"),
+                        stdout = TRUE, stderr = FALSE)
+    expect_true(grepl("autoresearch:", log_line))
+    unlink(v_git, recursive = TRUE)
+}
+
+# Default provider is "auto" so any of ANTHROPIC/OPENAI/MOONSHOT credentials activates llm.api.
+expect_equal(as.character(formals(autoresearch)$provider), "auto")
+old_env <- Sys.getenv(c("ANTHROPIC_API_KEY", "OPENAI_API_KEY",
+                        "MOONSHOT_API_KEY"), unset = NA)
+Sys.unsetenv(c("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "MOONSHOT_API_KEY"))
+expect_false(pensar:::.autoresearch_provider_available("auto"))
+Sys.setenv(OPENAI_API_KEY = "test-openai-key")
+expect_true(pensar:::.autoresearch_provider_available("auto"))
+Sys.unsetenv("OPENAI_API_KEY")
+for (nm in names(old_env)) {
+    if (!is.na(old_env[[nm]])) {
+        do.call(Sys.setenv, stats::setNames(list(old_env[[nm]]), nm))
+    }
+}
+
 # Existing page lookup is registry metadata only, and overwrite = FALSE refuses updates.
 v_existing <- tempfile("ar-existing-")
 init_vault(v_existing, rproj = FALSE, agent_instructions = FALSE)

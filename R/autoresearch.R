@@ -32,8 +32,11 @@
 #'   fail instead of replacing content.
 #' @param force Logical. Allow writes into adopted vaults.
 #' @param provider Provider for the default \code{llm.api} model backend:
+#'   \code{"auto"} (default; picks whichever of \code{ANTHROPIC_API_KEY},
+#'   \code{OPENAI_API_KEY}, or \code{MOONSHOT_API_KEY} is set),
 #'   \code{"anthropic"}, \code{"openai"}, \code{"moonshot"},
-#'   \code{"ollama"}, \code{"auto"}, or \code{"heuristic"}.
+#'   \code{"ollama"}, or \code{"heuristic"} (force the deterministic
+#'   fallback).
 #' @param model Optional model name for the default \code{llm.api}
 #'   backend.
 #' @param verbose Logical. Print phase progress.
@@ -51,7 +54,7 @@
 autoresearch <- function(topic, vault = default_vault(),
                          search_backend = NULL, fetch_backend = NULL,
                          model_backend = NULL, program = NULL, force = FALSE,
-                         overwrite = TRUE, provider = "anthropic",
+                         overwrite = TRUE, provider = "auto",
                          model = NULL, verbose = TRUE) {
     if (!is.character(topic) || length(topic) != 1L || !nzchar(topic)) {
         stop("`topic` must be a single non-empty string.", call. = FALSE)
@@ -180,6 +183,9 @@ autoresearch <- function(topic, vault = default_vault(),
               operation = "autoresearch",
               vault = vault
     )
+    vault_commit(sprintf("autoresearch: %s (%d sources, %d pages)",
+                         topic, nrow(sources), nrow(written)),
+                 vault = vault)
 
     synthesis <- .autoresearch_synthesis_record(pages, written)
     structure(

@@ -46,11 +46,43 @@ write_wiki_page <- function(slug, frontmatter, body, vault = default_vault(),
         stop("Wiki page already exists: ", path, call. = FALSE)
     }
 
+    if (existed) {
+        frontmatter <- .merge_wiki_frontmatter(path, frontmatter)
+    }
     fm_yaml <- sub("\n$", "", yaml::as.yaml(frontmatter))
     writeLines(c("---", fm_yaml, "---", "", body), path)
     data.frame(slug = slug,
                path = substring(path, nchar(vault) + 2L),
                action = if (existed) "updated" else "created",
                stringsAsFactors = FALSE)
+}
+
+#' Merge new frontmatter over existing without losing untouched fields
+#'
+#' Reads the existing page's frontmatter and merges \code{new} over it.
+#' Caller-supplied fields replace existing values. \code{tags} is the
+#' one merge exception: existing tags + new tags, set-union, original
+#' order preserved. Fields present in the existing frontmatter but not
+#' in \code{new} (\code{id}, \code{aliases}, custom fields like
+#' \code{status}, \code{related}, etc.) survive untouched.
+#'
+#' @noRd
+.merge_wiki_frontmatter <- function(path, new) {
+    existing <- tryCatch(parse_frontmatter(path),
+                         error = function(e) list())
+    if (!is.list(existing)) {
+        existing <- list()
+    }
+    merged <- existing
+    for (nm in names(new)) {
+        if (identical(nm, "tags") && !is.null(existing$tags)) {
+            old_tags <- as.character(existing$tags)
+            new_tags <- as.character(new$tags)
+            merged$tags <- unique(c(old_tags, new_tags))
+        } else {
+            merged[[nm]] <- new[[nm]]
+        }
+    }
+    merged
 }
 
