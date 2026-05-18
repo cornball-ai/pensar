@@ -8,6 +8,11 @@
   analysis and failing the test suite. Test gates symmetrically so it
   exercises either the success path or the missing-export path
   depending on which saber is installed.
+* `test_vault_graph` test similarly gates on
+  `"graph_svg" %in% getNamespaceExports("saber")` so the suite passes
+  cleanly against CRAN saber 0.3.0 (which lacks `graph_svg`).
+  `vault_graph()` itself already gated its `saber::graph_svg()` call;
+  only the test needed the matching guard.
 
 # pensar 0.6.0
 
