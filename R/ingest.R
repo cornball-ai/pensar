@@ -16,6 +16,10 @@
 #' @param title Optional title. If \code{NULL}, derived from source.
 #' @param tags Optional character vector of tags.
 #' @param vault Path to the vault directory.
+#' @param force In adopted vaults (\code{init_vault(adopt = TRUE)}),
+#'   \code{ingest()} refuses to write by default. Pass \code{TRUE} to
+#'   write into the adopted tree anyway. Native vaults ignore this
+#'   parameter.
 #' @return The path to the written file, invisibly.
 #' @examples
 #' v <- tempfile("vault-")
@@ -27,12 +31,24 @@
 #' @export
 ingest <- function(content,
                    type = c("articles", "chats", "briefings", "matrix"),
-                   source, title = NULL, tags = NULL, vault = default_vault()) {
+                   source, title = NULL, tags = NULL,
+                   vault = default_vault(), force = FALSE) {
     type <- match.arg(type)
     vault <- normalizePath(vault, mustWork = TRUE)
 
     if (!file.exists(file.path(vault, "schema.md"))) {
         stop("Not a pensar vault: ", vault, ". Run init_vault() first.")
+    }
+
+    if (vault_is_adopted(vault) && !isTRUE(force)) {
+        stop("Adopt mode: this vault is read-only. Pass force = TRUE ",
+             "to write into the adopted vault tree.", call. = FALSE)
+    }
+
+    # raw/{type}/ may not exist in adopted vaults; create lazily.
+    type_dir <- file.path(vault, "raw", type)
+    if (!dir.exists(type_dir)) {
+        dir.create(type_dir, recursive = TRUE, showWarnings = FALSE)
     }
 
     slug <- slugify(source)
@@ -50,6 +66,15 @@ ingest <- function(content,
     lines <- c("---", sub("\n$", "", fm_yaml), "---", "",
         if (is.character(content)) content else as.character(content))
     writeLines(lines, outpath)
+
+    # Record the ingest in .pensar/manifest.yml. Hash the just-written
+    # file so re-ingests with the same content can be detected.
+    rel_outpath <- substring(outpath, nchar(vault) + 2L)
+    file_hash <- tryCatch(
+                          paste0("sha1:", digest::digest(file = outpath, algo = "sha1")),
+                          error = function(e) NULL)
+    update_manifest(vault, source = source, path = rel_outpath,
+                    hash = file_hash)
 
     update_index(vault)
     log_entry(sprintf("Ingested %s: %s", type, basename(outpath)),

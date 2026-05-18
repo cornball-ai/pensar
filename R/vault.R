@@ -28,10 +28,16 @@
 #'   orienting an AI agent to work in this vault (CLI reminders,
 #'   editing rules, ingest workflow). If you don't plan to start an
 #'   AI agent session in the vault, pass \code{FALSE}.
-#' @param adopt Reserved for read-only adopt mode (full implementation
-#'   ships in a later PR). When \code{TRUE} the function emits a notice
-#'   and returns without writing anything. Use this when pointing
-#'   pensar at an existing Obsidian vault you don't want to scaffold.
+#' @param adopt Opt-in read-only adopt mode. When \code{TRUE} the
+#'   function writes only a minimal adopted \code{schema.md} (carrying
+#'   \code{adopted: true} frontmatter), plus \code{log.md} and
+#'   \code{index.md} if absent. No \code{raw/} or \code{wiki/}
+#'   scaffolding is created and no auto-commit runs. Use this when
+#'   pointing pensar at an existing Obsidian vault whose layout you
+#'   don't want to change. After adoption, \code{update_index()} and
+#'   \code{status()} switch to registry-driven enumeration; reads
+#'   work normally and \code{ingest()} refuses writes unless
+#'   \code{force = TRUE}.
 #' @param commit Auto-commit gate. \code{NULL} (default) commits the
 #'   initial scaffold only when the target directory is pensar-owned
 #'   (empty, or already shaped like a pensar vault). \code{TRUE} commits
@@ -54,14 +60,52 @@ init_vault <- function(path = default_vault(), rproj = TRUE,
                        agent_instructions = TRUE, adopt = FALSE,
                        commit = NULL, force = FALSE) {
     path <- normalizePath(path, mustWork = FALSE)
-    if (file.exists(file.path(path, "schema.md"))) {
-        message("Vault already exists at: ", path)
+
+    # Adopt mode is checked first so a foreign vault that happens to
+    # already carry a schema.md doesn't slip past with the "Vault
+    # already exists" early return.
+    if (isTRUE(adopt)) {
+        if (!dir.exists(path)) {
+            dir.create(path, recursive = TRUE, showWarnings = FALSE)
+        }
+        path <- normalizePath(path)
+
+        if (file.exists(file.path(path, "schema.md"))) {
+            if (vault_is_adopted(path)) {
+                message("Vault already adopted at: ", path)
+                return(invisible(path))
+            }
+            message("Refusing to convert existing pensar vault to ",
+                    "adopt mode: ", path,
+                    "\n  Existing schema.md is native (no adopted: ",
+                    "true). Move or edit it explicitly first.")
+            return(invisible(NULL))
+        }
+
+        # Track which files pensar creates here so we don't append a
+        # log entry into a pre-existing user log.md.
+        log_existed_before <- file.exists(file.path(path, "log.md"))
+
+        writeLines(adopted_schema_template(),
+                   file.path(path, "schema.md"))
+        if (!log_existed_before) {
+            writeLines(log_seed(), file.path(path, "log.md"))
+        }
+        if (!file.exists(file.path(path, "index.md"))) {
+            writeLines(index_seed(), file.path(path, "index.md"))
+        }
+        if (!log_existed_before) {
+            log_entry("Vault adopted (read-only)", operation = "adopt",
+                      vault = path)
+        }
+        message("Adopt mode: read-first. ingest() refuses writes ",
+                "unless force = TRUE.")
+        message("Vault adopted at: ", path)
         return(invisible(path))
     }
 
-    if (isTRUE(adopt)) {
-        message("Adopt mode: PR 3 will add adopted-mode scaffolding. ",
-                "For now, this is a no-op.")
+    if (file.exists(file.path(path, "schema.md"))) {
+        message("Vault already exists at: ", path)
         return(invisible(path))
     }
 
@@ -193,6 +237,45 @@ rproj_template <- function() {
         "AlwaysSaveHistory: Default", "", "EnableCodeIndexing: No",
         "UseSpacesForTab: Yes", "NumSpacesForTab: 2", "Encoding: UTF-8", "",
         "RnwWeave: Sweave", "LaTeX: pdfLaTeX")
+}
+
+#' Adopted-vault schema template
+#'
+#' Smaller and explicit about the read-only contract. Written by
+#' \code{init_vault(adopt = TRUE)}. The \code{adopted: true} frontmatter
+#' field is what \code{vault_is_adopted()} reads to detect adopt mode.
+#' @noRd
+adopted_schema_template <- function() {
+    c("---", "title: Vault Schema (adopted)", "type: schema",
+        "adopted: true", "---", "", "# Vault Schema (adopted)", "",
+        "This directory was adopted by pensar in read-only mode.",
+        "Pensar indexes pages by frontmatter type but does not write",
+        "scaffolding (`raw/`, `wiki/`) or auto-commit here.", "",
+        "## What works", "", "- `vault_registry()` indexes every `.md` file.",
+        "- `update_index()` writes `index.md` grouped by frontmatter",
+        "  `type` (or `category`).",
+        "- `status()` reports page counts by frontmatter type.",
+        "- Read-only operations: `backlinks()`, `outlinks()`,",
+        "  `show_page()`, plus any retrieval primitives that ship later.", "",
+        "## What doesn't", "",
+        "- `ingest()` refuses to write unless `force = TRUE`.",
+        "- `init_vault()` does not auto-commit in adopt mode.", "",
+        "Remove or set `adopted: false` in this file's frontmatter to",
+        "switch to native pensar mode.")
+}
+
+#' Detect whether a vault was adopted (read-only mode)
+#'
+#' Reads \code{schema.md} frontmatter. Returns \code{TRUE} iff the
+#' \code{adopted} field is truthy.
+#' @noRd
+vault_is_adopted <- function(vault) {
+    schema_path <- file.path(vault, "schema.md")
+    if (!file.exists(schema_path)) {
+        return(FALSE)
+    }
+    fm <- parse_frontmatter(schema_path)
+    isTRUE(fm$adopted)
 }
 
 #' Schema template

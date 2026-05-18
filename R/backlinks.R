@@ -21,20 +21,32 @@
 backlinks <- function(page, vault = default_vault()) {
     vault <- normalizePath(vault, mustWork = TRUE)
 
-    all_md <- list.files(vault, pattern = "\\.md$", recursive = TRUE,
-                         full.names = TRUE)
-    control <- c("index.md", "log.md", "schema.md")
-    all_md <- all_md[!basename(all_md) %in% control |
-        dirname(all_md) != vault]
+    # Resolve the query to a canonical relative path. Any wikilink that
+    # also resolves there is a backlink source, even if its surface
+    # spelling differs (e.g., `[[Notes/Foo]]` vs `[[Foo]]`).
+    target_path <- resolve_target_path(page, vault)
+    if (is.na(target_path)) {
+        return(data.frame(source = character(0L), file = character(0L),
+                          stringsAsFactors = FALSE))
+    }
 
+    reg <- vault_registry(vault)
     sources <- character(0L)
     files <- character(0L)
 
-    for (fp in all_md) {
-        links <- parse_wikilinks(fp)
-        if (page %in% links) {
-            sources <- c(sources, name_from_path(fp))
-            files <- c(files, make_relative(fp, vault))
+    for (i in seq_len(nrow(reg))) {
+        if (isTRUE(reg$system_file[i])) {
+            next
+        }
+        links <- reg$links_out[[i]]
+        if (length(links) == 0L) {
+            next
+        }
+        resolved <- vapply(links, resolve_target_path, character(1L),
+                           vault = vault)
+        if (target_path %in% resolved) {
+            sources <- c(sources, reg$node_id[i])
+            files <- c(files, reg$path[i])
         }
     }
 

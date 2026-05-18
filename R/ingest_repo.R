@@ -110,6 +110,18 @@ ingest_repo <- function(path, name = NULL, ref = "HEAD",
         written <- c(written, outpath)
     }
 
+    # Record each artifact in .pensar/manifest.yml. Hash the written
+    # files so subsequent ingest_repo() runs can detect what changed.
+    for (outpath in written) {
+        rel_outpath <- substring(outpath, nchar(vault) + 2L)
+        file_hash <- tryCatch(
+                              paste0("sha1:", digest::digest(file = outpath, algo = "sha1")),
+                              error = function(e) NULL)
+        update_manifest(vault,
+                        source = sprintf("%s@%s", name, git_meta$short_sha),
+                        path = rel_outpath, hash = file_hash)
+    }
+
     update_index(vault)
     log_entry(sprintf("Ingested repo: %s @ %s", name, git_meta$short_sha),
               operation = "ingest_repo", vault = vault)
