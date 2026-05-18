@@ -1,3 +1,22 @@
+# pensar 0.5.0.9
+
+* New `dedup(vault, threshold)` proposes candidate duplicate pages
+  by combining Jaro-Winkler title similarity (60%) and tag-set
+  Jaccard overlap (40%). Writes a markdown report to
+  `_proposals/dedup.md`. Returns the proposals data.frame invisibly.
+  Never auto-merges; the file is for human review.
+* New `tags(vault, taxonomy)` audits used tags against an optional
+  controlled vocabulary. The taxonomy defaults to
+  `<vault>/_meta/taxonomy.md` (a markdown bullet list of allowed
+  tags); pass an explicit path with `taxonomy =`. Unknown tags get
+  near-miss suggestions via Jaro-Winkler. Reports to
+  `_proposals/tags.md`. Never auto-renames.
+* `_proposals/` is the deliberate user-visible write target for
+  audits, distinct from `.pensar/` (pensar-owned state) and the
+  cache under `tools::R_user_dir()`.
+* New Import: `stringdist` (used for both title similarity and
+  near-miss tag detection).
+
 # pensar 0.5.0.8
 
 * Pensar now ships an agent skill bundle under

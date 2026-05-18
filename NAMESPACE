@@ -1,6 +1,7 @@
 # tinyrox says don't edit this manually, but it can't stop you!
 
 export(backlinks)
+export(dedup)
 export(ingest)
 export(ingest_briefing)
 export(ingest_repo)
@@ -19,6 +20,7 @@ export(related_pages)
 export(search_pages)
 export(show_page)
 export(status)
+export(tags)
 export(update_index)
 export(update_manifest)
 export(use_vault)
