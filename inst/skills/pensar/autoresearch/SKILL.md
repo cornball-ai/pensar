@@ -111,12 +111,18 @@ For each significant concept or entity surfaced during the loop:
    title: "<Name>"        # always quote; names often contain colons
    type: concept          # or entity, depending on what it is
    tags: ["<topic-tag>"]
-   sources:
-     - "[[<raw-source-page>]]"
+   source: "[[<raw-source-page>]]"  # singular; matches the schema
    created: <YYYY-MM-DD>
    updated: <YYYY-MM-DD>
    ---
    ```
+
+   Pensar's schema uses singular `source:` for the canonical pointer
+   back to where the page came from; additional citations belong in
+   the body as `[[wikilinks]]`. A multi-element `sources:` list isn't
+   read by the registry (\code{vault_registry()} reads \code{fm$source}
+   only) and would silently lose source metadata at the registry
+   level.
 
 3. For the synthesis page itself, suggested structure:
 
