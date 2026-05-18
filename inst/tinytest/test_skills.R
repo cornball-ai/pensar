@@ -25,5 +25,6 @@ prog_lines <- readLines(file.path(ar_dir, "references", "program.md"),
 expect_true(length(prog_lines) > 0L)
 expect_true(any(grepl("Loop constraints", prog_lines)))
 
-# --- 5. pensar_skill_path() with a bogus name returns a non-existent path ---
-expect_false(dir.exists(pensar_skill_path("does-not-exist")))
+# --- 5. pensar_skill_path() with a bogus name returns "" ---
+# Matches system.file() convention so callers can test with nzchar().
+expect_equal(pensar_skill_path("does-not-exist"), "")

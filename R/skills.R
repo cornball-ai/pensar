@@ -26,5 +26,9 @@ pensar_skill_path <- function(skill = NULL) {
     if (is.null(skill)) {
         return(base)
     }
-    file.path(base, skill)
+    candidate <- file.path(base, skill)
+    if (!dir.exists(candidate)) {
+        return("")
+    }
+    candidate
 }

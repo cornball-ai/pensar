@@ -81,7 +81,19 @@ Stop when depth is reached or `program.md`'s `max_rounds` is hit.
 
 ## Filing the synthesis
 
-Create one synthesis page per session: `wiki/Research-<Topic>.md`.
+Filenames: pensar resolves `[[wikilinks]]` by path / page_uid /
+node_id (basename without `.md`) / alias. **Filenames and the
+matching wikilink text need to agree** — pensar does not resolve via
+frontmatter `title`. Pick a filename slug that contains no `:` or
+other path-hostile characters, even if the human-readable title
+contains them. For example, file the synthesis as
+`wiki/Research-<Topic-slug>.md` and link to it as
+`[[Research-<Topic-slug>]]`.
+
+Frontmatter: always quote string fields that might contain `:`. YAML
+treats `title: GPT-4: Technical Report` as malformed and
+`parse_frontmatter()` silently returns an empty list, which means
+the registry loses title, type, tags, and sources for the page.
 
 For each significant concept or entity surfaced during the loop:
 
@@ -96,13 +108,13 @@ For each significant concept or entity surfaced during the loop:
 2. If no result, create a new `wiki/<Name>.md` page with frontmatter:
    ```yaml
    ---
-   title: <Name>
-   type: concept   # or entity, depending on what it is
-   tags: [<topic-tag>]
+   title: "<Name>"        # always quote; names often contain colons
+   type: concept          # or entity, depending on what it is
+   tags: ["<topic-tag>"]
    sources:
      - "[[<raw-source-page>]]"
-   created: <date>
-   updated: <date>
+   created: <YYYY-MM-DD>
+   updated: <YYYY-MM-DD>
    ---
    ```
 
@@ -112,9 +124,9 @@ For each significant concept or entity surfaced during the loop:
    ---
    title: "Research: <Topic>"
    type: analysis
-   source: autoresearch session <YYYY-MM-DD> on <topic>
+   source: "autoresearch session <YYYY-MM-DD> on <topic>"
    date: <YYYY-MM-DD>
-   tags: [research, <topic-tag>]
+   tags: ["research", "<topic-tag>"]
    status: developing
    ---
 
@@ -148,7 +160,7 @@ For each significant concept or entity surfaced during the loop:
 4. After writing the synthesis page, suggest cross-links to existing
    related pages:
    ```r
-   pensar::related_pages("Research-<Topic>", k = 10)
+   pensar::related_pages("Research-<Topic-slug>", k = 10)
    ```
    Add the top hits to a `## Related pages` section if any score > 0.
 
@@ -187,7 +199,8 @@ End the session with a short summary:
 - Rounds completed
 - Number of sources fetched / filed
 - Number of concept / entity pages created vs. updated
-- Synthesis page link: `[[Research: <Topic>]]`
+- Synthesis page link: `[[Research-<Topic-slug>]]` (the basename of
+  the synthesis file, not its display title)
 - One sentence on the headline finding
 
 Don't dump the wiki page contents into chat. The user reads the vault
