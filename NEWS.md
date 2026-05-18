@@ -1,3 +1,15 @@
+# pensar 0.5.0.7
+
+* New `ingest_url(url, vault, type, title, tags)` fetches a URL with
+  `curl::curl_fetch_memory()` and writes the body into the vault via
+  the existing `ingest()` path. Refuses non-2xx responses and content
+  types outside `text/html`, `text/plain`, `text/markdown`,
+  `application/json`, `application/xml`, `text/xml`. HTML responses
+  use the page's `<title>` as the page title when none is supplied.
+* Dedup: if the manifest already records the URL as a source, the
+  call returns the existing page path without re-fetching.
+* New Import: `curl`.
+
 # pensar 0.5.0.6
 
 * Four new retrieval primitives in `R/retrieval.R`, all registry-backed
