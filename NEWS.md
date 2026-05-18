@@ -1,3 +1,19 @@
+# pensar 0.5.0.10
+
+* New `ingest_agent_context(agent, vault, ...)` wraps
+  `saber::agent_context()` to snapshot the current agent
+  context (memory, project / global instructions, identity files)
+  into the vault as a `raw/chats/` page. Goes through the regular
+  `ingest()` path so the manifest, index, log, and auto-commit all
+  kick in. Frontmatter tags the page with `agent-context` and the
+  agent name so it's easy to search later.
+* `saber` stays in `Suggests`; the wrapper guards with
+  `requireNamespace()` and errors with an install hint when saber
+  isn't present.
+* Returns `NULL` invisibly with a message when saber's assembled
+  context is empty, so empty snapshots don't accumulate in the
+  vault.
+
 # pensar 0.5.0.9
 
 * New `dedup(vault, threshold)` proposes candidate duplicate pages

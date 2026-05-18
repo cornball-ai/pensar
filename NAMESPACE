@@ -3,6 +3,7 @@
 export(backlinks)
 export(dedup)
 export(ingest)
+export(ingest_agent_context)
 export(ingest_briefing)
 export(ingest_repo)
 export(ingest_url)
