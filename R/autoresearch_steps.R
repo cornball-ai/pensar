@@ -16,17 +16,22 @@ autoresearch_plan_queries <- function(topic, program, model_backend) {
 }
 
 #' @noRd
-autoresearch_run_searches <- function(queries, search_backend, program) {
+autoresearch_run_searches <- function(queries, search_backend, program,
+                                      verbose = FALSE) {
     if (nrow(queries) == 0L) {
         return(.empty_search_results())
     }
     results <- vector("list", nrow(queries))
     for (i in seq_len(nrow(queries))) {
+        .ar_msg(verbose, "  search ", i, "/", nrow(queries), ": ",
+                queries$query[[i]])
         raw <- search_backend(queries$query[[i]], program$max_sources_per_round)
         df <- .validate_autoresearch_search_results(raw)
         df$query <- queries$query[[i]]
         df$angle <- queries$angle[[i]]
         results[[i]] <- df
+        .ar_msg(verbose, "  search ", i, "/", nrow(queries), ": ",
+                nrow(df), " ", if (nrow(df) == 1L) "result" else "results")
     }
     out <- do.call(rbind, results)
     if (is.null(out)) {
@@ -56,7 +61,7 @@ autoresearch_select_sources <- function(topic, search_results, program,
 
 #' @noRd
 autoresearch_fetch_and_ingest <- function(selected, fetch_backend, vault,
-    topic, force = FALSE) {
+    topic, force = FALSE, verbose = FALSE) {
     if (nrow(selected) == 0L) {
         return(.empty_sources())
     }
@@ -66,12 +71,15 @@ autoresearch_fetch_and_ingest <- function(selected, fetch_backend, vault,
         url <- selected$url[[i]]
         existing <- existing_source_path(url, vault)
         if (!is.null(existing)) {
+            .ar_msg(verbose, "  fetch ", i, "/", nrow(selected),
+                    " (cached): ", url)
             body <- extract_body(file.path(vault, existing), n_chars = NULL)
             title <- (parse_frontmatter(file.path(vault, existing))$title %||%
                 url)
             rel <- existing
             content_type <- NA_character_
         } else {
+            .ar_msg(verbose, "  fetch ", i, "/", nrow(selected), ": ", url)
             fetched <- .validate_autoresearch_fetch_result(fetch_backend(url))
             rel <- ingest_url_content(url = url, content = fetched$body,
                                       content_type = fetched$content_type,
@@ -213,15 +221,63 @@ autoresearch_plan_pages <- function(topic, claims, sources, existing_pages,
     list(headline = as.character(res$headline %||% ""), pages = pages)
 }
 
+#' Within-run slug dedup before write_pages
+#'
+#' Walks the planned data frame. If a row's slug appears in any
+#' earlier row, reroutes the later row to a fresh alternate via
+#' \code{.ar_unique_slug()}, treating every other row's slug
+#' (already updated) plus on-disk files as taken. Runs always,
+#' regardless of \code{update}, so plain \code{overwrite = TRUE}
+#' writes can't silently clobber sibling pages in the same run.
+#'
+#' @noRd
+.ar_dedupe_planned_slugs <- function(planned, topic, vault, verbose = FALSE) {
+    if (nrow(planned) <= 1L) {
+        return(planned)
+    }
+    for (i in 2:nrow(planned)) {
+        slug <- planned$slug[[i]]
+        if (slug %in% planned$slug[seq_len(i - 1L)]) {
+            other_slugs <- planned$slug[-i]
+            alt <- .ar_unique_slug(slug, topic, vault, planned$title[[i]],
+                                   also_taken = other_slugs)
+            .ar_msg(verbose, "  slug '", slug,
+                    "' duplicates an earlier planned row; ",
+                    "writing this synthesis to '", alt, "' instead")
+            planned$slug[[i]] <- alt
+        }
+    }
+    planned
+}
+
 #' @noRd
 autoresearch_revise_pages <- function(planned, topic, claims, sources, vault,
-                                      program, model_backend) {
+                                      program, model_backend, verbose = FALSE) {
     if (nrow(planned) == 0L) {
         return(planned)
     }
     for (i in seq_len(nrow(planned))) {
         slug <- planned$slug[[i]]
         path <- file.path(vault, "wiki", paste0(slug, ".md"))
+
+        if (file.exists(path)) {
+            existing_title <- tryCatch(
+                parse_frontmatter(path)$title %||% slug,
+                error = function(e) slug)
+            if (!.ar_titles_overlap(planned$title[[i]], existing_title)) {
+                other_slugs <- planned$slug[-i]
+                alt_slug <- .ar_unique_slug(slug, topic, vault,
+                                            planned$title[[i]],
+                                            also_taken = other_slugs)
+                .ar_msg(verbose,
+                        "  slug '", slug,
+                        "' collides with unrelated page '", existing_title,
+                        "'; writing synthesis to '", alt_slug, "' instead")
+                planned$slug[[i]] <- alt_slug
+                path <- file.path(vault, "wiki", paste0(alt_slug, ".md"))
+            }
+        }
+
         if (!file.exists(path)) {
             next
         }
@@ -231,7 +287,7 @@ autoresearch_revise_pages <- function(planned, topic, claims, sources, vault,
             next
         }
         res <- model_backend("revise_page",
-                             list(slug = slug,
+                             list(slug = planned$slug[[i]],
                                   topic = topic,
                                   page_title = planned$title[[i]],
                                   type = planned$type[[i]],
@@ -249,6 +305,82 @@ autoresearch_revise_pages <- function(planned, topic, claims, sources, vault,
         planned$body[[i]] <- revised
     }
     planned
+}
+
+#' Token-overlap heuristic for "are these two titles the same topic?"
+#'
+#' Tokenizes both titles (lowercase alphanumeric, drop common
+#' stopwords and tokens shorter than 3 characters), returns TRUE iff
+#' the intersection is non-empty.
+#'
+#' Used to guard \code{autoresearch_revise_pages()} from blindly
+#' merging a planned synthesis into an unrelated existing page whose
+#' slug happens to collide with what the planner returned.
+#'
+#' @noRd
+.ar_titles_overlap <- function(a, b) {
+    .ar_tokens(a) -> a_tok
+    .ar_tokens(b) -> b_tok
+    if (length(a_tok) == 0L || length(b_tok) == 0L) {
+        return(FALSE)
+    }
+    length(intersect(a_tok, b_tok)) > 0L
+}
+
+#' @noRd
+.ar_tokens <- function(s) {
+    if (is.null(s) || !nzchar(as.character(s))) {
+        return(character(0L))
+    }
+    x <- tolower(as.character(s))
+    x <- gsub("[^a-z0-9]+", " ", x)
+    tokens <- strsplit(trimws(x), "\\s+")[[1L]]
+    stopwords <- c("a", "an", "the", "of", "and", "or", "in", "on",
+                   "for", "to", "with", "from", "by", "as", "at", "is",
+                   "research", "page", "wiki", "topic", "notes", "note")
+    tokens <- tokens[nchar(tokens) >= 3L & !tokens %in% stopwords]
+    unique(tokens)
+}
+
+#' Pick an alternate slug for a planned page whose original slug
+#' collides with an unrelated existing wiki page.
+#'
+#' Prefers \code{Research-<slugify(topic)>}. If that base is free on
+#' disk but already claimed by another row in the same run (passed
+#' via \code{also_taken}), or already exists on disk but its title
+#' doesn't overlap with this planned title, appends \code{-2},
+#' \code{-3}, ... until a slug is free both on disk and against
+#' \code{also_taken}. If the base exists on disk and its title does
+#' overlap, returns the base (a legitimate update target).
+#'
+#' @noRd
+.ar_unique_slug <- function(planned_slug, topic, vault, planned_title,
+                            also_taken = character()) {
+    slug_taken <- function(s) {
+        file.exists(file.path(vault, "wiki", paste0(s, ".md"))) ||
+            s %in% also_taken
+    }
+    base <- paste0("Research-", slugify(topic))
+    base_path <- file.path(vault, "wiki", paste0(base, ".md"))
+    if (!slug_taken(base)) {
+        return(base)
+    }
+    if (file.exists(base_path) && !(base %in% also_taken)) {
+        existing_title <- tryCatch(
+            parse_frontmatter(base_path)$title %||% base,
+            error = function(e) base)
+        if (.ar_titles_overlap(planned_title, existing_title)) {
+            return(base)
+        }
+    }
+    for (n in 2:99) {
+        candidate <- paste0(base, "-", n)
+        if (!slug_taken(candidate)) {
+            return(candidate)
+        }
+    }
+    stop("Could not find a unique alternate slug for topic '", topic, "'",
+         call. = FALSE)
 }
 
 #' @noRd

@@ -529,3 +529,173 @@ heur_body <- paste(readLines(file.path(v_heur, "wiki", "Research-heuristic.md"),
 expect_true(grepl("Preserve-me prose", heur_body))
 expect_true(grepl("## Update", heur_body))
 unlink(v_heur, recursive = TRUE)
+
+# Title-overlap heuristic gates the revision path.
+expect_true(pensar:::.ar_titles_overlap("Research: skills",
+                                        "Research: skills"))
+expect_true(pensar:::.ar_titles_overlap("Recursive Language Models",
+                                        "recursive lms overview"))
+expect_false(pensar:::.ar_titles_overlap("Recursive Language Models",
+                                         "Reinforcement Learning"))
+expect_false(pensar:::.ar_titles_overlap("Research: x", ""))
+expect_false(pensar:::.ar_titles_overlap("", "Anything"))
+
+# Slug collision with unrelated page reroutes to Research-<topic>; the
+# unrelated page is left intact.
+v_coll <- tempfile("ar-collision-")
+init_vault(v_coll, rproj = FALSE, agent_instructions = FALSE)
+dir.create(file.path(v_coll, "wiki"), showWarnings = FALSE, recursive = TRUE)
+writeLines(c("---",
+             "title: \"Reinforcement Learning\"",
+             "type: analysis",
+             "source: \"hand-written\"",
+             "id: rl-hand-uuid",
+             "tags:",
+             "  - reinforcement-learning",
+             "  - hand-written",
+             "---", "",
+             "Hand-written notes on reinforcement learning. Do not lose."),
+           file.path(v_coll, "wiki", "reinforcement-learning.md"))
+
+collide_model <- function(task, input, program) {
+    if (task == "plan_pages") {
+        return(list(
+            headline = "Recursive LMs route their own computation.",
+            pages = list(list(
+                slug = "reinforcement-learning",
+                title = "Recursive Language Models",
+                type = "analysis",
+                source = "autoresearch collision test",
+                body = "# Recursive Language Models\n\nKey RLM finding."))))
+    }
+    fake_model(task, input, program)
+}
+
+res_coll <- autoresearch("recursive language models", vault = v_coll,
+                         search_backend = fake_search,
+                         fetch_backend = fake_fetch,
+                         model_backend = collide_model,
+                         program = list(max_rounds = 1L),
+                         verbose = FALSE)
+
+rl_body <- paste(readLines(
+    file.path(v_coll, "wiki", "reinforcement-learning.md"), warn = FALSE),
+    collapse = "\n")
+expect_true(grepl("Hand-written notes", rl_body))
+expect_false(grepl("Recursive", rl_body))
+fm_rl <- pensar:::parse_frontmatter(
+    file.path(v_coll, "wiki", "reinforcement-learning.md"))
+expect_equal(fm_rl$id, "rl-hand-uuid")
+
+new_slug <- res_coll$pages$slug[[1L]]
+expect_true(grepl("^Research-", new_slug))
+new_body <- paste(readLines(
+    file.path(v_coll, "wiki", paste0(new_slug, ".md")), warn = FALSE),
+    collapse = "\n")
+expect_true(grepl("Recursive Language Models", new_body))
+unlink(v_coll, recursive = TRUE)
+
+# Same-run collision: a rerouted slug must not clobber another row that
+# was already planned at the alternate slug.
+v_dup <- tempfile("ar-dup-")
+init_vault(v_dup, rproj = FALSE, agent_instructions = FALSE)
+dir.create(file.path(v_dup, "wiki"), showWarnings = FALSE, recursive = TRUE)
+writeLines(c("---",
+             "title: \"Reinforcement Learning\"",
+             "type: analysis",
+             "source: \"hand-written\"",
+             "---", "",
+             "Hand-written reinforcement learning notes. Do not lose."),
+           file.path(v_dup, "wiki", "reinforcement-learning.md"))
+
+dup_model <- function(task, input, program) {
+    if (task == "plan_pages") {
+        return(list(
+            headline = "Two synthesis pages for RLMs.",
+            pages = list(
+                list(slug = "reinforcement-learning",
+                     title = "RLMs Algorithm Notes",
+                     type = "analysis",
+                     source = "autoresearch dup test row 0",
+                     body = "# RLMs Algorithm Notes\n\nRow 0 body."),
+                list(slug = "Research-recursive-language-models",
+                     title = "RLMs Survey",
+                     type = "analysis",
+                     source = "autoresearch dup test row 1",
+                     body = "# RLMs Survey\n\nRow 1 body."))))
+    }
+    fake_model(task, input, program)
+}
+
+res_dup <- autoresearch("recursive language models", vault = v_dup,
+                       search_backend = fake_search,
+                       fetch_backend = fake_fetch,
+                       model_backend = dup_model,
+                       program = list(max_rounds = 1L, max_pages = 5L),
+                       verbose = FALSE)
+
+# Original unrelated page intact.
+rl_body_dup <- paste(readLines(
+    file.path(v_dup, "wiki", "reinforcement-learning.md"), warn = FALSE),
+    collapse = "\n")
+expect_true(grepl("Hand-written reinforcement learning notes", rl_body_dup))
+expect_false(grepl("RLMs Algorithm Notes|Row 0 body", rl_body_dup))
+
+# Both planned rows land at distinct slugs, neither overwriting the other.
+expect_equal(nrow(res_dup$pages), 2L)
+expect_equal(length(unique(res_dup$pages$slug)), 2L)
+row0_path <- file.path(v_dup, "wiki",
+                       paste0(res_dup$pages$slug[[1L]], ".md"))
+row1_path <- file.path(v_dup, "wiki",
+                       paste0(res_dup$pages$slug[[2L]], ".md"))
+expect_true(file.exists(row0_path))
+expect_true(file.exists(row1_path))
+expect_true(grepl("Row 0 body",
+                  paste(readLines(row0_path, warn = FALSE), collapse = "\n")))
+expect_true(grepl("Row 1 body",
+                  paste(readLines(row1_path, warn = FALSE), collapse = "\n")))
+unlink(v_dup, recursive = TRUE)
+
+# Plain duplicate slugs (no file collision) get rerouted before write_pages
+# so the second row can't overwrite the first. Runs under update = FALSE so
+# revise_pages is bypassed; the dedup pass must catch this on its own.
+v_samedup <- tempfile("ar-samedup-")
+init_vault(v_samedup, rproj = FALSE, agent_instructions = FALSE)
+same_model <- function(task, input, program) {
+    if (task == "plan_pages") {
+        return(list(
+            headline = "Two pages both planned at the same slug.",
+            pages = list(
+                list(slug = "Same",
+                     title = "Same Slug Row A",
+                     type = "analysis",
+                     source = "autoresearch samedup test row A",
+                     body = "# Row A\n\nRow A body."),
+                list(slug = "Same",
+                     title = "Same Slug Row B",
+                     type = "analysis",
+                     source = "autoresearch samedup test row B",
+                     body = "# Row B\n\nRow B body."))))
+    }
+    fake_model(task, input, program)
+}
+res_same <- autoresearch("language models", vault = v_samedup,
+                         search_backend = fake_search,
+                         fetch_backend = fake_fetch,
+                         model_backend = same_model,
+                         program = list(max_rounds = 1L, max_pages = 5L),
+                         update = FALSE,
+                         verbose = FALSE)
+expect_equal(nrow(res_same$pages), 2L)
+expect_equal(length(unique(res_same$pages$slug)), 2L)
+expect_true("Same" %in% res_same$pages$slug)
+same_a <- paste(readLines(file.path(v_samedup, "wiki", "Same.md"),
+                          warn = FALSE),
+                collapse = "\n")
+expect_true(grepl("Row A body", same_a))
+alt_slug <- setdiff(res_same$pages$slug, "Same")
+alt_body <- paste(readLines(
+    file.path(v_samedup, "wiki", paste0(alt_slug, ".md")), warn = FALSE),
+    collapse = "\n")
+expect_true(grepl("Row B body", alt_body))
+unlink(v_samedup, recursive = TRUE)
