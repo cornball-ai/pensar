@@ -202,7 +202,8 @@ autoresearch <- function(topic, vault = default_vault(),
         }
         pages$pages <- autoresearch_revise_pages(pages$pages, topic, claims,
                                                  sources, vault, program,
-                                                 model_backend)
+                                                 model_backend,
+                                                 verbose = verbose)
     }
 
     .ar_msg(verbose, "writing ", nrow(pages$pages),

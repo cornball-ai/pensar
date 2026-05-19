@@ -529,3 +529,68 @@ heur_body <- paste(readLines(file.path(v_heur, "wiki", "Research-heuristic.md"),
 expect_true(grepl("Preserve-me prose", heur_body))
 expect_true(grepl("## Update", heur_body))
 unlink(v_heur, recursive = TRUE)
+
+# Title-overlap heuristic gates the revision path.
+expect_true(pensar:::.ar_titles_overlap("Research: skills",
+                                        "Research: skills"))
+expect_true(pensar:::.ar_titles_overlap("Recursive Language Models",
+                                        "recursive lms overview"))
+expect_false(pensar:::.ar_titles_overlap("Recursive Language Models",
+                                         "Reinforcement Learning"))
+expect_false(pensar:::.ar_titles_overlap("Research: x", ""))
+expect_false(pensar:::.ar_titles_overlap("", "Anything"))
+
+# Slug collision with unrelated page reroutes to Research-<topic>; the
+# unrelated page is left intact.
+v_coll <- tempfile("ar-collision-")
+init_vault(v_coll, rproj = FALSE, agent_instructions = FALSE)
+dir.create(file.path(v_coll, "wiki"), showWarnings = FALSE, recursive = TRUE)
+writeLines(c("---",
+             "title: \"Reinforcement Learning\"",
+             "type: analysis",
+             "source: \"hand-written\"",
+             "id: rl-hand-uuid",
+             "tags:",
+             "  - reinforcement-learning",
+             "  - hand-written",
+             "---", "",
+             "Hand-written notes on reinforcement learning. Do not lose."),
+           file.path(v_coll, "wiki", "reinforcement-learning.md"))
+
+collide_model <- function(task, input, program) {
+    if (task == "plan_pages") {
+        return(list(
+            headline = "Recursive LMs route their own computation.",
+            pages = list(list(
+                slug = "reinforcement-learning",
+                title = "Recursive Language Models",
+                type = "analysis",
+                source = "autoresearch collision test",
+                body = "# Recursive Language Models\n\nKey RLM finding."))))
+    }
+    fake_model(task, input, program)
+}
+
+res_coll <- autoresearch("recursive language models", vault = v_coll,
+                         search_backend = fake_search,
+                         fetch_backend = fake_fetch,
+                         model_backend = collide_model,
+                         program = list(max_rounds = 1L),
+                         verbose = FALSE)
+
+rl_body <- paste(readLines(
+    file.path(v_coll, "wiki", "reinforcement-learning.md"), warn = FALSE),
+    collapse = "\n")
+expect_true(grepl("Hand-written notes", rl_body))
+expect_false(grepl("Recursive", rl_body))
+fm_rl <- pensar:::parse_frontmatter(
+    file.path(v_coll, "wiki", "reinforcement-learning.md"))
+expect_equal(fm_rl$id, "rl-hand-uuid")
+
+new_slug <- res_coll$pages$slug[[1L]]
+expect_true(grepl("^Research-", new_slug))
+new_body <- paste(readLines(
+    file.path(v_coll, "wiki", paste0(new_slug, ".md")), warn = FALSE),
+    collapse = "\n")
+expect_true(grepl("Recursive Language Models", new_body))
+unlink(v_coll, recursive = TRUE)

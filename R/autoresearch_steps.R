@@ -223,13 +223,30 @@ autoresearch_plan_pages <- function(topic, claims, sources, existing_pages,
 
 #' @noRd
 autoresearch_revise_pages <- function(planned, topic, claims, sources, vault,
-                                      program, model_backend) {
+                                      program, model_backend, verbose = FALSE) {
     if (nrow(planned) == 0L) {
         return(planned)
     }
     for (i in seq_len(nrow(planned))) {
         slug <- planned$slug[[i]]
         path <- file.path(vault, "wiki", paste0(slug, ".md"))
+
+        if (file.exists(path)) {
+            existing_title <- tryCatch(
+                parse_frontmatter(path)$title %||% slug,
+                error = function(e) slug)
+            if (!.ar_titles_overlap(planned$title[[i]], existing_title)) {
+                alt_slug <- .ar_unique_slug(slug, topic, vault,
+                                            planned$title[[i]])
+                .ar_msg(verbose,
+                        "  slug '", slug,
+                        "' collides with unrelated page '", existing_title,
+                        "'; writing synthesis to '", alt_slug, "' instead")
+                planned$slug[[i]] <- alt_slug
+                path <- file.path(vault, "wiki", paste0(alt_slug, ".md"))
+            }
+        }
+
         if (!file.exists(path)) {
             next
         }
@@ -239,7 +256,7 @@ autoresearch_revise_pages <- function(planned, topic, claims, sources, vault,
             next
         }
         res <- model_backend("revise_page",
-                             list(slug = slug,
+                             list(slug = planned$slug[[i]],
                                   topic = topic,
                                   page_title = planned$title[[i]],
                                   type = planned$type[[i]],
@@ -257,6 +274,72 @@ autoresearch_revise_pages <- function(planned, topic, claims, sources, vault,
         planned$body[[i]] <- revised
     }
     planned
+}
+
+#' Token-overlap heuristic for "are these two titles the same topic?"
+#'
+#' Tokenizes both titles (lowercase alphanumeric, drop common
+#' stopwords and tokens shorter than 3 characters), returns TRUE iff
+#' the intersection is non-empty.
+#'
+#' Used to guard \code{autoresearch_revise_pages()} from blindly
+#' merging a planned synthesis into an unrelated existing page whose
+#' slug happens to collide with what the planner returned.
+#'
+#' @noRd
+.ar_titles_overlap <- function(a, b) {
+    .ar_tokens(a) -> a_tok
+    .ar_tokens(b) -> b_tok
+    if (length(a_tok) == 0L || length(b_tok) == 0L) {
+        return(FALSE)
+    }
+    length(intersect(a_tok, b_tok)) > 0L
+}
+
+#' @noRd
+.ar_tokens <- function(s) {
+    if (is.null(s) || !nzchar(as.character(s))) {
+        return(character(0L))
+    }
+    x <- tolower(as.character(s))
+    x <- gsub("[^a-z0-9]+", " ", x)
+    tokens <- strsplit(trimws(x), "\\s+")[[1L]]
+    stopwords <- c("a", "an", "the", "of", "and", "or", "in", "on",
+                   "for", "to", "with", "from", "by", "as", "at", "is",
+                   "research", "page", "wiki", "topic", "notes", "note")
+    tokens <- tokens[nchar(tokens) >= 3L & !tokens %in% stopwords]
+    unique(tokens)
+}
+
+#' Pick an alternate slug for a planned page whose original slug
+#' collides with an unrelated existing wiki page.
+#'
+#' Prefers \code{Research-<slugify(topic)>}. If that also exists in
+#' the vault but its title overlaps with the planned title, returns
+#' it (a legitimate update target). Otherwise appends \code{-2},
+#' \code{-3}, ... until a free slug is found.
+#'
+#' @noRd
+.ar_unique_slug <- function(planned_slug, topic, vault, planned_title) {
+    base <- paste0("Research-", slugify(topic))
+    path <- file.path(vault, "wiki", paste0(base, ".md"))
+    if (!file.exists(path)) {
+        return(base)
+    }
+    existing_title <- tryCatch(
+        parse_frontmatter(path)$title %||% base,
+        error = function(e) base)
+    if (.ar_titles_overlap(planned_title, existing_title)) {
+        return(base)
+    }
+    for (n in 2:99) {
+        candidate <- paste0(base, "-", n)
+        if (!file.exists(file.path(vault, "wiki", paste0(candidate, ".md")))) {
+            return(candidate)
+        }
+    }
+    stop("Could not find a unique alternate slug for topic '", topic, "'",
+         call. = FALSE)
 }
 
 #' @noRd
