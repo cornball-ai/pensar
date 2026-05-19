@@ -978,6 +978,48 @@ analysis_slug <- res_slugdup$pages$slug[res_slugdup$pages$type == "analysis"]
 expect_equal(analysis_slug, "shared")
 unlink(v_slugdup, recursive = TRUE)
 
+# slug = NA_character_ is treated as not-supplied (no forcing, no NA.md).
+v_naslug <- tempfile("ar-naslug-")
+init_vault(v_naslug, rproj = FALSE, agent_instructions = FALSE)
+res_naslug <- autoresearch("na slug topic", vault = v_naslug,
+                           search_backend = fake_search,
+                           fetch_backend = fake_fetch,
+                           model_backend = slug_model,
+                           program = list(max_rounds = 1L),
+                           slug = NA_character_,
+                           verbose = FALSE)
+expect_false(file.exists(file.path(v_naslug, "wiki", "NA.md")))
+expect_false(any(is.na(res_naslug$pages$slug)))
+unlink(v_naslug, recursive = TRUE)
+
+# Whitespace-padded slug gets trimmed before storage.
+v_padslug <- tempfile("ar-padslug-")
+init_vault(v_padslug, rproj = FALSE, agent_instructions = FALSE)
+res_padslug <- autoresearch("pad slug topic", vault = v_padslug,
+                            search_backend = fake_search,
+                            fetch_backend = fake_fetch,
+                            model_backend = slug_model,
+                            program = list(max_rounds = 1L),
+                            slug = "  chosen-slug  ",
+                            verbose = FALSE)
+expect_equal(res_padslug$pages$slug[[1L]], "chosen-slug")
+expect_true(file.exists(file.path(v_padslug, "wiki", "chosen-slug.md")))
+expect_false(file.exists(file.path(v_padslug, "wiki",
+                                   "  chosen-slug  .md")))
+unlink(v_padslug, recursive = TRUE)
+
+# write_wiki_page rejects NA slug defensively.
+v_wnaslug <- tempfile("ar-wnaslug-")
+init_vault(v_wnaslug, rproj = FALSE, agent_instructions = FALSE)
+err_wna <- tryCatch(
+    pensar:::write_wiki_page(NA_character_,
+                             frontmatter = list(title = "T", type = "analysis",
+                                                source = "test"),
+                             body = "x", vault = v_wnaslug),
+    error = function(e) conditionMessage(e))
+expect_true(grepl("non-empty", err_wna))
+unlink(v_wnaslug, recursive = TRUE)
+
 # autoresearch overrides a caller-set elapsed-time limit (corteza wraps
 # tool calls in a 30s setTimeLimit; the workflow needs minutes).
 v_timeout <- tempfile("ar-timeout-")
