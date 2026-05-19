@@ -146,7 +146,9 @@
                                       "Every non-obvious claim must cite raw source wikilinks.",
                                       "Use only source-grounded claims, quotes, source metadata, and existing_pages. Raw source bodies are intentionally unavailable at this stage.",
                                       "Prefer updating an existing page when existing_pages contains a matching node_id, title, alias, or page_uid.",
-                                      "Return JSON: {\"headline\":\"...\",\"pages\":[{\"slug\":\"Research-topic\",\"title\":\"Research: topic\",\"type\":\"analysis\",\"source\":\"autoresearch session ...\",\"body\":\"markdown\"}]}",
+                                      sprintf("Slugs MUST be derived from the actual research topic, not the literal word 'topic'. Kebab-case, ASCII letters/digits/hyphens only. A reasonable default for this run's synthesis page is '%s'.",
+                                              paste0("Research-", slugify(input$topic))),
+                                      "Return JSON: {\"headline\":\"<one-sentence headline>\",\"pages\":[{\"slug\":\"<kebab-slug-derived-from-topic>\",\"title\":\"<human title for the page>\",\"type\":\"analysis\",\"source\":\"<autoresearch session reference>\",\"body\":\"<markdown body>\"}]}",
                                       payload, sep = "\n\n"),
                    revise_page = paste(
                                        "Revise an existing wiki page using new research evidence.",

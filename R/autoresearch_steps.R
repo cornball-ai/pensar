@@ -230,7 +230,59 @@ autoresearch_plan_pages <- function(topic, claims, sources, existing_pages,
     }
     pages <- pages[seq_len(min(nrow(pages), program$max_pages)),,
         drop = FALSE]
+    pages <- .ar_repair_placeholder_pages(pages, topic)
     list(headline = as.character(res$headline %||% ""), pages = pages)
+}
+
+#' Repair literal placeholder slugs and titles returned by the
+#' plan_pages model task.
+#'
+#' If the LLM copies the prompt example verbatim (\code{slug =
+#' "Research-topic"}, \code{title = "Research: topic"}), substitute
+#' a topic-derived slug \code{Research-<slugify(topic)>} and a
+#' topic-derived title. Same for empty / NA slugs and titles.
+#'
+#' @noRd
+.ar_repair_placeholder_pages <- function(pages, topic) {
+    if (nrow(pages) == 0L) {
+        return(pages)
+    }
+    default_slug <- paste0("Research-", slugify(topic))
+    default_title <- paste("Research:", topic)
+    for (i in seq_len(nrow(pages))) {
+        slug <- pages$slug[[i]]
+        if (.ar_is_placeholder_slug(slug)) {
+            pages$slug[[i]] <- default_slug
+        }
+        title <- pages$title[[i]]
+        if (.ar_is_placeholder_title(title)) {
+            pages$title[[i]] <- default_title
+        }
+    }
+    pages
+}
+
+#' @noRd
+.ar_is_placeholder_slug <- function(slug) {
+    if (is.null(slug) || is.na(slug) || !nzchar(slug)) {
+        return(TRUE)
+    }
+    normalized <- tolower(trimws(as.character(slug)))
+    normalized %in% c("topic", "research-topic", "research_topic",
+                      "research:topic", "research", "page",
+                      "research-page", "kebab-slug-derived-from-topic",
+                      "<kebab-slug-derived-from-topic>")
+}
+
+#' @noRd
+.ar_is_placeholder_title <- function(title) {
+    if (is.null(title) || is.na(title) || !nzchar(title)) {
+        return(TRUE)
+    }
+    normalized <- tolower(trimws(as.character(title)))
+    normalized %in% c("topic", "research", "research: topic",
+                      "research:topic", "human title for the page",
+                      "<human title for the page>")
 }
 
 #' Within-run slug dedup before write_pages

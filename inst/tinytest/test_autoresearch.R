@@ -790,6 +790,46 @@ expect_equal(nrow(res_allbad$sources), 0L)
 expect_equal(nrow(res_allbad$claims), 0L)
 unlink(v_allbad, recursive = TRUE)
 
+# Placeholder slug/title heuristics catch the prompt example verbatim.
+expect_true(pensar:::.ar_is_placeholder_slug("Research-topic"))
+expect_true(pensar:::.ar_is_placeholder_slug("research:topic"))
+expect_true(pensar:::.ar_is_placeholder_slug("topic"))
+expect_true(pensar:::.ar_is_placeholder_slug("<kebab-slug-derived-from-topic>"))
+expect_true(pensar:::.ar_is_placeholder_slug(""))
+expect_false(pensar:::.ar_is_placeholder_slug("Research-recursive-language-models"))
+expect_true(pensar:::.ar_is_placeholder_title("Research: topic"))
+expect_true(pensar:::.ar_is_placeholder_title(""))
+expect_false(pensar:::.ar_is_placeholder_title("Research: Recursive Language Models"))
+
+# A planner that returns the literal placeholder slug gets repaired to
+# Research-<slugify(topic)>; no Research-topic.md file is created.
+v_ph <- tempfile("ar-placeholder-")
+init_vault(v_ph, rproj = FALSE, agent_instructions = FALSE)
+placeholder_model <- function(task, input, program) {
+    if (task == "plan_pages") {
+        return(list(
+            headline = "Placeholder slug repaired.",
+            pages = list(list(
+                slug = "Research-topic",
+                title = "Research: topic",
+                type = "analysis",
+                source = "autoresearch placeholder test",
+                body = "Body."))))
+    }
+    fake_model(task, input, program)
+}
+res_ph <- autoresearch("research goals", vault = v_ph,
+                      search_backend = fake_search,
+                      fetch_backend = fake_fetch,
+                      model_backend = placeholder_model,
+                      program = list(max_rounds = 1L),
+                      verbose = FALSE)
+expect_equal(res_ph$pages$slug[[1L]], "Research-research-goals")
+expect_equal(res_ph$pages$title[[1L]], "Research: research goals")
+expect_true(file.exists(file.path(v_ph, "wiki", "Research-research-goals.md")))
+expect_false(file.exists(file.path(v_ph, "wiki", "Research-topic.md")))
+unlink(v_ph, recursive = TRUE)
+
 # autoresearch overrides a caller-set elapsed-time limit (corteza wraps
 # tool calls in a 30s setTimeLimit; the workflow needs minutes).
 v_timeout <- tempfile("ar-timeout-")
