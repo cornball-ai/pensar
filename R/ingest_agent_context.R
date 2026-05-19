@@ -44,16 +44,14 @@
 #' unlink(v, recursive = TRUE)
 #' }
 #' @export
-ingest_agent_context <- function(agent = c("claude", "codex",
-                                           "corteza"),
+ingest_agent_context <- function(agent = c("claude", "codex", "corteza"),
                                  vault = default_vault(),
-                                 project_dir = getwd(),
-                                 workspace_dir = NULL, ...) {
+                                 project_dir = getwd(), workspace_dir = NULL,
+                                 ...) {
     agent <- match.arg(agent)
     if (!requireNamespace("saber", quietly = TRUE)) {
         stop("ingest_agent_context() requires the 'saber' package.\n",
-             "  Install with: install.packages('saber')",
-             call. = FALSE)
+             "  Install with: install.packages('saber')", call. = FALSE)
     }
     # Dynamic resolution: gates on the agent_context export so older
     # saber versions (pre-0.4 on CRAN) that lack the function fail
@@ -81,10 +79,10 @@ ingest_agent_context <- function(agent = c("claude", "codex",
     }
 
     source_id <- sprintf("saber::agent_context(%s)", agent)
-    title <- sprintf("%s context %s", agent,
-                     format(Sys.Date(), "%Y-%m-%d"))
+    title <- sprintf("%s context %s", agent, format(Sys.Date(), "%Y-%m-%d"))
     fp <- ingest(content = context, type = "chats",
                  source = source_id, title = title,
                  tags = c("agent-context", agent), vault = vault)
     invisible(substring(fp, nchar(vault) + 2L))
 }
+

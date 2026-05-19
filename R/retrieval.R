@@ -39,9 +39,9 @@ search_pages <- function(query, vault = default_vault(), type = NULL,
     }
     # Drop system control files (schema.md, log.md, index.md) so a
     # query like "vault" doesn't surface the seeded index/log/schema.
-    reg <- reg[!reg$system_file, , drop = FALSE]
+    reg <- reg[!reg$system_file,, drop = FALSE]
     if (!is.null(type)) {
-        reg <- reg[!is.na(reg$type) & reg$type == type, , drop = FALSE]
+        reg <- reg[!is.na(reg$type) & reg$type == type,, drop = FALSE]
     }
     if (nrow(reg) == 0L) {
         return(empty_search_result())
@@ -82,8 +82,7 @@ search_pages <- function(query, vault = default_vault(), type = NULL,
         }
         if (isTRUE(in_body)) {
             body <- extract_body(file.path(vault, reg$path[i]))
-            if (nzchar(body) &&
-                grepl(pat, tolower(body), fixed = TRUE)) {
+            if (nzchar(body) && grepl(pat, tolower(body), fixed = TRUE)) {
                 paths <- c(paths, reg$path[i])
                 nodes <- c(nodes, reg$node_id[i])
                 titles <- c(titles, title %||% NA_character_)
@@ -92,9 +91,8 @@ search_pages <- function(query, vault = default_vault(), type = NULL,
             }
         }
     }
-    data.frame(path = paths, node_id = nodes, title = titles,
-               type = types, matched_in = where,
-               stringsAsFactors = FALSE)
+    data.frame(path = paths, node_id = nodes, title = titles, type = types,
+               matched_in = where, stringsAsFactors = FALSE)
 }
 
 #' @noRd
@@ -128,8 +126,7 @@ empty_search_result <- function() {
 #' names(ctx)
 #' unlink(v, recursive = TRUE)
 #' @export
-page_context <- function(name, vault = default_vault(),
-                         body_chars = 300L) {
+page_context <- function(name, vault = default_vault(), body_chars = 300L) {
     vault <- normalizePath(vault, mustWork = TRUE)
     fp <- find_page(name, vault)
     if (is.null(fp)) {
@@ -137,26 +134,25 @@ page_context <- function(name, vault = default_vault(),
     }
     rel <- substring(fp, nchar(vault) + 2L)
     reg <- vault_registry(vault)
-    row <- reg[reg$path == rel, , drop = FALSE]
+    row <- reg[reg$path == rel,, drop = FALSE]
     fm <- parse_frontmatter(fp)
     body <- extract_body(fp, body_chars)
 
     ol <- tryCatch(outlinks(name, vault = vault),
                    error = function(e) {
-                       data.frame(target = character(0L),
-                                  exists = logical(0L),
-                                  stringsAsFactors = FALSE)
-                   })
+        data.frame(target = character(0L), exists = logical(0L),
+                   stringsAsFactors = FALSE)
+    })
     bl <- backlinks(name, vault = vault)
 
     structure(
-        list(path = rel,
-             node_id = row$node_id %||% name,
-             frontmatter = fm,
-             body_head = body,
-             outlinks = ol,
-             backlinks = bl),
-        class = "pensar_page_context"
+              list(path = rel,
+                   node_id = row$node_id %||% name,
+                   frontmatter = fm,
+                   body_head = body,
+                   outlinks = ol,
+                   backlinks = bl),
+              class = "pensar_page_context"
     )
 }
 
@@ -193,15 +189,15 @@ related_pages <- function(name, vault = default_vault(), k = 10L) {
     target_rel <- substring(fp, nchar(vault) + 2L)
 
     reg <- vault_registry(vault)
-    self_row <- reg[reg$path == target_rel, , drop = FALSE]
+    self_row <- reg[reg$path == target_rel,, drop = FALSE]
     if (nrow(self_row) == 0L) {
         return(empty_related_result())
     }
     target_tags <- self_row$tags[[1L]]
     target_links <- self_row$links_out[[1L]]
 
-    others <- reg[reg$path != target_rel & !reg$system_file, ,
-                  drop = FALSE]
+    others <- reg[reg$path != target_rel & !reg$system_file,,
+        drop = FALSE]
     if (nrow(others) == 0L) {
         return(empty_related_result())
     }
@@ -213,19 +209,16 @@ related_pages <- function(name, vault = default_vault(), k = 10L) {
 
     scores <- integer(nrow(others))
     for (i in seq_len(nrow(others))) {
-        shared_tags <- length(intersect(target_tags,
-                                        others$tags[[i]]))
-        peer_link_paths <- resolved_link_set(others$links_out[[i]],
-                                             vault)
-        shared_links <- length(intersect(target_link_paths,
-                                         peer_link_paths))
+        shared_tags <- length(intersect(target_tags, others$tags[[i]]))
+        peer_link_paths <- resolved_link_set(others$links_out[[i]], vault)
+        shared_links <- length(intersect(target_link_paths, peer_link_paths))
         scores[i] <- shared_tags + shared_links
     }
     keep <- scores > 0L
     if (!any(keep)) {
         return(empty_related_result())
     }
-    others <- others[keep, , drop = FALSE]
+    others <- others[keep,, drop = FALSE]
     scores <- scores[keep]
     ord <- order(-scores, others$path)
     top <- utils::head(ord, k)
@@ -244,8 +237,7 @@ resolved_link_set <- function(links, vault) {
     if (length(links) == 0L) {
         return(character(0L))
     }
-    resolved <- vapply(links, resolve_target_path, character(1L),
-                       vault = vault)
+    resolved <- vapply(links, resolve_target_path, character(1L), vault = vault)
     unique(resolved[!is.na(resolved)])
 }
 
@@ -289,8 +281,7 @@ recent_activity <- function(vault = default_vault(), days = 7L) {
     op <- vapply(parsed, function(m) m[[3L]], character(1L))
     msg <- vapply(parsed, function(m) m[[4L]], character(1L))
 
-    ts <- as.POSIXct(ts_str, format = "%Y-%m-%dT%H:%M:%S",
-                     tz = "")
+    ts <- as.POSIXct(ts_str, format = "%Y-%m-%dT%H:%M:%S", tz = "")
     cutoff <- Sys.time() - as.difftime(days, units = "days")
     keep <- !is.na(ts) & ts >= cutoff
     if (!any(keep)) {
@@ -300,8 +291,8 @@ recent_activity <- function(vault = default_vault(), days = 7L) {
     op <- op[keep]
     msg <- msg[keep]
     ord <- order(ts, decreasing = TRUE)
-    data.frame(timestamp = ts[ord], operation = op[ord],
-               message = msg[ord], stringsAsFactors = FALSE)
+    data.frame(timestamp = ts[ord], operation = op[ord], message = msg[ord],
+               stringsAsFactors = FALSE)
 }
 
 #' @noRd
@@ -335,3 +326,4 @@ extract_body <- function(filepath, n_chars = NULL) {
         substring(body, 1L, n_chars)
     }
 }
+

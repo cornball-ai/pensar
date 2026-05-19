@@ -34,13 +34,12 @@
 #' @export
 dedup <- function(vault = default_vault(), threshold = 0.7) {
     if (!requireNamespace("stringdist", quietly = TRUE)) {
-        stop("dedup() requires the 'stringdist' package.",
-             call. = FALSE)
+        stop("dedup() requires the 'stringdist' package.", call. = FALSE)
     }
     vault <- normalizePath(vault, mustWork = TRUE)
 
     reg <- vault_registry(vault)
-    pages <- reg[!reg$system_file, , drop = FALSE]
+    pages <- reg[!reg$system_file,, drop = FALSE]
     n <- nrow(pages)
     if (n < 2L) {
         proposals <- empty_dedup_result()
@@ -49,8 +48,7 @@ dedup <- function(vault = default_vault(), threshold = 0.7) {
     }
 
     titles <- ifelse(!is.na(pages$title) & nzchar(pages$title),
-                     tolower(trimws(pages$title)),
-                     tolower(pages$node_id))
+                     tolower(trimws(pages$title)), tolower(pages$node_id))
 
     page_a <- character(0L)
     page_b <- character(0L)
@@ -61,7 +59,7 @@ dedup <- function(vault = default_vault(), threshold = 0.7) {
     for (i in seq_len(n - 1L)) {
         for (j in seq.int(i + 1L, n)) {
             jw_dist <- stringdist::stringdist(titles[i], titles[j],
-                                              method = "jw")
+                method = "jw")
             sim <- 1 - jw_dist
             jacc <- tag_jaccard(pages$tags[[i]], pages$tags[[j]])
             score <- 0.6 * sim + 0.4 * jacc
@@ -70,9 +68,8 @@ dedup <- function(vault = default_vault(), threshold = 0.7) {
                 page_b <- c(page_b, pages$path[j])
                 title_sim <- c(title_sim, sim)
                 tag_overlap <- c(
-                    tag_overlap,
-                    length(intersect(pages$tags[[i]],
-                                     pages$tags[[j]])))
+                                 tag_overlap,
+                                 length(intersect(pages$tags[[i]], pages$tags[[j]])))
                 combined <- c(combined, score)
             }
         }
@@ -84,8 +81,8 @@ dedup <- function(vault = default_vault(), threshold = 0.7) {
                             combined_score = combined,
                             stringsAsFactors = FALSE)
     if (nrow(proposals) > 0L) {
-        proposals <- proposals[order(-proposals$combined_score), ,
-                               drop = FALSE]
+        proposals <- proposals[order(-proposals$combined_score),,
+            drop = FALSE]
         rownames(proposals) <- NULL
     }
     write_dedup_proposals(vault, proposals)
@@ -95,10 +92,8 @@ dedup <- function(vault = default_vault(), threshold = 0.7) {
 #' @noRd
 empty_dedup_result <- function() {
     data.frame(page_a = character(0L), page_b = character(0L),
-               title_similarity = numeric(0L),
-               tag_overlap = integer(0L),
-               combined_score = numeric(0L),
-               stringsAsFactors = FALSE)
+               title_similarity = numeric(0L), tag_overlap = integer(0L),
+               combined_score = numeric(0L), stringsAsFactors = FALSE)
 }
 
 #' Jaccard overlap of two tag sets
@@ -123,13 +118,9 @@ write_dedup_proposals <- function(vault, proposals) {
     out_path <- file.path(out_dir, "dedup.md")
 
     if (nrow(proposals) == 0L) {
-        writeLines(c("---",
-                     "title: Dedup proposals",
-                     sprintf("updated: %s", now_ts()),
-                     "---",
-                     "",
-                     "# Dedup proposals",
-                     "",
+        writeLines(c("---", "title: Dedup proposals",
+                     sprintf("updated: %s", now_ts()), "---", "",
+                     "# Dedup proposals", "",
                      "No candidate duplicates above threshold."),
                    out_path)
         return(invisible(out_path))
@@ -142,8 +133,7 @@ write_dedup_proposals <- function(vault, proposals) {
                "",
                "# Dedup proposals",
                "",
-               sprintf("%d candidate pair(s) above threshold.",
-                       nrow(proposals)),
+               sprintf("%d candidate pair(s) above threshold.", nrow(proposals)),
                "")
     for (i in seq_len(nrow(proposals))) {
         lines <- c(lines,
@@ -214,7 +204,7 @@ tags <- function(vault = default_vault(), taxonomy = NULL,
     }
 
     reg <- vault_registry(vault)
-    pages <- reg[!reg$system_file, , drop = FALSE]
+    pages <- reg[!reg$system_file,, drop = FALSE]
 
     all_tags <- unlist(pages$tags, use.names = FALSE)
     if (is.null(all_tags)) {
@@ -245,9 +235,8 @@ tags <- function(vault = default_vault(), taxonomy = NULL,
             unk_tags <- used$tag[unk_mask]
             suggestion <- vapply(unk_tags,
                                  function(t) {
-                                     near_miss(t, allowed,
-                                               near_miss_threshold)
-                                 },
+                near_miss(t, allowed, near_miss_threshold)
+            },
                                  character(1L))
             data.frame(tag = unk_tags,
                        count = used$count[unk_mask],
@@ -262,8 +251,7 @@ tags <- function(vault = default_vault(), taxonomy = NULL,
         sort(setdiff(allowed, used$tag))
     }
 
-    write_tags_proposals(vault, used, unknown, unused_taxonomy,
-                         taxonomy)
+    write_tags_proposals(vault, used, unknown, unused_taxonomy, taxonomy)
     invisible(list(used = used, unknown = unknown,
                    unused_taxonomy = unused_taxonomy))
 }
@@ -280,8 +268,9 @@ read_taxonomy <- function(taxonomy_path) {
     # across R's default regex engine. `\\s` is not.
     pat <- "^[[:space:]]*[-*][[:space:]]+`?([^`[:space:]]+)`?[[:space:]]*$"
     m <- regmatches(lines, regexec(pat, lines))
-    tags <- vapply(m, function(x) if (length(x) >= 2L) x[[2L]]
-                   else NA_character_, character(1L))
+    tags <- vapply(m,
+                   function(x) if (length(x) >= 2L) x[[2L]] else NA_character_,
+                   character(1L))
     tags <- tags[!is.na(tags) & nzchar(tags)]
     unique(tags)
 }
@@ -308,19 +297,14 @@ near_miss <- function(tag, allowed, threshold) {
 
 #' Write the tags proposals report
 #' @noRd
-write_tags_proposals <- function(vault, used, unknown,
-                                 unused_taxonomy, taxonomy_path) {
+write_tags_proposals <- function(vault, used, unknown, unused_taxonomy,
+                                 taxonomy_path) {
     out_dir <- file.path(vault, "_proposals")
     dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
     out_path <- file.path(out_dir, "tags.md")
 
-    lines <- c("---",
-               "title: Tag audit",
-               sprintf("updated: %s", now_ts()),
-               "---",
-               "",
-               "# Tag audit",
-               "")
+    lines <- c("---", "title: Tag audit", sprintf("updated: %s", now_ts()),
+               "---", "", "# Tag audit", "")
 
     if (is.null(taxonomy_path) || !file.exists(taxonomy_path)) {
         lines <- c(lines,
@@ -347,8 +331,7 @@ write_tags_proposals <- function(vault, used, unknown,
             suggestion <- if (is.na(unknown$suggestion[i])) {
                 ""
             } else {
-                sprintf(" -- did you mean `%s`?",
-                        unknown$suggestion[i])
+                sprintf(" -- did you mean `%s`?", unknown$suggestion[i])
             }
             lines <- c(lines, sprintf("- `%s` (%d)%s",
                                       unknown$tag[i], unknown$count[i],
@@ -368,3 +351,4 @@ write_tags_proposals <- function(vault, used, unknown,
     writeLines(lines, out_path)
     invisible(out_path)
 }
+

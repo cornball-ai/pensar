@@ -136,8 +136,8 @@ build_registry_row <- function(filepath, vault) {
     # returns backslashes (so `dirname(filepath) == vault` was false).
     rel_dir <- dirname(rel_path)
     is_root_ctrl <- basename(filepath) %in%
-        c("schema.md", "index.md", "log.md") &&
-        identical(rel_dir, ".")
+    c("schema.md", "index.md", "log.md") &&
+    identical(rel_dir, ".")
     in_proposals <- identical(rel_dir, "_proposals")
     system_file <- is_root_ctrl || in_proposals
 

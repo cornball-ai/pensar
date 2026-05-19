@@ -62,10 +62,9 @@ read_manifest <- function(vault) {
     }
     parsed$version <- parsed$version %||% 1L
     parsed$created <- parsed$created %||% format(Sys.Date(), "%Y-%m-%d")
-    parsed$sources <- coerce_manifest_map(parsed$sources, "sources",
-                                          fp)
+    parsed$sources <- coerce_manifest_map(parsed$sources, "sources", fp)
     parsed$address_map <- coerce_manifest_map(parsed$address_map,
-                                              "address_map", fp)
+        "address_map", fp)
     parsed
 }
 
@@ -83,8 +82,7 @@ coerce_manifest_map <- function(x, field, fp) {
     }
     if (!is.list(x) || (length(x) > 0L && is.null(names(x)))) {
         warning("manifest field '", field, "' at ", fp,
-                " is not a named list; treating as empty",
-                call. = FALSE)
+                " is not a named list; treating as empty", call. = FALSE)
         return(list())
     }
     x
@@ -133,7 +131,7 @@ update_manifest <- function(vault, source = NULL, path = NULL,
                             ingested_at = NULL) {
     vault <- normalizePath(vault, mustWork = TRUE)
     other_fields_set <- !is.null(source) || !is.null(page_uid) ||
-        !is.null(address) || !is.null(hash) || !is.null(ingested_at)
+    !is.null(address) || !is.null(hash) || !is.null(ingested_at)
     if (is.null(path)) {
         if (other_fields_set) {
             stop("update_manifest(): `path` is required when any of ",

@@ -77,11 +77,9 @@ autoresearch <- function(topic, vault = default_vault(),
     if (!is.character(topic) || length(topic) != 1L || !nzchar(topic)) {
         stop("`topic` must be a single non-empty string.", call. = FALSE)
     }
-    if (!is.null(slug) &&
-        (!is.character(slug) || length(slug) != 1L)) {
+    if (!is.null(slug) && (!is.character(slug) || length(slug) != 1L)) {
         stop("`slug` must be NULL or a single character value (got ",
-             typeof(slug), " of length ", length(slug), ").",
-             call. = FALSE)
+             typeof(slug), " of length ", length(slug), ").", call. = FALSE)
     }
     vault <- normalizePath(vault, mustWork = TRUE)
     if (!file.exists(file.path(vault, "schema.md"))) {
@@ -99,7 +97,7 @@ autoresearch <- function(topic, vault = default_vault(),
     fetch_backend <- fetch_backend %||% .autoresearch_default_fetch_backend()
     if (is.null(model_backend)) {
         model_backend <- .autoresearch_default_model_backend(provider = provider,
-                                                             model = model)
+            model = model)
     }
     model_backend <- .verbose_model_backend(model_backend, verbose)
     t_start <- Sys.time()
@@ -134,8 +132,8 @@ autoresearch <- function(topic, vault = default_vault(),
         .ar_msg(verbose, "round ", round, ": running ", nrow(round_queries),
                 " search ", if (nrow(round_queries) == 1L) "query" else "queries")
         round_search <- autoresearch_run_searches(round_queries,
-                                                  search_backend, program,
-                                                  verbose = verbose)
+            search_backend, program,
+            verbose = verbose)
         round_search$round <- rep.int(as.integer(round), nrow(round_search))
         search_results <- .autoresearch_bind_rows(search_results, round_search)
         .ar_msg(verbose, "round ", round, ": ", nrow(round_search),
@@ -144,32 +142,31 @@ autoresearch <- function(topic, vault = default_vault(),
         .ar_msg(verbose, "round ", round, ": selecting sources from ",
                 nrow(round_search), " results")
         round_selected <- autoresearch_select_sources(topic, round_search,
-                                                      program, model_backend)
+            program, model_backend)
         if (nrow(round_selected) > 0L && nrow(selected) > 0L) {
             round_selected <- round_selected[
                 !round_selected$url %in% selected$url,, drop = FALSE]
         }
-        round_selected$round <- rep.int(as.integer(round),
-                                        nrow(round_selected))
+        round_selected$round <- rep.int(as.integer(round), nrow(round_selected))
         selected <- .autoresearch_bind_rows(selected, round_selected)
         .ar_msg(verbose, "round ", round, ": selected ", nrow(round_selected),
                 " new ", if (nrow(round_selected) == 1L) "source" else "sources")
 
         .ar_msg(verbose, "round ", round, ": fetching ",
                 nrow(round_selected), " ",
-                if (nrow(round_selected) == 1L) "source" else "sources")
+            if (nrow(round_selected) == 1L) "source" else "sources")
         round_sources <- autoresearch_fetch_and_ingest(round_selected,
-                                                       fetch_backend, vault,
-                                                       topic, force = force,
-                                                       verbose = verbose)
+            fetch_backend, vault,
+            topic, force = force,
+            verbose = verbose)
         round_sources$round <- rep.int(as.integer(round), nrow(round_sources))
         sources <- .autoresearch_bind_rows(sources, round_sources)
 
         .ar_msg(verbose, "round ", round, ": extracting evidence from ",
                 nrow(round_sources), " ",
-                if (nrow(round_sources) == 1L) "source" else "sources")
+            if (nrow(round_sources) == 1L) "source" else "sources")
         round_claims <- autoresearch_extract_claims(topic, round_sources,
-                                                    program, model_backend)
+            program, model_backend)
         round_claims$round <- rep.int(as.integer(round), nrow(round_claims))
         claims <- .autoresearch_bind_rows(claims, round_claims)
         .ar_msg(verbose, "round ", round, ": extracted ", nrow(round_claims),
@@ -189,20 +186,20 @@ autoresearch <- function(topic, vault = default_vault(),
         }
         .ar_msg(verbose, "round ", round, ": analyzing gaps")
         gap_plan <- autoresearch_analyze_gaps(topic, claims, sources,
-                                              all_queries, program,
-                                              model_backend, round)
+            all_queries, program,
+            model_backend, round)
         gaps <- .autoresearch_bind_rows(gaps, gap_plan$gaps)
         next_queries <- gap_plan$queries
         .ar_msg(verbose, "round ", round, ": ", nrow(gap_plan$gaps),
                 " gaps, ", nrow(gap_plan$queries),
                 " follow-up ",
-                if (nrow(gap_plan$queries) == 1L) "query" else "queries")
+            if (nrow(gap_plan$queries) == 1L) "query" else "queries")
     }
 
     existing_pages <- autoresearch_existing_pages(vault)
     .ar_msg(verbose, "vault has ", nrow(existing_pages),
             " existing wiki ",
-            if (nrow(existing_pages) == 1L) "page" else "pages")
+        if (nrow(existing_pages) == 1L) "page" else "pages")
 
     .ar_msg(verbose, "planning pages from ", nrow(claims), " claims and ",
             nrow(sources), " sources")
@@ -212,22 +209,22 @@ autoresearch <- function(topic, vault = default_vault(),
             " ", if (nrow(pages$pages) == 1L) "page" else "pages")
     pages$pages <- .ar_apply_user_slug(pages$pages, slug, verbose)
     pages$pages <- .ar_dedupe_planned_slugs(pages$pages, topic, vault,
-                                            verbose = verbose)
+        verbose = verbose)
 
     if (isTRUE(update) && nrow(pages$pages) > 0L) {
         update_targets <- .ar_update_targets(pages$pages, vault)
         if (length(update_targets) > 0L) {
             .ar_msg(verbose, "revising ", length(update_targets),
                     " existing ",
-                    if (length(update_targets) == 1L) "page" else "pages",
+                if (length(update_targets) == 1L) "page" else "pages",
                     ": ", paste(update_targets, collapse = ", "))
         } else {
             .ar_msg(verbose, "no existing pages to revise; writing fresh")
         }
         pages$pages <- autoresearch_revise_pages(pages$pages, topic, claims,
-                                                 sources, vault, program,
-                                                 model_backend,
-                                                 verbose = verbose)
+            sources, vault, program,
+            model_backend,
+            verbose = verbose)
     }
 
     .ar_msg(verbose, "writing ", nrow(pages$pages),
@@ -383,8 +380,7 @@ print.pensar_research <- function(x, ...) {
         stop("TAVILY_API_KEY not set", call. = FALSE)
     }
     if (!requireNamespace("jsonlite", quietly = TRUE)) {
-        stop("Tavily search requires the 'jsonlite' package.",
-             call. = FALSE)
+        stop("Tavily search requires the 'jsonlite' package.", call. = FALSE)
     }
     body <- jsonlite::toJSON(
                              list(api_key = api_key, query = query, max_results = as.integer(n)),
@@ -423,3 +419,4 @@ print.pensar_research <- function(x, ...) {
                stringsAsFactors = FALSE
     )
 }
+

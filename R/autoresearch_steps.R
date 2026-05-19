@@ -61,7 +61,8 @@ autoresearch_select_sources <- function(topic, search_results, program,
 
 #' @noRd
 autoresearch_fetch_and_ingest <- function(selected, fetch_backend, vault,
-    topic, force = FALSE, verbose = FALSE) {
+    topic, force = FALSE,
+    verbose = FALSE) {
     if (nrow(selected) == 0L) {
         return(.empty_sources())
     }
@@ -81,12 +82,12 @@ autoresearch_fetch_and_ingest <- function(selected, fetch_backend, vault,
         } else {
             .ar_msg(verbose, "  fetch ", i, "/", nrow(selected), ": ", url)
             fetched <- tryCatch(
-                .validate_autoresearch_fetch_result(fetch_backend(url)),
-                error = function(e) {
-                    .ar_msg(verbose, "  fetch ", i, "/", nrow(selected),
-                            " skipped: ", conditionMessage(e))
-                    NULL
-                })
+                                .validate_autoresearch_fetch_result(fetch_backend(url)),
+                                error = function(e) {
+                .ar_msg(verbose, "  fetch ", i, "/", nrow(selected),
+                        " skipped: ", conditionMessage(e))
+                NULL
+            })
             if (is.null(fetched)) {
                 next
             }
@@ -107,8 +108,7 @@ autoresearch_fetch_and_ingest <- function(selected, fetch_backend, vault,
                                 slug = tools::file_path_sans_ext(basename(rel)),
                                 content_type = content_type,
                                 injection_flag = length(injection_reasons) > 0L,
-                                injection_reasons = paste(injection_reasons,
-                                                          collapse = "; "),
+                                injection_reasons = paste(injection_reasons, collapse = "; "),
                                 body = I(list(body)),
                                 stringsAsFactors = FALSE
         )
@@ -147,8 +147,8 @@ autoresearch_analyze_gaps <- function(topic, claims, sources, queries,
     res <- model_backend("analyze_gaps",
                          list(topic = topic,
                               claims = claims,
-                              sources = .autoresearch_source_records(
-                                  sources, include_body = FALSE),
+                              sources = .autoresearch_source_records(sources,
+                include_body = FALSE),
                               previous_queries = queries,
                               completed_round = as.integer(round)),
                          program)
@@ -163,8 +163,7 @@ autoresearch_analyze_gaps <- function(topic, claims, sources, queries,
         gaps <- .empty_gaps()
     }
 
-    planned <- .list_to_df(res$queries,
-                           columns = c("query", "angle", "gap"))
+    planned <- .list_to_df(res$queries, columns = c("query", "angle", "gap"))
     if (nrow(planned) == 0L && !is.null(res$gap_queries)) {
         planned <- .list_to_df(res$gap_queries,
                                columns = c("query", "angle", "gap"))
@@ -214,8 +213,8 @@ autoresearch_plan_pages <- function(topic, claims, sources, existing_pages,
     res <- model_backend("plan_pages",
                          list(topic = topic,
                               claims = claims,
-                              sources = .autoresearch_source_records(
-                                  sources, include_body = FALSE),
+                              sources = .autoresearch_source_records(sources,
+                include_body = FALSE),
                               existing_pages = existing_pages),
                          program)
     pages <- .list_to_df(res$pages,
@@ -272,8 +271,8 @@ autoresearch_plan_pages <- function(topic, claims, sources, existing_pages,
         return(TRUE)
     }
     normalized %in% c("topic", "research-topic", "research_topic",
-                      "research:topic", "research", "page",
-                      "research-page", "kebab-slug-derived-from-topic",
+                      "research:topic", "research", "page", "research-page",
+                      "kebab-slug-derived-from-topic",
                       "<kebab-slug-derived-from-topic>")
 }
 
@@ -314,9 +313,13 @@ autoresearch_plan_pages <- function(topic, claims, sources, existing_pages,
         return(planned)
     }
     analysis_idx <- which(planned$type == "analysis")
-    idx <- if (length(analysis_idx) > 0L) analysis_idx[[1L]] else 1L
-    .ar_msg(verbose, "  user-supplied slug: forcing synthesis row ",
-            idx, " to '", forced_slug, "' (overlap guard skipped)")
+    if (length(analysis_idx) > 0L) {
+        idx <- analysis_idx[[1L]]
+    } else {
+        idx <- 1L
+    }
+    .ar_msg(verbose, "  user-supplied slug: forcing synthesis row ", idx,
+            " to '", forced_slug, "' (overlap guard skipped)")
     planned$slug[[idx]] <- forced_slug
     planned$user_forced[[idx]] <- TRUE
     planned
@@ -374,17 +377,16 @@ autoresearch_revise_pages <- function(planned, topic, claims, sources, vault,
         slug <- planned$slug[[i]]
         path <- file.path(vault, "wiki", paste0(slug, ".md"))
         forced <- "user_forced" %in% names(planned) &&
-            isTRUE(planned$user_forced[[i]])
+        isTRUE(planned$user_forced[[i]])
 
         if (file.exists(path) && !forced) {
-            existing_title <- tryCatch(
-                parse_frontmatter(path)$title %||% slug,
-                error = function(e) slug)
+            existing_title <- tryCatch(parse_frontmatter(path)$title %||% slug,
+                                       error = function(e) slug)
             if (!.ar_titles_overlap(planned$title[[i]], existing_title)) {
                 other_slugs <- planned$slug[-i]
                 alt_slug <- .ar_unique_slug(slug, topic, vault,
-                                            planned$title[[i]],
-                                            also_taken = other_slugs)
+                    planned$title[[i]],
+                    also_taken = other_slugs)
                 .ar_msg(verbose,
                         "  slug '", slug,
                         "' collides with unrelated page '", existing_title,
@@ -411,7 +413,7 @@ autoresearch_revise_pages <- function(planned, topic, claims, sources, vault,
                                   new_draft_body = planned$body[[i]],
                                   claims = claims,
                                   sources = .autoresearch_source_records(
-                                      sources, include_body = FALSE)),
+                    sources, include_body = FALSE)),
                              program)
         revised <- if (!is.null(res$body) && nzchar(res$body)) {
             as.character(res$body)
@@ -474,7 +476,7 @@ autoresearch_revise_pages <- function(planned, topic, claims, sources, vault,
                             also_taken = character()) {
     slug_taken <- function(s) {
         file.exists(file.path(vault, "wiki", paste0(s, ".md"))) ||
-            s %in% also_taken
+        s %in% also_taken
     }
     base <- paste0("Research-", slugify(topic))
     base_path <- file.path(vault, "wiki", paste0(base, ".md"))
@@ -483,8 +485,8 @@ autoresearch_revise_pages <- function(planned, topic, claims, sources, vault,
     }
     if (file.exists(base_path) && !(base %in% also_taken)) {
         existing_title <- tryCatch(
-            parse_frontmatter(base_path)$title %||% base,
-            error = function(e) base)
+                                   parse_frontmatter(base_path)$title %||% base,
+                                   error = function(e) base)
         if (.ar_titles_overlap(planned_title, existing_title)) {
             return(base)
         }
@@ -507,8 +509,7 @@ autoresearch_write_pages <- function(pages, vault, program, overwrite = TRUE,
                           action = character(), type = character(),
                           title = character(), stringsAsFactors = FALSE))
     }
-    required_tags <- unique(as.character(program$required_tags %||%
-                                         "research"))
+    required_tags <- unique(as.character(program$required_tags %||% "research"))
     required_tags <- required_tags[nzchar(required_tags)]
     if (length(required_tags) == 0L) {
         required_tags <- "research"
@@ -658,7 +659,7 @@ autoresearch_write_pages <- function(pages, vault, program, overwrite = TRUE,
 
 #' @noRd
 .autoresearch_source_records <- function(sources, include_body = FALSE,
-                                         body_chars = 4000L) {
+    body_chars = 4000L) {
     cols <- c("url", "title", "path", "slug", "content_type",
               "injection_flag", "injection_reasons")
     if (is.null(sources) || nrow(sources) == 0L) {
@@ -686,12 +687,12 @@ autoresearch_write_pages <- function(pages, vault, program, overwrite = TRUE,
 .prompt_injection_reasons <- function(text) {
     text <- tolower(.plain_text(paste(text, collapse = " ")))
     patterns <- c(
-        ignore_previous = "ignore (all )?(previous|prior|above) instructions",
-        disregard_previous = "disregard (all )?(previous|prior|above) instructions",
-        system_prompt = "system prompt|developer message|hidden instructions",
-        tool_use = "call (the )?tool|use (the )?tool|execute (this )?command",
-        exfiltrate = "exfiltrate|api key|password|secret token",
-        role_override = "you are now|new instructions|follow these instructions"
+                  ignore_previous = "ignore (all )?(previous|prior|above) instructions",
+                  disregard_previous = "disregard (all )?(previous|prior|above) instructions",
+                  system_prompt = "system prompt|developer message|hidden instructions",
+                  tool_use = "call (the )?tool|use (the )?tool|execute (this )?command",
+                  exfiltrate = "exfiltrate|api key|password|secret token",
+                  role_override = "you are now|new instructions|follow these instructions"
     )
     hits <- names(patterns)[vapply(patterns, function(pat) {
         grepl(pat, text, perl = TRUE)
@@ -731,8 +732,7 @@ autoresearch_write_pages <- function(pages, vault, program, overwrite = TRUE,
 .empty_sources <- function() {
     data.frame(url = character(), title = character(), path = character(),
                slug = character(), content_type = character(),
-               injection_flag = logical(),
-               injection_reasons = character(),
+               injection_flag = logical(), injection_reasons = character(),
                body = I(list()), stringsAsFactors = FALSE)
 }
 
@@ -751,3 +751,4 @@ autoresearch_write_pages <- function(pages, vault, program, overwrite = TRUE,
                sources = character(), aliases = character(),
                tags = character(), stringsAsFactors = FALSE)
 }
+

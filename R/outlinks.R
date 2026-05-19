@@ -60,8 +60,8 @@ outlinks <- function(page, vault = default_vault()) {
 resolve_target_path <- function(query, vault) {
     fp <- withCallingHandlers(find_page(query, vault),
                               warning = function(w) {
-                                  invokeRestart("muffleWarning")
-                              })
+        invokeRestart("muffleWarning")
+    })
     if (is.null(fp)) {
         return(NA_character_)
     }
@@ -115,12 +115,11 @@ find_page <- function(page, vault) {
     # `wiki/tags.md` rather than `_proposals/tags.md`. Exact-path
     # queries above can still target system files when the caller
     # writes the full path.
-    content <- reg[!reg$system_file, , drop = FALSE]
+    content <- reg[!reg$system_file,, drop = FALSE]
 
     uid_match <- !is.na(content$page_uid) & content$page_uid == page
     if (any(uid_match)) {
-        return(file.path(vault,
-                         content$path[which(uid_match)[1L]]))
+        return(file.path(vault, content$path[which(uid_match)[1L]]))
     }
 
     nid_match <- content$node_id == page
@@ -131,8 +130,7 @@ find_page <- function(page, vault) {
     if (nmatches > 1L) {
         candidates <- sort(content$path[nid_match])
         warning("ambiguous wikilink: '", page, "' matches ", nmatches,
-                " pages: ", paste(candidates, collapse = ", "),
-                call. = FALSE)
+                " pages: ", paste(candidates, collapse = ", "), call. = FALSE)
         return(file.path(vault, candidates[1L]))
     }
 
@@ -140,8 +138,7 @@ find_page <- function(page, vault) {
                           function(a) is.character(a) && page %in% a,
                           logical(1L))
     if (any(alias_match)) {
-        return(file.path(vault,
-                         content$path[which(alias_match)[1L]]))
+        return(file.path(vault, content$path[which(alias_match)[1L]]))
     }
 
     NULL

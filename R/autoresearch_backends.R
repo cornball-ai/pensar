@@ -137,17 +137,17 @@
             "Return JSON: {\"claims\":[{\"source_path\":\"...\",\"source_slug\":\"...\",\"claim\":\"...\",\"confidence\":\"low|medium|high\",\"quote\":\"...\"}]}",
             payload, sep = "\n\n"),
                    analyze_gaps = paste(
-            "Review the current source-grounded claims and identify important research gaps.",
-            "Return empty arrays if the topic is sufficiently covered or if additional searches would duplicate prior queries.",
-            "Return JSON: {\"gaps\":[{\"gap\":\"...\",\"reason\":\"...\"}],\"queries\":[{\"query\":\"...\",\"angle\":\"...\",\"gap\":\"...\"}]}",
-            payload, sep = "\n\n"),
+                                        "Review the current source-grounded claims and identify important research gaps.",
+                                        "Return empty arrays if the topic is sufficiently covered or if additional searches would duplicate prior queries.",
+                                        "Return JSON: {\"gaps\":[{\"gap\":\"...\",\"reason\":\"...\"}],\"queries\":[{\"query\":\"...\",\"angle\":\"...\",\"gap\":\"...\"}]}",
+                                        payload, sep = "\n\n"),
                    plan_pages = paste(
                                       "Draft the wiki pages for the research run.",
                                       "Every non-obvious claim must cite raw source wikilinks.",
                                       "Use only source-grounded claims, quotes, source metadata, and existing_pages. Raw source bodies are intentionally unavailable at this stage.",
                                       "Prefer updating an existing page when existing_pages contains a matching node_id, title, alias, or page_uid.",
                                       sprintf("Slugs MUST be derived from the actual research topic, not the literal word 'topic'. Kebab-case, ASCII letters/digits/hyphens only. A reasonable default for this run's synthesis page is '%s'.",
-                                              paste0("Research-", slugify(input$topic))),
+                paste0("Research-", slugify(input$topic))),
                                       "Return JSON: {\"headline\":\"<one-sentence headline>\",\"pages\":[{\"slug\":\"<kebab-slug-derived-from-topic>\",\"title\":\"<human title for the page>\",\"type\":\"analysis\",\"source\":\"<autoresearch session reference>\",\"body\":\"<markdown body>\"}]}",
                                       payload, sep = "\n\n"),
                    revise_page = paste(
@@ -185,11 +185,9 @@
 #' @noRd
 .heuristic_plan_queries <- function(input, program) {
     topic <- input$topic
-    base <- c(topic,
-              paste(topic, "overview"),
+    base <- c(topic, paste(topic, "overview"),
               paste(topic, "primary sources"),
-              paste(topic, "official documentation"),
-              paste(topic, "review"))
+              paste(topic, "official documentation"), paste(topic, "review"))
     base <- unique(base)
     max_n <- min(length(base), program$max_queries_per_round)
     list(queries = lapply(seq_len(max_n), function(i) {
@@ -248,12 +246,9 @@
     if (!nzchar(new_draft)) {
         return(list(body = existing))
     }
-    revised <- paste(existing,
-                     "",
-                     sprintf("## Update %s", as.character(Sys.Date())),
-                     "",
-                     new_draft,
-                     sep = "\n")
+    revised <- paste(existing, "",
+                     sprintf("## Update %s", as.character(Sys.Date())), "",
+                     new_draft, sep = "\n")
     list(body = revised)
 }
 
@@ -331,3 +326,4 @@
     }
     substr(pieces[[1L]], 1L, 240L)
 }
+
