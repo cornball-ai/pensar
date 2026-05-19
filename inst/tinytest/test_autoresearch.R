@@ -655,3 +655,47 @@ expect_true(grepl("Row 0 body",
 expect_true(grepl("Row 1 body",
                   paste(readLines(row1_path, warn = FALSE), collapse = "\n")))
 unlink(v_dup, recursive = TRUE)
+
+# Plain duplicate slugs (no file collision) get rerouted before write_pages
+# so the second row can't overwrite the first. Runs under update = FALSE so
+# revise_pages is bypassed; the dedup pass must catch this on its own.
+v_samedup <- tempfile("ar-samedup-")
+init_vault(v_samedup, rproj = FALSE, agent_instructions = FALSE)
+same_model <- function(task, input, program) {
+    if (task == "plan_pages") {
+        return(list(
+            headline = "Two pages both planned at the same slug.",
+            pages = list(
+                list(slug = "Same",
+                     title = "Same Slug Row A",
+                     type = "analysis",
+                     source = "autoresearch samedup test row A",
+                     body = "# Row A\n\nRow A body."),
+                list(slug = "Same",
+                     title = "Same Slug Row B",
+                     type = "analysis",
+                     source = "autoresearch samedup test row B",
+                     body = "# Row B\n\nRow B body."))))
+    }
+    fake_model(task, input, program)
+}
+res_same <- autoresearch("language models", vault = v_samedup,
+                         search_backend = fake_search,
+                         fetch_backend = fake_fetch,
+                         model_backend = same_model,
+                         program = list(max_rounds = 1L, max_pages = 5L),
+                         update = FALSE,
+                         verbose = FALSE)
+expect_equal(nrow(res_same$pages), 2L)
+expect_equal(length(unique(res_same$pages$slug)), 2L)
+expect_true("Same" %in% res_same$pages$slug)
+same_a <- paste(readLines(file.path(v_samedup, "wiki", "Same.md"),
+                          warn = FALSE),
+                collapse = "\n")
+expect_true(grepl("Row A body", same_a))
+alt_slug <- setdiff(res_same$pages$slug, "Same")
+alt_body <- paste(readLines(
+    file.path(v_samedup, "wiki", paste0(alt_slug, ".md")), warn = FALSE),
+    collapse = "\n")
+expect_true(grepl("Row B body", alt_body))
+unlink(v_samedup, recursive = TRUE)

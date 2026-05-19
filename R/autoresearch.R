@@ -189,6 +189,8 @@ autoresearch <- function(topic, vault = default_vault(),
                                      program, model_backend)
     .ar_msg(verbose, "planner returned ", nrow(pages$pages),
             " ", if (nrow(pages$pages) == 1L) "page" else "pages")
+    pages$pages <- .ar_dedupe_planned_slugs(pages$pages, topic, vault,
+                                            verbose = verbose)
 
     if (isTRUE(update) && nrow(pages$pages) > 0L) {
         update_targets <- .ar_update_targets(pages$pages, vault)

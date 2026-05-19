@@ -221,6 +221,35 @@ autoresearch_plan_pages <- function(topic, claims, sources, existing_pages,
     list(headline = as.character(res$headline %||% ""), pages = pages)
 }
 
+#' Within-run slug dedup before write_pages
+#'
+#' Walks the planned data frame. If a row's slug appears in any
+#' earlier row, reroutes the later row to a fresh alternate via
+#' \code{.ar_unique_slug()}, treating every other row's slug
+#' (already updated) plus on-disk files as taken. Runs always,
+#' regardless of \code{update}, so plain \code{overwrite = TRUE}
+#' writes can't silently clobber sibling pages in the same run.
+#'
+#' @noRd
+.ar_dedupe_planned_slugs <- function(planned, topic, vault, verbose = FALSE) {
+    if (nrow(planned) <= 1L) {
+        return(planned)
+    }
+    for (i in 2:nrow(planned)) {
+        slug <- planned$slug[[i]]
+        if (slug %in% planned$slug[seq_len(i - 1L)]) {
+            other_slugs <- planned$slug[-i]
+            alt <- .ar_unique_slug(slug, topic, vault, planned$title[[i]],
+                                   also_taken = other_slugs)
+            .ar_msg(verbose, "  slug '", slug,
+                    "' duplicates an earlier planned row; ",
+                    "writing this synthesis to '", alt, "' instead")
+            planned$slug[[i]] <- alt
+        }
+    }
+    planned
+}
+
 #' @noRd
 autoresearch_revise_pages <- function(planned, topic, claims, sources, vault,
                                       program, model_backend, verbose = FALSE) {
