@@ -874,6 +874,110 @@ expect_true(file.exists(file.path(v_wsfull, "wiki",
 expect_false(file.exists(file.path(v_wsfull, "wiki", "   .md")))
 unlink(v_wsfull, recursive = TRUE)
 
+# slug = "<fresh>" forces the synthesis row's slug at a fresh slug;
+# resulting wiki page lands at <fresh>.md regardless of what the
+# planner returned.
+v_slug_fresh <- tempfile("ar-slug-fresh-")
+init_vault(v_slug_fresh, rproj = FALSE, agent_instructions = FALSE)
+slug_model <- function(task, input, program) {
+    if (task == "plan_pages") {
+        return(list(
+            headline = "Forced slug placement.",
+            pages = list(list(
+                slug = "planner-chose-this",
+                title = "Some Title",
+                type = "analysis",
+                source = "autoresearch slug test",
+                body = "Body for forced slug."))))
+    }
+    fake_model(task, input, program)
+}
+res_slug <- autoresearch("forced slug", vault = v_slug_fresh,
+                         search_backend = fake_search,
+                         fetch_backend = fake_fetch,
+                         model_backend = slug_model,
+                         program = list(max_rounds = 1L),
+                         slug = "my-explicit-slug",
+                         verbose = FALSE)
+expect_equal(res_slug$pages$slug[[1L]], "my-explicit-slug")
+expect_true(file.exists(file.path(v_slug_fresh, "wiki",
+                                  "my-explicit-slug.md")))
+expect_false(file.exists(file.path(v_slug_fresh, "wiki",
+                                   "planner-chose-this.md")))
+unlink(v_slug_fresh, recursive = TRUE)
+
+# slug = "<existing>" with an UNRELATED title bypasses the title-overlap
+# guard and amends the existing page (frontmatter merged, body
+# replaced). Without slug, this would have rerouted to Research-<topic>.
+v_amend <- tempfile("ar-amend-")
+init_vault(v_amend, rproj = FALSE, agent_instructions = FALSE)
+dir.create(file.path(v_amend, "wiki"), showWarnings = FALSE, recursive = TRUE)
+writeLines(c("---",
+             "title: \"Reinforcement Learning\"",
+             "type: analysis",
+             "source: \"hand-written\"",
+             "id: keep-this-id",
+             "tags:",
+             "  - reinforcement-learning",
+             "  - manual",
+             "---", "",
+             "Original RL prose stays via frontmatter merge."),
+           file.path(v_amend, "wiki", "reinforcement-learning.md"))
+res_amend <- autoresearch("recursive language models", vault = v_amend,
+                          search_backend = fake_search,
+                          fetch_backend = fake_fetch,
+                          model_backend = slug_model,
+                          program = list(max_rounds = 1L),
+                          slug = "reinforcement-learning",
+                          update = FALSE,
+                          verbose = FALSE)
+expect_equal(res_amend$pages$slug[[1L]], "reinforcement-learning")
+fm_am <- pensar:::parse_frontmatter(
+    file.path(v_amend, "wiki", "reinforcement-learning.md"))
+expect_equal(fm_am$id, "keep-this-id")
+expect_true("manual" %in% fm_am$tags)
+am_body <- paste(readLines(
+    file.path(v_amend, "wiki", "reinforcement-learning.md"), warn = FALSE),
+    collapse = "\n")
+expect_true(grepl("Body for forced slug", am_body))
+unlink(v_amend, recursive = TRUE)
+
+# slug = "<X>" plus a planner row that also happens to use slug "<X>":
+# the user-forced row keeps it; the planner row gets dedup-rerouted.
+v_slugdup <- tempfile("ar-slugdup-")
+init_vault(v_slugdup, rproj = FALSE, agent_instructions = FALSE)
+slugdup_model <- function(task, input, program) {
+    if (task == "plan_pages") {
+        return(list(
+            headline = "Two rows fight for same slug.",
+            pages = list(
+                list(slug = "shared",
+                     title = "Planner's analysis row",
+                     type = "analysis",
+                     source = "autoresearch slugdup row 0",
+                     body = "Analysis row body."),
+                list(slug = "shared",
+                     title = "Planner's concept row",
+                     type = "concept",
+                     source = "autoresearch slugdup row 1",
+                     body = "Concept row body."))))
+    }
+    fake_model(task, input, program)
+}
+res_slugdup <- autoresearch("slug duplication", vault = v_slugdup,
+                            search_backend = fake_search,
+                            fetch_backend = fake_fetch,
+                            model_backend = slugdup_model,
+                            program = list(max_rounds = 1L, max_pages = 5L),
+                            slug = "shared",
+                            verbose = FALSE)
+expect_equal(nrow(res_slugdup$pages), 2L)
+expect_equal(length(unique(res_slugdup$pages$slug)), 2L)
+expect_true("shared" %in% res_slugdup$pages$slug)
+analysis_slug <- res_slugdup$pages$slug[res_slugdup$pages$type == "analysis"]
+expect_equal(analysis_slug, "shared")
+unlink(v_slugdup, recursive = TRUE)
+
 # autoresearch overrides a caller-set elapsed-time limit (corteza wraps
 # tool calls in a 30s setTimeLimit; the workflow needs minutes).
 v_timeout <- tempfile("ar-timeout-")

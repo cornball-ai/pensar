@@ -291,6 +291,34 @@ autoresearch_plan_pages <- function(topic, claims, sources, existing_pages,
                       "<human title for the page>")
 }
 
+#' Force the synthesis row's slug to the user-supplied value
+#'
+#' Sets a \code{user_forced} flag on the chosen row so downstream
+#' dedup and revise steps skip the collision-rerouting they normally
+#' apply. The synthesis row is the first \code{type == "analysis"}
+#' entry, else row 1.
+#'
+#' @noRd
+.ar_apply_user_slug <- function(planned, slug, verbose = FALSE) {
+    if (nrow(planned) == 0L) {
+        return(planned)
+    }
+    if (!"user_forced" %in% names(planned)) {
+        planned$user_forced <- FALSE
+    }
+    if (is.null(slug) || !nzchar(trimws(as.character(slug)))) {
+        return(planned)
+    }
+    forced_slug <- as.character(slug)
+    analysis_idx <- which(planned$type == "analysis")
+    idx <- if (length(analysis_idx) > 0L) analysis_idx[[1L]] else 1L
+    .ar_msg(verbose, "  user-supplied slug: forcing synthesis row ",
+            idx, " to '", forced_slug, "' (overlap guard skipped)")
+    planned$slug[[idx]] <- forced_slug
+    planned$user_forced[[idx]] <- TRUE
+    planned
+}
+
 #' Within-run slug dedup before write_pages
 #'
 #' Walks the planned data frame. If a row's slug appears in any
@@ -305,16 +333,29 @@ autoresearch_plan_pages <- function(topic, claims, sources, existing_pages,
     if (nrow(planned) <= 1L) {
         return(planned)
     }
-    for (i in 2:nrow(planned)) {
+    user_forced <- if ("user_forced" %in% names(planned)) {
+        as.logical(planned$user_forced)
+    } else {
+        rep(FALSE, nrow(planned))
+    }
+    anchors <- planned$slug[user_forced]
+    taken <- anchors
+    for (i in seq_len(nrow(planned))) {
+        if (isTRUE(user_forced[[i]])) {
+            next
+        }
         slug <- planned$slug[[i]]
-        if (slug %in% planned$slug[seq_len(i - 1L)]) {
-            other_slugs <- planned$slug[-i]
+        if (slug %in% taken) {
+            other_slugs <- c(planned$slug[-i], anchors)
             alt <- .ar_unique_slug(slug, topic, vault, planned$title[[i]],
                                    also_taken = other_slugs)
             .ar_msg(verbose, "  slug '", slug,
                     "' duplicates an earlier planned row; ",
                     "writing this synthesis to '", alt, "' instead")
             planned$slug[[i]] <- alt
+            taken <- c(taken, alt)
+        } else {
+            taken <- c(taken, slug)
         }
     }
     planned
@@ -329,8 +370,10 @@ autoresearch_revise_pages <- function(planned, topic, claims, sources, vault,
     for (i in seq_len(nrow(planned))) {
         slug <- planned$slug[[i]]
         path <- file.path(vault, "wiki", paste0(slug, ".md"))
+        forced <- "user_forced" %in% names(planned) &&
+            isTRUE(planned$user_forced[[i]])
 
-        if (file.exists(path)) {
+        if (file.exists(path) && !forced) {
             existing_title <- tryCatch(
                 parse_frontmatter(path)$title %||% slug,
                 error = function(e) slug)

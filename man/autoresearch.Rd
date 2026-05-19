@@ -5,8 +5,8 @@
 \usage{
 autoresearch(topic, vault = default_vault(), search_backend = NULL,
              fetch_backend = NULL, model_backend = NULL, program = NULL,
-             force = FALSE, overwrite = TRUE, update = TRUE, provider = "auto",
-             model = NULL, verbose = TRUE)
+             force = FALSE, overwrite = TRUE, update = TRUE, slug = NULL,
+             provider = "auto", model = NULL, verbose = TRUE)
 }
 \arguments{
 \item{topic}{Character. Research topic, free-form string.}
@@ -42,6 +42,16 @@ model task that reads the existing body and produces an edit-aware
 revision, so hand-written prose survives a re-run. When
 \code{FALSE}, the planner's new draft body replaces the existing
 body wholesale.}
+
+\item{slug}{Optional character. When supplied, force the synthesis
+row's slug to this value, bypassing the title-overlap collision
+guard. Useful for explicitly amending an existing wiki page
+(\code{slug = "my-existing-page"} updates \code{wiki/my-existing-page.md}
+in place) or naming a fresh synthesis page. The synthesis row is
+the first \code{type == "analysis"} entry in the planner output,
+else row 1. Other planned rows (concepts, entities) keep their
+planner-assigned slugs and still go through normal collision and
+dedup checks.}
 
 \item{provider}{Provider for the default \code{llm.api} model backend:
 \code{"auto"} (default; picks whichever of \code{ANTHROPIC_API_KEY},
