@@ -18,10 +18,11 @@ write_wiki_page <- function(slug, frontmatter, body, vault = default_vault(),
         stop("Adopt mode: this vault is read-only. Pass force = TRUE ",
              "to write into the adopted vault tree.", call. = FALSE)
     }
-    if (!is.character(slug) || length(slug) != 1L ||
+    if (!is.character(slug) || length(slug) != 1L || is.na(slug) ||
         !nzchar(trimws(slug))) {
         stop("`slug` must be a single non-empty string.", call. = FALSE)
     }
+    slug <- trimws(slug)
     if (grepl("[:/\\\\]", slug) || grepl("\\.md$", slug, ignore.case = TRUE)) {
         stop("`slug` must not contain ':', path separators, or '.md'.",
              call. = FALSE)

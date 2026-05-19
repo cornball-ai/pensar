@@ -306,10 +306,13 @@ autoresearch_plan_pages <- function(topic, claims, sources, existing_pages,
     if (!"user_forced" %in% names(planned)) {
         planned$user_forced <- FALSE
     }
-    if (is.null(slug) || !nzchar(trimws(as.character(slug)))) {
+    if (is.null(slug) || length(slug) != 1L || is.na(slug)) {
         return(planned)
     }
-    forced_slug <- as.character(slug)
+    forced_slug <- trimws(as.character(slug))
+    if (!nzchar(forced_slug)) {
+        return(planned)
+    }
     analysis_idx <- which(planned$type == "analysis")
     idx <- if (length(analysis_idx) > 0L) analysis_idx[[1L]] else 1L
     .ar_msg(verbose, "  user-supplied slug: forcing synthesis row ",
