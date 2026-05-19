@@ -25,6 +25,19 @@ expect_equal(
 if (!requireNamespace("saber", quietly = TRUE)) {
     exit_file("saber not installed")
 }
+
+# Empty vault errors cleanly. This test doesn't need graph_svg
+# (vault_graph errors before reaching the renderer); sits between
+# the saber-installed gate and the graph_svg gate so it runs on
+# every machine with saber, including ones whose saber is older
+# than the one shipping graph_svg(). The bug it guards against is
+# the path-separator mismatch on Windows that lets control files
+# slip through the "No pages in vault" guard.
+empty <- file.path(tempdir(), paste0("empty-vault-",
+                                     format(Sys.time(), "%H%M%S")))
+init_vault(empty, agent_instructions = FALSE, rproj = FALSE)
+expect_error(vault_graph(vault = empty), "No pages in vault")
+
 if (!"graph_svg" %in% getNamespaceExports("saber")) {
     exit_file("installed saber lacks graph_svg(); skipping")
 }
@@ -51,11 +64,3 @@ expect_true(any(grepl("type: articles", svg, fixed = TRUE)))
 expect_true(any(grepl("(broken wikilink)", svg, fixed = TRUE)))
 expect_true(any(grepl("Missing", svg, fixed = TRUE)))
 
-# Empty vault errors cleanly
-empty <- file.path(tempdir(), paste0("empty-vault-",
-                                     format(Sys.time(), "%H%M%S")))
-init_vault(empty, agent_instructions = FALSE, rproj = FALSE)
-# Remove the only seeded content so there are no pages (schema/index/log
-# are filtered as control files).
-# init_vault leaves schema/index/log only, which the function filters out.
-expect_error(vault_graph(vault = empty), "No pages in vault")

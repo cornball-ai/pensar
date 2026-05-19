@@ -33,7 +33,12 @@ vault_graph <- function(vault = default_vault(), width = 1600L,
         stop("Package 'saber' is required for vault_graph(). ",
              "Install it before calling this function.", call. = FALSE)
     }
-    vault <- normalizePath(vault, mustWork = TRUE)
+    # winslash = "/" so this matches dirname()'s output (which always
+    # uses forward slashes, even on Windows where normalizePath defaults
+    # to backslashes). Without it the control-file filter below never
+    # matches on Windows, control files leak into the graph, and the
+    # "No pages in vault" guard never fires on an empty vault.
+    vault <- normalizePath(vault, mustWork = TRUE, winslash = "/")
 
     all_md <- list.files(vault, pattern = "\\.md$", recursive = TRUE,
                          full.names = TRUE)
