@@ -80,7 +80,16 @@ autoresearch_fetch_and_ingest <- function(selected, fetch_backend, vault,
             content_type <- NA_character_
         } else {
             .ar_msg(verbose, "  fetch ", i, "/", nrow(selected), ": ", url)
-            fetched <- .validate_autoresearch_fetch_result(fetch_backend(url))
+            fetched <- tryCatch(
+                .validate_autoresearch_fetch_result(fetch_backend(url)),
+                error = function(e) {
+                    .ar_msg(verbose, "  fetch ", i, "/", nrow(selected),
+                            " skipped: ", conditionMessage(e))
+                    NULL
+                })
+            if (is.null(fetched)) {
+                next
+            }
             rel <- ingest_url_content(url = url, content = fetched$body,
                                       content_type = fetched$content_type,
                                       vault = vault,
