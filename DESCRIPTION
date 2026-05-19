@@ -10,12 +10,13 @@ Authors@R: c(
     person("cornball.ai", role = "cph"))
 Description: Personal wiki engine with a large language model (LLM) as
     research assistant. Supports guided sessions through a 'Claude Code'
-    <https://claude.com/code> skill bundle and autonomous research runs
-    from R via autoresearch(). Results land in a structured vault of
-    markdown pages with 'YAML' frontmatter and wikilinks, ready for
-    hand-editing in your favourite editor alongside the LLM. Vaults are
-    seeded with 'CLAUDE.md' and 'AGENTS.md' so 'Claude Code', 'Codex'
-    <https://openai.com/codex/>, and other agents share the same
+    <https://github.com/anthropics/claude-code> skill bundle and
+    autonomous research runs from R via autoresearch(). Results land in
+    a structured vault of markdown pages with 'YAML' frontmatter and
+    wikilinks, ready for hand-editing in your favourite editor
+    alongside the LLM. Vaults are seeded with 'CLAUDE.md' and
+    'AGENTS.md' so 'Claude Code', 'Codex'
+    <https://github.com/openai/codex>, and other agents share the same
     operating instructions. Can adopt an existing 'Obsidian'
     <https://obsidian.md/> vault in place via init_vault(adopt = TRUE).
 License: Apache License (>= 2)
