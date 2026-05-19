@@ -1,10 +1,12 @@
 # autoresearch program
 
-This file configures the autoresearch loop. Edit it to match your
-domain and research style. The skill reads it before every run.
+This file is retained as historical source material for the
+autoresearch program shape. The package runtime reads machine-readable
+YAML instead.
 
-A vault-level override at `<vault>/_research/program.md` takes
-precedence when present.
+Runtime defaults live at `inst/autoresearch/program.yml`. A vault-level
+override at `<vault>/_research/program.yml` takes precedence when
+present.
 
 > Adapted from
 > [AgriciDaniel/claude-obsidian](https://github.com/AgriciDaniel/claude-obsidian)
