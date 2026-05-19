@@ -39,3 +39,22 @@ init_vault(empty, agent_instructions = FALSE, rproj = FALSE)
 # are filtered as control files).
 # init_vault leaves schema/index/log only, which the function filters out.
 expect_error(vault_graph(vault = empty), "No pages in vault")
+
+# Windows-style paths with backslashes must not blow up the prefix
+# strip. The previous implementation built a regex from `vault`; on
+# Windows that produced "Invalid back reference" errors during
+# R CMD check on win-builder.
+expect_equal(
+    pensar:::category_from_path(
+        "D:\\tmp\\vault\\raw\\articles\\foo.md",
+        "D:\\tmp\\vault"),
+    "articles")
+expect_equal(
+    pensar:::category_from_path(
+        "D:\\tmp\\vault\\wiki\\Concept.md",
+        "D:\\tmp\\vault"),
+    "wiki")
+expect_equal(
+    pensar:::category_from_path("/tmp/vault/raw/chats/x.md",
+                                "/tmp/vault"),
+    "chats")
