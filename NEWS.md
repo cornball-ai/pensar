@@ -1,3 +1,22 @@
+# pensar 0.6.3
+
+## Bug fixes
+
+* `vault_graph()`'s control-file filter now works on Windows. The
+  previous implementation compared `dirname(file)` against
+  `normalizePath(vault)`, but `dirname()` on Windows uses forward
+  slashes in its output while `normalizePath()` defaults to
+  backslashes, so the comparison was always false on Windows. Control
+  files (`schema.md`, `index.md`, `log.md`) leaked into the graph,
+  and the "No pages in vault" guard never fired on an empty vault.
+  Now normalises `vault` with `winslash = "/"` so the comparison
+  matches `dirname()`'s output on both platforms.
+* `inst/tinytest/test_vault_graph.R`'s empty-vault regression test
+  is now between the saber-installed and saber-`graph_svg` guards so
+  it runs on machines whose saber is still at the current CRAN
+  release (0.3.0). Without this, the win-builder farm was the only
+  place exercising the bug.
+
 # pensar 0.6.2
 
 ## Bug fixes
