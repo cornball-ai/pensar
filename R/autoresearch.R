@@ -73,6 +73,12 @@ autoresearch <- function(topic, vault = default_vault(),
         stop("Not a pensar vault: ", vault, ". Run init_vault() first.")
     }
 
+    # Clear any caller-set elapsed-time limit (corteza wraps tool calls in
+    # a 30s setTimeLimit; autoresearch is designed to take minutes). User
+    # can still Ctrl-C. The caller's on.exit, if any, restores the limit
+    # after autoresearch returns.
+    setTimeLimit(cpu = Inf, elapsed = Inf, transient = TRUE)
+
     program <- load_autoresearch_program(vault = vault, program = program)
     search_backend <- search_backend %||% .default_search_backend()
     fetch_backend <- fetch_backend %||% .autoresearch_default_fetch_backend()

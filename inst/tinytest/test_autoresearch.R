@@ -756,3 +756,27 @@ expect_true(grepl("good", res_flaky$sources$url[[1L]]))
 expect_equal(nrow(res_flaky$pages), 1L)
 expect_true(file.exists(file.path(v_flaky, "wiki", "Research-survival.md")))
 unlink(v_flaky, recursive = TRUE)
+
+# autoresearch overrides a caller-set elapsed-time limit (corteza wraps
+# tool calls in a 30s setTimeLimit; the workflow needs minutes).
+v_timeout <- tempfile("ar-timeout-")
+init_vault(v_timeout, rproj = FALSE, agent_instructions = FALSE)
+slow_model <- function(task, input, program) {
+    if (task == "extract_claims") {
+        Sys.sleep(1.5)
+    }
+    fake_model(task, input, program)
+}
+setTimeLimit(elapsed = 1, transient = TRUE)
+res_timeout <- tryCatch(
+    autoresearch("timeout test", vault = v_timeout,
+                 search_backend = fake_search,
+                 fetch_backend = fake_fetch,
+                 model_backend = slow_model,
+                 program = list(max_rounds = 1L),
+                 verbose = FALSE),
+    error = function(e) NULL)
+setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
+expect_true(!is.null(res_timeout))
+expect_equal(nrow(res_timeout$claims), 1L)
+unlink(v_timeout, recursive = TRUE)
