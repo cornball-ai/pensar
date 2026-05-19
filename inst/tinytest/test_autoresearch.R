@@ -1020,6 +1020,32 @@ err_wna <- tryCatch(
 expect_true(grepl("non-empty", err_wna))
 unlink(v_wnaslug, recursive = TRUE)
 
+# slug must be NULL or a single character value; vectors and non-character
+# types error at the autoresearch boundary instead of being silently ignored.
+v_badslug <- tempfile("ar-badslug-")
+init_vault(v_badslug, rproj = FALSE, agent_instructions = FALSE)
+err_vec <- tryCatch(
+    autoresearch("topic", vault = v_badslug,
+                 search_backend = fake_search,
+                 fetch_backend = fake_fetch,
+                 model_backend = fake_model,
+                 program = list(max_rounds = 1L),
+                 slug = c("a", "b"),
+                 verbose = FALSE),
+    error = function(e) conditionMessage(e))
+expect_true(grepl("single character value", err_vec))
+err_typ <- tryCatch(
+    autoresearch("topic", vault = v_badslug,
+                 search_backend = fake_search,
+                 fetch_backend = fake_fetch,
+                 model_backend = fake_model,
+                 program = list(max_rounds = 1L),
+                 slug = 42L,
+                 verbose = FALSE),
+    error = function(e) conditionMessage(e))
+expect_true(grepl("single character value", err_typ))
+unlink(v_badslug, recursive = TRUE)
+
 # autoresearch overrides a caller-set elapsed-time limit (corteza wraps
 # tool calls in a 30s setTimeLimit; the workflow needs minutes).
 v_timeout <- tempfile("ar-timeout-")
