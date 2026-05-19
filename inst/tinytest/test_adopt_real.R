@@ -18,7 +18,7 @@ if (!dir.exists(vaults_dir)) {
 vaults <- list.dirs(vaults_dir, recursive = FALSE)
 expect_true(length(vaults) >= 1L)
 
-for (src in vaults) {
+check_one_vault <- function(src) {
     name <- basename(src)
     parent <- tempfile("adopt-")
     dir.create(parent)
@@ -26,7 +26,7 @@ for (src in vaults) {
     ok_copy <- suppressWarnings(file.copy(src, parent, recursive = TRUE,
                                           copy.mode = FALSE))
     if (!isTRUE(ok_copy)) {
-        next
+        return(invisible(NULL))
     }
     dest <- file.path(parent, name)
 
@@ -74,4 +74,9 @@ for (src in vaults) {
                 info = sprintf("%s: forced write lands on disk", name))
 
     unlink(parent, recursive = TRUE)
+    invisible(NULL)
+}
+
+for (src in vaults) {
+    check_one_vault(src)
 }

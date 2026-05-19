@@ -51,6 +51,9 @@
 #'   pages, synthesis metadata, and model usage.
 #' @examples
 #' \dontrun{
+#' vault <- file.path(tempdir(), "ar-example")
+#' init_vault(vault, rproj = FALSE, agent_instructions = FALSE)
+#' use_vault(vault)
 #' Sys.setenv(TAVILY_API_KEY = "tvly-...")
 #' res <- autoresearch("transformer scaling laws")
 #' print(res)
@@ -73,8 +76,10 @@ autoresearch <- function(topic, vault = default_vault(),
     program <- load_autoresearch_program(vault = vault, program = program)
     search_backend <- search_backend %||% .default_search_backend()
     fetch_backend <- fetch_backend %||% .autoresearch_default_fetch_backend()
-    model_backend <- model_backend %||%
-    .autoresearch_default_model_backend(provider = provider, model = model)
+    if (is.null(model_backend)) {
+        model_backend <- .autoresearch_default_model_backend(provider = provider,
+                                                             model = model)
+    }
 
     all_queries <- .empty_queries()
     all_queries$round <- integer()
@@ -286,8 +291,9 @@ print.pensar_research <- function(x, ...) {
     curl::handle_setopt(h, post = TRUE, postfields = body)
     resp <- curl::curl_fetch_memory("https://api.tavily.com/search", handle = h)
     if (resp$status_code != 200L) {
-        stop(sprintf("Tavily HTTP %d: %s", resp$status_code,
-                     rawToChar(resp$content)),
+        body_text <- tryCatch(rawToChar(resp$content),
+                              error = function(e) "<unreadable body>")
+        stop(sprintf("Tavily HTTP %d: %s", resp$status_code, body_text),
              call. = FALSE)
     }
     data <- jsonlite::fromJSON(rawToChar(resp$content), simplifyVector = FALSE)

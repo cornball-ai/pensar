@@ -74,6 +74,9 @@ and integrations can pass fake \code{search_backend},
 }
 \examples{
 \dontrun{
+vault <- file.path(tempdir(), "ar-example")
+init_vault(vault, rproj = FALSE, agent_instructions = FALSE)
+use_vault(vault)
 Sys.setenv(TAVILY_API_KEY = "tvly-...")
 res <- autoresearch("transformer scaling laws")
 print(res)

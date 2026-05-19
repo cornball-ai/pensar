@@ -268,6 +268,7 @@ autoresearch_write_pages <- function(pages, vault, program, overwrite = TRUE,
     rows <- vector("list", nrow(pages))
     for (i in seq_len(nrow(pages))) {
         page_tags <- unique(c(required_tags, pages$type[[i]]))
+        page_tags <- page_tags[nzchar(page_tags)]
         frontmatter <- list(title = pages$title[[i]],
                             type = pages$type[[i]],
                             source = pages$source[[i]],
@@ -354,11 +355,9 @@ autoresearch_write_pages <- function(pages, vault, program, overwrite = TRUE,
         stop("fetch_backend() returned unsupported content type for ",
              x$url, ": ", ctype, call. = FALSE)
     }
-    title <- x$title %||%
-    if (grepl("html", ctype, ignore.case = TRUE)) {
-        extract_html_title(x$body)
-    } else {
-        NULL
+    title <- x$title
+    if (is.null(title) && grepl("html", ctype, ignore.case = TRUE)) {
+        title <- extract_html_title(x$body)
     }
     list(url = as.character(x$url),
          status_code = as.integer(x$status_code),

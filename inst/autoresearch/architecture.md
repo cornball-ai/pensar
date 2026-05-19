@@ -2,24 +2,24 @@
 
 ## Goal
 
-`autoresearch()` should be a reliable R package workflow that uses an LLM
-for bounded judgment, not an LLM prompt harness that happens to call R
-tools. R should own the loop, vault writes, safety gates, and test seams.
+`autoresearch()` is a package-owned R workflow that uses an LLM for
+bounded judgment, not an LLM prompt harness that happens to call R
+tools. R owns the loop, vault writes, safety gates, and test seams.
 
-The Claude/Codex skill remains useful as agent-facing operating guidance.
-The package runtime should instead use explicit configuration, typed
+The Claude Code skill remains useful as agent-facing operating
+guidance. The package runtime uses explicit configuration, typed
 intermediate data, and deterministic orchestration.
 
 ## Non-Goals
 
-- Do not make package behavior depend on parsing agent-facing prose.
-- Do not let an LLM choose when the run is complete by calling a
-  `finalize()` tool.
-- Do not let an LLM write arbitrary vault files through a raw file-write
-  tool.
-- Do not require live web or live model access for the core test suite.
+- Package behavior never depends on parsing agent-facing prose.
+- The LLM never decides when the run is complete via a `finalize()`
+  tool; R bounds the loop with `program$max_rounds`.
+- The LLM never writes vault files through a raw file-write tool;
+  writes route through `write_wiki_page()`.
+- The core test suite never requires live web or live model access.
 
-## Proposed Shape
+## Shape
 
 The exported entry point stays small:
 
@@ -83,43 +83,50 @@ required_tags:
   - research
 ```
 
-The existing `inst/skills/pensar/autoresearch/SKILL.md` can point humans
-to this file, but `autoresearch()` should load the YAML directly.
+`inst/skills/pensar/autoresearch/SKILL.md` points humans to this file;
+`autoresearch()` loads the YAML directly.
 
 ## Model Boundary
 
-Model calls should request structured JSON and validate it before use.
-The model should never receive an open-ended filesystem tool.
+Model calls request structured JSON and validate it before use. The
+model never receives an open-ended filesystem tool.
 
-Suggested internal model functions:
+Internal model functions:
 
 ```r
 autoresearch_plan_queries(topic, program, model_backend)
 autoresearch_select_sources(topic, search_results, program, model_backend)
 autoresearch_extract_claims(topic, source_pages, program, model_backend)
-autoresearch_plan_pages(topic, claims, existing_pages, program, model_backend)
+autoresearch_analyze_gaps(topic, claims, sources, queries, program,
+                          model_backend, round)
+autoresearch_plan_pages(topic, claims, sources, existing_pages,
+                        program, model_backend)
+autoresearch_revise_pages(planned, topic, claims, sources, vault,
+                          program, model_backend)
 ```
 
-Page planning owns the draft body for each proposed page; there is no
-separate open-ended drafting step.
+Page planning owns the draft body for each proposed page. When
+`update = TRUE` (default) and the target slug already exists, a
+`revise_page` model task gets the existing body plus the new draft and
+returns an edit-aware revision.
 
-Each function should:
+Each function:
 
-- Build a narrow prompt.
-- Request JSON.
-- Parse with `jsonlite`.
-- Validate required fields and scalar/vector shapes.
-- Return base R structures.
+- Builds a narrow prompt.
+- Requests JSON.
+- Parses with `jsonlite`.
+- Validates required fields and scalar/vector shapes.
+- Returns base R structures.
 
-The default `model_backend` can wrap `llm.api`, but tests should pass a
-deterministic fake function.
+The default `model_backend` wraps `llm.api`. Tests pass a deterministic
+fake function instead.
 
 ## Search And Fetch Boundary
 
-Search and fetch should be separate. Search snippets are useful for source
-selection, but they are not enough evidence for synthesis.
+Search and fetch are separate. Search snippets are useful for source
+selection but not enough evidence for synthesis.
 
-Suggested backend signatures:
+Backend signatures:
 
 ```r
 search_backend(query, n)
@@ -150,14 +157,13 @@ list(
 )
 ```
 
-The default search backend can use Tavily. The default fetch backend can
-reuse the current `curl` logic from `ingest_url()`, but it should return
-body text so evidence extraction is based on fetched content, not search
-snippets.
+The default search backend uses Tavily. The default fetch backend
+reuses the `curl` logic from `ingest_url()` and returns body text so
+evidence extraction is based on fetched content, not search snippets.
 
 ## Ingest Boundary
 
-Prefer one lower-level helper that ingests already-fetched content:
+A lower-level helper ingests already-fetched content:
 
 ```r
 ingest_url_content <- function(url, content, content_type = NULL,
@@ -166,15 +172,15 @@ ingest_url_content <- function(url, content, content_type = NULL,
                                force = FALSE)
 ```
 
-Then `ingest_url()` becomes fetch plus `ingest_url_content()`, and
-`autoresearch()` can fetch once, ingest once, and keep the body available
-for evidence extraction.
+`ingest_url()` layers on top of `fetch_url_content()` plus
+`ingest_url_content()`, so `autoresearch()` fetches once, ingests
+once, and keeps the body available for evidence extraction.
 
-Idempotency should still key off the manifest source URL.
+Idempotency keys off the manifest source URL.
 
 ## Wiki Write Boundary
 
-Add a package-owned writer for wiki pages:
+The package-owned writer for wiki pages:
 
 ```r
 write_wiki_page <- function(slug, frontmatter, body,
@@ -185,14 +191,19 @@ write_wiki_page <- function(slug, frontmatter, body,
 
 Rules:
 
-- Reject slugs with path separators, `:`, or `.md`.
-- Serialize frontmatter through `yaml::as.yaml()`.
-- Require `title`, `type`, and `source`.
-- Refuse writes in adopted vaults unless `force = TRUE`.
-- Preserve deterministic paths under `wiki/`.
-- Return a list with `path`, `slug`, and `action`.
+- Rejects slugs with path separators, `:`, or `.md`.
+- Serializes frontmatter through `yaml::as.yaml()`.
+- Requires `title`, `type`, and `source`.
+- Refuses writes in adopted vaults unless `force = TRUE`.
+- Refuses to overwrite an existing wiki file when `overwrite = FALSE`.
+- On update (file exists, `overwrite = TRUE`), merges new frontmatter
+  over existing: caller-supplied fields replace; `tags` are
+  set-unioned; `id`, `aliases`, `status`, `related`, and custom keys
+  survive untouched. Body is always replaced.
+- Returns a one-row data.frame with `slug`, `path`, and `action`
+  (`"created"` or `"updated"`).
 
-`autoresearch()` should only write through this helper.
+`autoresearch()` only writes through this helper.
 
 ## Evidence Model
 
@@ -215,12 +226,13 @@ list(
 )
 ```
 
-Synthesis pages should cite raw source wikilinks derived from the filed
-page slug, not URLs alone.
+Synthesis pages cite raw source wikilinks derived from the filed page
+slug, not URLs alone.
 
 ## Result Object
 
-Return a classed object with enough detail to audit the run:
+`autoresearch()` returns a classed object with enough detail to audit
+the run:
 
 ```r
 structure(
@@ -239,12 +251,12 @@ structure(
 )
 ```
 
-The print method should summarize counts and the synthesis slug. Detailed
+The print method summarizes counts and the synthesis slug. Detailed
 records stay available for debugging and tests.
 
 ## Testing Plan
 
-Tests should cover the orchestration without live services:
+Tests cover the orchestration without live services:
 
 - Program defaults load and vault overrides merge.
 - Adopted vaults refuse wiki writes unless `force = TRUE`.
@@ -257,18 +269,19 @@ Tests should cover the orchestration without live services:
   entry.
 - A model response with invalid JSON fails early with a useful error.
 
-Live Tavily and live LLM tests should be opt-in with `tinytest::at_home()`
+Live Tavily and live LLM tests are opt-in with `tinytest::at_home()`
 and skipped on CRAN.
 
-## Migration Path
+## Implementation History
+
+The package landed in 0.6.1 via this sequence:
 
 1. Add the runtime program YAML and loader.
 2. Add `write_wiki_page()` and tests.
 3. Split `ingest_url()` into fetch and ingest-content helpers.
 4. Add fake-backend orchestration tests.
-5. Replace the current tool-driven `autoresearch()` with the orchestrator.
-6. Keep the skill bundle, but update it to describe the package workflow
-   and point to the runtime program.
-
-This path keeps existing user-facing names stable while replacing the
-unsafe prompt-harness internals with testable package code.
+5. Replace the tool-driven autoresearch loop with the orchestrator.
+6. Rewrite the skill bundle to route through the package workflow.
+7. Add the read-for-update phase (`revise_page` model task plus
+   `autoresearch_revise_pages()`) so existing wiki prose survives a
+   re-run.
