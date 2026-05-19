@@ -757,6 +757,39 @@ expect_equal(nrow(res_flaky$pages), 1L)
 expect_true(file.exists(file.path(v_flaky, "wiki", "Research-survival.md")))
 unlink(v_flaky, recursive = TRUE)
 
+# When EVERY selected fetch errors, autoresearch_fetch_and_ingest() must
+# return an empty sources frame (not NULL) so the round-binding code
+# downstream doesn't crash on rep.int(..., nrow(NULL)).
+v_allbad <- tempfile("ar-allbad-")
+init_vault(v_allbad, rproj = FALSE, agent_instructions = FALSE)
+allbad_fetch <- function(url) {
+    stop("Refusing non-2xx response from ", url, ": HTTP 404",
+         call. = FALSE)
+}
+allbad_model <- function(task, input, program) {
+    switch(task,
+           plan_queries = list(queries = list(list(query = "test",
+                                                   angle = "test"))),
+           select_sources = list(sources = list(
+               list(url = "https://example.test/404-a", reason = "broken"),
+               list(url = "https://example.test/404-b", reason = "broken"))),
+           extract_claims = list(claims = list()),
+           analyze_gaps = list(gaps = list(), queries = list()),
+           plan_pages = list(headline = "Nothing to synthesize.",
+                             pages = list()),
+           stop("unexpected task: ", task))
+}
+res_allbad <- autoresearch("all bad", vault = v_allbad,
+                           search_backend = flaky_search,
+                           fetch_backend = allbad_fetch,
+                           model_backend = allbad_model,
+                           program = list(max_rounds = 1L,
+                                          max_sources_per_round = 2L),
+                           verbose = FALSE)
+expect_equal(nrow(res_allbad$sources), 0L)
+expect_equal(nrow(res_allbad$claims), 0L)
+unlink(v_allbad, recursive = TRUE)
+
 # autoresearch overrides a caller-set elapsed-time limit (corteza wraps
 # tool calls in a 30s setTimeLimit; the workflow needs minutes).
 v_timeout <- tempfile("ar-timeout-")

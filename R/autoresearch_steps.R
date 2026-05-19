@@ -114,6 +114,9 @@ autoresearch_fetch_and_ingest <- function(selected, fetch_backend, vault,
         )
     }
     out <- do.call(rbind, rows)
+    if (is.null(out)) {
+        return(.empty_sources())
+    }
     rownames(out) <- NULL
     out
 }
