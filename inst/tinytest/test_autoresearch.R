@@ -796,10 +796,25 @@ expect_true(pensar:::.ar_is_placeholder_slug("research:topic"))
 expect_true(pensar:::.ar_is_placeholder_slug("topic"))
 expect_true(pensar:::.ar_is_placeholder_slug("<kebab-slug-derived-from-topic>"))
 expect_true(pensar:::.ar_is_placeholder_slug(""))
+expect_true(pensar:::.ar_is_placeholder_slug("   "))
+expect_true(pensar:::.ar_is_placeholder_slug("\t\n"))
 expect_false(pensar:::.ar_is_placeholder_slug("Research-recursive-language-models"))
 expect_true(pensar:::.ar_is_placeholder_title("Research: topic"))
 expect_true(pensar:::.ar_is_placeholder_title(""))
+expect_true(pensar:::.ar_is_placeholder_title("   "))
 expect_false(pensar:::.ar_is_placeholder_title("Research: Recursive Language Models"))
+
+# write_wiki_page rejects whitespace-only slugs defensively.
+v_ws <- tempfile("ar-ws-")
+init_vault(v_ws, rproj = FALSE, agent_instructions = FALSE)
+err_ws <- tryCatch(
+    pensar:::write_wiki_page("   ",
+                             frontmatter = list(title = "T", type = "analysis",
+                                                source = "test"),
+                             body = "x", vault = v_ws),
+    error = function(e) conditionMessage(e))
+expect_true(grepl("non-empty", err_ws))
+unlink(v_ws, recursive = TRUE)
 
 # A planner that returns the literal placeholder slug gets repaired to
 # Research-<slugify(topic)>; no Research-topic.md file is created.
@@ -829,6 +844,35 @@ expect_equal(res_ph$pages$title[[1L]], "Research: research goals")
 expect_true(file.exists(file.path(v_ph, "wiki", "Research-research-goals.md")))
 expect_false(file.exists(file.path(v_ph, "wiki", "Research-topic.md")))
 unlink(v_ph, recursive = TRUE)
+
+# Whitespace-only slug and title from the planner also get repaired.
+v_wsfull <- tempfile("ar-wsfull-")
+init_vault(v_wsfull, rproj = FALSE, agent_instructions = FALSE)
+ws_model <- function(task, input, program) {
+    if (task == "plan_pages") {
+        return(list(
+            headline = "Whitespace slug repaired.",
+            pages = list(list(
+                slug = "   ",
+                title = "  ",
+                type = "analysis",
+                source = "autoresearch whitespace test",
+                body = "Body."))))
+    }
+    fake_model(task, input, program)
+}
+res_ws <- autoresearch("note keeping", vault = v_wsfull,
+                       search_backend = fake_search,
+                       fetch_backend = fake_fetch,
+                       model_backend = ws_model,
+                       program = list(max_rounds = 1L),
+                       verbose = FALSE)
+expect_equal(res_ws$pages$slug[[1L]], "Research-note-keeping")
+expect_equal(res_ws$pages$title[[1L]], "Research: note keeping")
+expect_true(file.exists(file.path(v_wsfull, "wiki",
+                                  "Research-note-keeping.md")))
+expect_false(file.exists(file.path(v_wsfull, "wiki", "   .md")))
+unlink(v_wsfull, recursive = TRUE)
 
 # autoresearch overrides a caller-set elapsed-time limit (corteza wraps
 # tool calls in a 30s setTimeLimit; the workflow needs minutes).
