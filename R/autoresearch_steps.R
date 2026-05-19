@@ -264,10 +264,13 @@ autoresearch_plan_pages <- function(topic, claims, sources, existing_pages,
 
 #' @noRd
 .ar_is_placeholder_slug <- function(slug) {
-    if (is.null(slug) || is.na(slug) || !nzchar(slug)) {
+    if (is.null(slug) || is.na(slug)) {
         return(TRUE)
     }
     normalized <- tolower(trimws(as.character(slug)))
+    if (!nzchar(normalized)) {
+        return(TRUE)
+    }
     normalized %in% c("topic", "research-topic", "research_topic",
                       "research:topic", "research", "page",
                       "research-page", "kebab-slug-derived-from-topic",
@@ -276,10 +279,13 @@ autoresearch_plan_pages <- function(topic, claims, sources, existing_pages,
 
 #' @noRd
 .ar_is_placeholder_title <- function(title) {
-    if (is.null(title) || is.na(title) || !nzchar(title)) {
+    if (is.null(title) || is.na(title)) {
         return(TRUE)
     }
     normalized <- tolower(trimws(as.character(title)))
+    if (!nzchar(normalized)) {
+        return(TRUE)
+    }
     normalized %in% c("topic", "research", "research: topic",
                       "research:topic", "human title for the page",
                       "<human title for the page>")
