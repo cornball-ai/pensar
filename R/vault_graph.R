@@ -138,10 +138,21 @@ page_lede <- function(fp, max_chars = 140L) {
 }
 
 #' Infer category from a page's path when frontmatter type is missing
+#'
+#' Strips the vault prefix without building a regex: on Windows the
+#' vault path contains backslashes that get parsed as regex
+#' backreferences in \code{sub("^<vault>/?", ...)}, halting R CMD
+#' check with "Invalid back reference". Strip by substring instead
+#' and normalise the leading separator.
 #' @noRd
 category_from_path <- function(fp, vault) {
-    rel <- sub(paste0("^", vault, "/?"), "", fp, fixed = FALSE)
-    parts <- strsplit(rel, "/", fixed = TRUE)[[1L]]
+    rel <- if (startsWith(fp, vault)) {
+        substring(fp, nchar(vault) + 1L)
+    } else {
+        fp
+    }
+    rel <- sub("^[/\\\\]+", "", rel)
+    parts <- strsplit(rel, "[/\\\\]", perl = TRUE)[[1L]]
     if (length(parts) >= 2L && parts[1L] == "raw") {
         return(parts[2L])
     }

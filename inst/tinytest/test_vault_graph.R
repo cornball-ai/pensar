@@ -2,6 +2,26 @@
 
 library(pensar)
 
+# These tests don't need saber, only the internal helper.
+# Windows-style paths with backslashes must not blow up the prefix
+# strip. The previous implementation built a regex from `vault`; on
+# Windows that produced "Invalid back reference" errors during
+# R CMD check on win-builder.
+expect_equal(
+    pensar:::category_from_path(
+        "D:\\tmp\\vault\\raw\\articles\\foo.md",
+        "D:\\tmp\\vault"),
+    "articles")
+expect_equal(
+    pensar:::category_from_path(
+        "D:\\tmp\\vault\\wiki\\Concept.md",
+        "D:\\tmp\\vault"),
+    "wiki")
+expect_equal(
+    pensar:::category_from_path("/tmp/vault/raw/chats/x.md",
+                                "/tmp/vault"),
+    "chats")
+
 if (!requireNamespace("saber", quietly = TRUE)) {
     exit_file("saber not installed")
 }

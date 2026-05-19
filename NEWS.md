@@ -1,3 +1,19 @@
+# pensar 0.6.2
+
+## Bug fixes
+
+* `vault_graph()` no longer crashes on Windows.
+  `category_from_path()` built a regex from the vault path; on Windows
+  the backslashes were interpreted as regex backreferences, halting
+  `R CMD check` on the CRAN win-builder farm with "Invalid back
+  reference". The helper now strips the vault prefix by substring and
+  handles both `/` and `\` separators.
+* `inst/tinytest/test_vault_graph.R` had a top-of-file
+  `exit_file("installed saber lacks graph_svg(); skipping")` that
+  skipped the entire file when `saber` was at the current CRAN release
+  (0.3.0). The `category_from_path()` regression tests are now above
+  that guard so they run regardless of which saber is installed.
+
 # pensar 0.6.1
 
 ## New features
