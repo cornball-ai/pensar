@@ -16,17 +16,22 @@ autoresearch_plan_queries <- function(topic, program, model_backend) {
 }
 
 #' @noRd
-autoresearch_run_searches <- function(queries, search_backend, program) {
+autoresearch_run_searches <- function(queries, search_backend, program,
+                                      verbose = FALSE) {
     if (nrow(queries) == 0L) {
         return(.empty_search_results())
     }
     results <- vector("list", nrow(queries))
     for (i in seq_len(nrow(queries))) {
+        .ar_msg(verbose, "  search ", i, "/", nrow(queries), ": ",
+                queries$query[[i]])
         raw <- search_backend(queries$query[[i]], program$max_sources_per_round)
         df <- .validate_autoresearch_search_results(raw)
         df$query <- queries$query[[i]]
         df$angle <- queries$angle[[i]]
         results[[i]] <- df
+        .ar_msg(verbose, "  search ", i, "/", nrow(queries), ": ",
+                nrow(df), " ", if (nrow(df) == 1L) "result" else "results")
     }
     out <- do.call(rbind, results)
     if (is.null(out)) {
@@ -56,7 +61,7 @@ autoresearch_select_sources <- function(topic, search_results, program,
 
 #' @noRd
 autoresearch_fetch_and_ingest <- function(selected, fetch_backend, vault,
-    topic, force = FALSE) {
+    topic, force = FALSE, verbose = FALSE) {
     if (nrow(selected) == 0L) {
         return(.empty_sources())
     }
@@ -66,12 +71,15 @@ autoresearch_fetch_and_ingest <- function(selected, fetch_backend, vault,
         url <- selected$url[[i]]
         existing <- existing_source_path(url, vault)
         if (!is.null(existing)) {
+            .ar_msg(verbose, "  fetch ", i, "/", nrow(selected),
+                    " (cached): ", url)
             body <- extract_body(file.path(vault, existing), n_chars = NULL)
             title <- (parse_frontmatter(file.path(vault, existing))$title %||%
                 url)
             rel <- existing
             content_type <- NA_character_
         } else {
+            .ar_msg(verbose, "  fetch ", i, "/", nrow(selected), ": ", url)
             fetched <- .validate_autoresearch_fetch_result(fetch_backend(url))
             rel <- ingest_url_content(url = url, content = fetched$body,
                                       content_type = fetched$content_type,

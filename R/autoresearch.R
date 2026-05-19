@@ -80,6 +80,8 @@ autoresearch <- function(topic, vault = default_vault(),
         model_backend <- .autoresearch_default_model_backend(provider = provider,
                                                              model = model)
     }
+    model_backend <- .verbose_model_backend(model_backend, verbose)
+    t_start <- Sys.time()
 
     all_queries <- .empty_queries()
     all_queries$round <- integer()
@@ -94,9 +96,7 @@ autoresearch <- function(topic, vault = default_vault(),
     gaps <- .empty_gaps()
     rounds <- list()
 
-    if (isTRUE(verbose)) {
-        message("autoresearch: planning queries")
-    }
+    .ar_msg(verbose, "planning queries for '", topic, "'")
     next_queries <- autoresearch_plan_queries(topic, program, model_backend)
     next_queries$gap <- ""
 
@@ -110,18 +110,18 @@ autoresearch <- function(topic, vault = default_vault(),
             drop = FALSE]
         all_queries <- .autoresearch_bind_rows(all_queries, round_queries)
 
-        if (isTRUE(verbose)) {
-            message("autoresearch: round ", round, " searching ",
-                    nrow(round_queries), " queries")
-        }
+        .ar_msg(verbose, "round ", round, ": running ", nrow(round_queries),
+                " search ", if (nrow(round_queries) == 1L) "query" else "queries")
         round_search <- autoresearch_run_searches(round_queries,
-                                                  search_backend, program)
+                                                  search_backend, program,
+                                                  verbose = verbose)
         round_search$round <- rep.int(as.integer(round), nrow(round_search))
         search_results <- .autoresearch_bind_rows(search_results, round_search)
+        .ar_msg(verbose, "round ", round, ": ", nrow(round_search),
+                " search results")
 
-        if (isTRUE(verbose)) {
-            message("autoresearch: round ", round, " selecting sources")
-        }
+        .ar_msg(verbose, "round ", round, ": selecting sources from ",
+                nrow(round_search), " results")
         round_selected <- autoresearch_select_sources(topic, round_search,
                                                       program, model_backend)
         if (nrow(round_selected) > 0L && nrow(selected) > 0L) {
@@ -131,24 +131,28 @@ autoresearch <- function(topic, vault = default_vault(),
         round_selected$round <- rep.int(as.integer(round),
                                         nrow(round_selected))
         selected <- .autoresearch_bind_rows(selected, round_selected)
+        .ar_msg(verbose, "round ", round, ": selected ", nrow(round_selected),
+                " new ", if (nrow(round_selected) == 1L) "source" else "sources")
 
-        if (isTRUE(verbose)) {
-            message("autoresearch: round ", round, " fetching and ingesting ",
-                    nrow(round_selected), " sources")
-        }
+        .ar_msg(verbose, "round ", round, ": fetching ",
+                nrow(round_selected), " ",
+                if (nrow(round_selected) == 1L) "source" else "sources")
         round_sources <- autoresearch_fetch_and_ingest(round_selected,
                                                        fetch_backend, vault,
-                                                       topic, force = force)
+                                                       topic, force = force,
+                                                       verbose = verbose)
         round_sources$round <- rep.int(as.integer(round), nrow(round_sources))
         sources <- .autoresearch_bind_rows(sources, round_sources)
 
-        if (isTRUE(verbose)) {
-            message("autoresearch: round ", round, " extracting evidence")
-        }
+        .ar_msg(verbose, "round ", round, ": extracting evidence from ",
+                nrow(round_sources), " ",
+                if (nrow(round_sources) == 1L) "source" else "sources")
         round_claims <- autoresearch_extract_claims(topic, round_sources,
                                                     program, model_backend)
         round_claims$round <- rep.int(as.integer(round), nrow(round_claims))
         claims <- .autoresearch_bind_rows(claims, round_claims)
+        .ar_msg(verbose, "round ", round, ": extracted ", nrow(round_claims),
+                " ", if (nrow(round_claims) == 1L) "claim" else "claims")
 
         rounds[[length(rounds) + 1L]] <- list(
             round = round,
@@ -162,36 +166,47 @@ autoresearch <- function(topic, vault = default_vault(),
         if (round >= program$max_rounds) {
             break
         }
-        if (isTRUE(verbose)) {
-            message("autoresearch: round ", round, " analyzing gaps")
-        }
+        .ar_msg(verbose, "round ", round, ": analyzing gaps")
         gap_plan <- autoresearch_analyze_gaps(topic, claims, sources,
                                               all_queries, program,
                                               model_backend, round)
         gaps <- .autoresearch_bind_rows(gaps, gap_plan$gaps)
         next_queries <- gap_plan$queries
+        .ar_msg(verbose, "round ", round, ": ", nrow(gap_plan$gaps),
+                " gaps, ", nrow(gap_plan$queries),
+                " follow-up ",
+                if (nrow(gap_plan$queries) == 1L) "query" else "queries")
     }
 
     existing_pages <- autoresearch_existing_pages(vault)
+    .ar_msg(verbose, "vault has ", nrow(existing_pages),
+            " existing wiki ",
+            if (nrow(existing_pages) == 1L) "page" else "pages")
 
-    if (isTRUE(verbose)) {
-        message("autoresearch: planning pages")
-    }
+    .ar_msg(verbose, "planning pages from ", nrow(claims), " claims and ",
+            nrow(sources), " sources")
     pages <- autoresearch_plan_pages(topic, claims, sources, existing_pages,
                                      program, model_backend)
+    .ar_msg(verbose, "planner returned ", nrow(pages$pages),
+            " ", if (nrow(pages$pages) == 1L) "page" else "pages")
 
     if (isTRUE(update) && nrow(pages$pages) > 0L) {
-        if (isTRUE(verbose)) {
-            message("autoresearch: revising pages with existing prose")
+        update_targets <- .ar_update_targets(pages$pages, vault)
+        if (length(update_targets) > 0L) {
+            .ar_msg(verbose, "revising ", length(update_targets),
+                    " existing ",
+                    if (length(update_targets) == 1L) "page" else "pages",
+                    ": ", paste(update_targets, collapse = ", "))
+        } else {
+            .ar_msg(verbose, "no existing pages to revise; writing fresh")
         }
         pages$pages <- autoresearch_revise_pages(pages$pages, topic, claims,
                                                  sources, vault, program,
                                                  model_backend)
     }
 
-    if (isTRUE(verbose)) {
-        message("autoresearch: writing ", nrow(pages$pages), " wiki pages")
-    }
+    .ar_msg(verbose, "writing ", nrow(pages$pages),
+            " wiki ", if (nrow(pages$pages) == 1L) "page" else "pages")
     written <- autoresearch_write_pages(pages$pages, vault, program,
                                         overwrite = overwrite,
                                         force = force)
@@ -206,6 +221,10 @@ autoresearch <- function(topic, vault = default_vault(),
     vault_commit(sprintf("autoresearch: %s (%d sources, %d pages)",
                          topic, nrow(sources), nrow(written)),
                  vault = vault)
+    elapsed <- as.numeric(difftime(Sys.time(), t_start, units = "secs"))
+    .ar_msg(verbose, "done in ", sprintf("%.1fs", elapsed), " (",
+            nrow(sources), " sources, ", nrow(claims), " claims, ",
+            nrow(written), " pages)")
 
     synthesis <- .autoresearch_synthesis_record(pages, written)
     structure(
@@ -247,6 +266,66 @@ print.pensar_research <- function(x, ...) {
 }
 
 # ---- internals ----
+
+#' Print a verbose progress line and flush in interactive sessions
+#'
+#' Prefixes with \code{"autoresearch: "} so the user can grep for our
+#' messages, and calls \code{flush.console()} so RStudio shows progress
+#' in real time instead of buffering until the function returns.
+#'
+#' @noRd
+.ar_msg <- function(verbose, ...) {
+    if (!isTRUE(verbose)) {
+        return(invisible(NULL))
+    }
+    message("autoresearch: ", ...)
+    if (interactive()) {
+        try(utils::flush.console(), silent = TRUE)
+    }
+    invisible(NULL)
+}
+
+#' Wrap a model backend to print start/end + elapsed time per call
+#'
+#' Preserves the backend's \code{usage_env} attribute (used by
+#' \code{.autoresearch_model_usage()} to surface cumulative tokens) by
+#' copying it onto the wrapper.
+#'
+#' @noRd
+.verbose_model_backend <- function(model_backend, verbose) {
+    if (!isTRUE(verbose)) {
+        return(model_backend)
+    }
+    usage_env <- attr(model_backend, "usage_env", exact = TRUE)
+    wrapped <- function(task, input, program) {
+        .ar_msg(TRUE, "  model call: ", task, " ...")
+        t0 <- Sys.time()
+        res <- model_backend(task, input, program)
+        elapsed <- as.numeric(difftime(Sys.time(), t0, units = "secs"))
+        .ar_msg(TRUE, "  model call: ", task, " done in ",
+                sprintf("%.1fs", elapsed))
+        res
+    }
+    if (!is.null(usage_env)) {
+        attr(wrapped, "usage_env") <- usage_env
+    }
+    wrapped
+}
+
+#' Identify planned slugs that already exist as wiki pages in the vault
+#'
+#' Used by \code{autoresearch()} for the verbose log line announcing
+#' which pages are about to go through \code{revise_page}.
+#'
+#' @noRd
+.ar_update_targets <- function(planned, vault) {
+    if (nrow(planned) == 0L) {
+        return(character(0L))
+    }
+    slugs <- as.character(planned$slug)
+    paths <- file.path(vault, "wiki", paste0(slugs, ".md"))
+    slugs[file.exists(paths)]
+}
 
 #' Resolve the default search backend
 #'
