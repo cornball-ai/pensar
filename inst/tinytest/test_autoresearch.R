@@ -699,3 +699,60 @@ alt_body <- paste(readLines(
     collapse = "\n")
 expect_true(grepl("Row B body", alt_body))
 unlink(v_samedup, recursive = TRUE)
+
+# A bad fetch (HTTP 404, refused content type, network error) must skip the
+# URL and let the loop continue, not crash the whole autoresearch run.
+v_flaky <- tempfile("ar-flaky-")
+init_vault(v_flaky, rproj = FALSE, agent_instructions = FALSE)
+flaky_search <- function(query, n) {
+    data.frame(
+        title = c("Good source", "Bad source"),
+        url = c("https://example.test/good", "https://example.test/404"),
+        snippet = c("ok content", "missing"),
+        stringsAsFactors = FALSE)
+}
+flaky_fetch <- function(url) {
+    if (grepl("404", url)) {
+        stop("Refusing non-2xx response from ", url, ": HTTP 404",
+             call. = FALSE)
+    }
+    list(url = url, status_code = 200L, content_type = "text/html",
+         body = paste0("<html><head><title>Good source</title></head>",
+                       "<body>Good body.</body></html>"),
+         fetched_at = "2026-05-18T00:00:00")
+}
+flaky_model <- function(task, input, program) {
+    switch(task,
+           plan_queries = list(queries = list(list(query = "test",
+                                                   angle = "test"))),
+           select_sources = list(sources = list(
+               list(url = "https://example.test/good", reason = "ok"),
+               list(url = "https://example.test/404", reason = "broken"))),
+           extract_claims = list(claims = list(list(
+               source_path = input$sources$path[[1L]],
+               source_slug = input$sources$slug[[1L]],
+               claim = "Good claim.",
+               confidence = "medium",
+               quote = "good"))),
+           analyze_gaps = list(gaps = list(), queries = list()),
+           plan_pages = list(headline = "Run survived.",
+                             pages = list(list(
+                                 slug = "Research-survival",
+                                 title = "Research: survival",
+                                 type = "analysis",
+                                 source = "autoresearch survival test",
+                                 body = "Survived a bad URL."))),
+           stop("unexpected task: ", task))
+}
+res_flaky <- autoresearch("survival", vault = v_flaky,
+                          search_backend = flaky_search,
+                          fetch_backend = flaky_fetch,
+                          model_backend = flaky_model,
+                          program = list(max_rounds = 1L,
+                                         max_sources_per_round = 2L),
+                          verbose = FALSE)
+expect_equal(nrow(res_flaky$sources), 1L)
+expect_true(grepl("good", res_flaky$sources$url[[1L]]))
+expect_equal(nrow(res_flaky$pages), 1L)
+expect_true(file.exists(file.path(v_flaky, "wiki", "Research-survival.md")))
+unlink(v_flaky, recursive = TRUE)
