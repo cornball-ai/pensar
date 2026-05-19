@@ -107,20 +107,18 @@ update_index_adopted <- function(vault) {
         sorted_types <- sort(unique(type_col))
         for (t in sorted_types) {
             in_type_idx <- type_col == t
-            in_type <- page_rows[in_type_idx, , drop = FALSE]
+            in_type <- page_rows[in_type_idx,, drop = FALSE]
             in_type_links <- link_text[in_type_idx]
-            lines <- c(lines, sprintf("## %s (%d)", t, nrow(in_type)),
-                       "")
+            lines <- c(lines, sprintf("## %s (%d)", t, nrow(in_type)), "")
             for (i in seq_len(nrow(in_type))) {
                 title <- if (!is.na(in_type$title[i]) &&
-                             nzchar(in_type$title[i])) {
+                    nzchar(in_type$title[i])) {
                     in_type$title[i]
                 } else {
                     in_type$node_id[i]
                 }
                 lines <- c(lines,
-                           sprintf("- [[%s]] -- %s",
-                                   in_type_links[i], title))
+                           sprintf("- [[%s]] -- %s", in_type_links[i], title))
             }
             lines <- c(lines, "")
         }

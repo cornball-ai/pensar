@@ -86,8 +86,7 @@ init_vault <- function(path = default_vault(), rproj = TRUE,
         # log entry into a pre-existing user log.md.
         log_existed_before <- file.exists(file.path(path, "log.md"))
 
-        writeLines(adopted_schema_template(),
-                   file.path(path, "schema.md"))
+        writeLines(adopted_schema_template(), file.path(path, "schema.md"))
         if (!log_existed_before) {
             writeLines(log_seed(), file.path(path, "log.md"))
         }

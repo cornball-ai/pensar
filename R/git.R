@@ -110,8 +110,7 @@ vault_is_pensar_owned <- function(path) {
         return(TRUE)
     }
     tracked <- suppressWarnings(system2("git",
-                                        c("-C", path, "ls-tree", "-r", "HEAD",
-                                          "--name-only"),
+                                        c("-C", path, "ls-tree", "-r", "HEAD", "--name-only"),
                                         stdout = TRUE, stderr = FALSE))
     if (length(tracked) == 0L) {
         return(TRUE)

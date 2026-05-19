@@ -209,8 +209,8 @@ content_type_allowed <- function(ctype) {
 #' @noRd
 extract_html_title <- function(html) {
     m <- regmatches(html,
-                    regexec("<title[^>]*>([\\s\\S]*?)</title>", html,
-                            ignore.case = TRUE, perl = TRUE))[[1L]]
+                    regexec("<title[^>]*>([\\s\\S]*?)</title>", html, ignore.case = TRUE,
+                            perl = TRUE))[[1L]]
     if (length(m) < 2L) {
         return(NULL)
     }
@@ -226,3 +226,4 @@ extract_html_title <- function(html) {
     title <- gsub("&gt;", ">", title, fixed = TRUE)
     title
 }
+

@@ -26,14 +26,13 @@ lint <- function(vault = default_vault(), min_cluster_size = 3L) {
     # link extraction all agree with find_page() / outlinks() /
     # backlinks() on path-style links and aliases.
     reg <- vault_registry(vault)
-    page_rows <- reg[!reg$system_file, , drop = FALSE]
+    page_rows <- reg[!reg$system_file,, drop = FALSE]
     all_md <- file.path(vault, page_rows$path)
     page_names <- page_rows$node_id
     page_paths <- page_rows$path
 
     is_wiki <- startsWith(normalizePath(all_md, mustWork = FALSE),
-                          normalizePath(file.path(vault, "wiki"),
-                                        mustWork = FALSE))
+                          normalizePath(file.path(vault, "wiki"), mustWork = FALSE))
 
     # Build link graph: resolve every outbound link to its target path.
     # Broken links are the ones that don't resolve at all.

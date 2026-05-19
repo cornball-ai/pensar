@@ -70,8 +70,7 @@ write_wiki_page <- function(slug, frontmatter, body, vault = default_vault(),
 #'
 #' @noRd
 .merge_wiki_frontmatter <- function(path, new) {
-    existing <- tryCatch(parse_frontmatter(path),
-                         error = function(e) list())
+    existing <- tryCatch(parse_frontmatter(path), error = function(e) list())
     if (!is.list(existing)) {
         existing <- list()
     }
