@@ -77,6 +77,12 @@ autoresearch <- function(topic, vault = default_vault(),
     if (!is.character(topic) || length(topic) != 1L || !nzchar(topic)) {
         stop("`topic` must be a single non-empty string.", call. = FALSE)
     }
+    if (!is.null(slug) &&
+        (!is.character(slug) || length(slug) != 1L)) {
+        stop("`slug` must be NULL or a single character value (got ",
+             typeof(slug), " of length ", length(slug), ").",
+             call. = FALSE)
+    }
     vault <- normalizePath(vault, mustWork = TRUE)
     if (!file.exists(file.path(vault, "schema.md"))) {
         stop("Not a pensar vault: ", vault, ". Run init_vault() first.")
