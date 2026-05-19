@@ -16,7 +16,12 @@
 #' unlink(v, recursive = TRUE)
 #' @export
 update_index <- function(vault = default_vault()) {
-    vault <- normalizePath(vault, mustWork = TRUE)
+    # winslash = "/" so this matches dirname()'s forward-slash output
+    # on Windows (where normalizePath() defaults to backslashes).
+    # Same fix as vault_graph(); the bug here is currently neutralised
+    # by the category-prefix filter below, but the buggy pattern is a
+    # latent footgun if that downstream filter is ever refactored.
+    vault <- normalizePath(vault, mustWork = TRUE, winslash = "/")
 
     if (vault_is_adopted(vault)) {
         return(update_index_adopted(vault))
