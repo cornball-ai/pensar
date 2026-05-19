@@ -236,8 +236,10 @@ autoresearch_revise_pages <- function(planned, topic, claims, sources, vault,
                 parse_frontmatter(path)$title %||% slug,
                 error = function(e) slug)
             if (!.ar_titles_overlap(planned$title[[i]], existing_title)) {
+                other_slugs <- planned$slug[-i]
                 alt_slug <- .ar_unique_slug(slug, topic, vault,
-                                            planned$title[[i]])
+                                            planned$title[[i]],
+                                            also_taken = other_slugs)
                 .ar_msg(verbose,
                         "  slug '", slug,
                         "' collides with unrelated page '", existing_title,
@@ -314,27 +316,37 @@ autoresearch_revise_pages <- function(planned, topic, claims, sources, vault,
 #' Pick an alternate slug for a planned page whose original slug
 #' collides with an unrelated existing wiki page.
 #'
-#' Prefers \code{Research-<slugify(topic)>}. If that also exists in
-#' the vault but its title overlaps with the planned title, returns
-#' it (a legitimate update target). Otherwise appends \code{-2},
-#' \code{-3}, ... until a free slug is found.
+#' Prefers \code{Research-<slugify(topic)>}. If that base is free on
+#' disk but already claimed by another row in the same run (passed
+#' via \code{also_taken}), or already exists on disk but its title
+#' doesn't overlap with this planned title, appends \code{-2},
+#' \code{-3}, ... until a slug is free both on disk and against
+#' \code{also_taken}. If the base exists on disk and its title does
+#' overlap, returns the base (a legitimate update target).
 #'
 #' @noRd
-.ar_unique_slug <- function(planned_slug, topic, vault, planned_title) {
+.ar_unique_slug <- function(planned_slug, topic, vault, planned_title,
+                            also_taken = character()) {
+    slug_taken <- function(s) {
+        file.exists(file.path(vault, "wiki", paste0(s, ".md"))) ||
+            s %in% also_taken
+    }
     base <- paste0("Research-", slugify(topic))
-    path <- file.path(vault, "wiki", paste0(base, ".md"))
-    if (!file.exists(path)) {
+    base_path <- file.path(vault, "wiki", paste0(base, ".md"))
+    if (!slug_taken(base)) {
         return(base)
     }
-    existing_title <- tryCatch(
-        parse_frontmatter(path)$title %||% base,
-        error = function(e) base)
-    if (.ar_titles_overlap(planned_title, existing_title)) {
-        return(base)
+    if (file.exists(base_path) && !(base %in% also_taken)) {
+        existing_title <- tryCatch(
+            parse_frontmatter(base_path)$title %||% base,
+            error = function(e) base)
+        if (.ar_titles_overlap(planned_title, existing_title)) {
+            return(base)
+        }
     }
     for (n in 2:99) {
         candidate <- paste0(base, "-", n)
-        if (!file.exists(file.path(vault, "wiki", paste0(candidate, ".md")))) {
+        if (!slug_taken(candidate)) {
             return(candidate)
         }
     }

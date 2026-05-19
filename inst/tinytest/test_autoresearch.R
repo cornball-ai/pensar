@@ -594,3 +594,64 @@ new_body <- paste(readLines(
     collapse = "\n")
 expect_true(grepl("Recursive Language Models", new_body))
 unlink(v_coll, recursive = TRUE)
+
+# Same-run collision: a rerouted slug must not clobber another row that
+# was already planned at the alternate slug.
+v_dup <- tempfile("ar-dup-")
+init_vault(v_dup, rproj = FALSE, agent_instructions = FALSE)
+dir.create(file.path(v_dup, "wiki"), showWarnings = FALSE, recursive = TRUE)
+writeLines(c("---",
+             "title: \"Reinforcement Learning\"",
+             "type: analysis",
+             "source: \"hand-written\"",
+             "---", "",
+             "Hand-written reinforcement learning notes. Do not lose."),
+           file.path(v_dup, "wiki", "reinforcement-learning.md"))
+
+dup_model <- function(task, input, program) {
+    if (task == "plan_pages") {
+        return(list(
+            headline = "Two synthesis pages for RLMs.",
+            pages = list(
+                list(slug = "reinforcement-learning",
+                     title = "RLMs Algorithm Notes",
+                     type = "analysis",
+                     source = "autoresearch dup test row 0",
+                     body = "# RLMs Algorithm Notes\n\nRow 0 body."),
+                list(slug = "Research-recursive-language-models",
+                     title = "RLMs Survey",
+                     type = "analysis",
+                     source = "autoresearch dup test row 1",
+                     body = "# RLMs Survey\n\nRow 1 body."))))
+    }
+    fake_model(task, input, program)
+}
+
+res_dup <- autoresearch("recursive language models", vault = v_dup,
+                       search_backend = fake_search,
+                       fetch_backend = fake_fetch,
+                       model_backend = dup_model,
+                       program = list(max_rounds = 1L, max_pages = 5L),
+                       verbose = FALSE)
+
+# Original unrelated page intact.
+rl_body_dup <- paste(readLines(
+    file.path(v_dup, "wiki", "reinforcement-learning.md"), warn = FALSE),
+    collapse = "\n")
+expect_true(grepl("Hand-written reinforcement learning notes", rl_body_dup))
+expect_false(grepl("RLMs Algorithm Notes|Row 0 body", rl_body_dup))
+
+# Both planned rows land at distinct slugs, neither overwriting the other.
+expect_equal(nrow(res_dup$pages), 2L)
+expect_equal(length(unique(res_dup$pages$slug)), 2L)
+row0_path <- file.path(v_dup, "wiki",
+                       paste0(res_dup$pages$slug[[1L]], ".md"))
+row1_path <- file.path(v_dup, "wiki",
+                       paste0(res_dup$pages$slug[[2L]], ".md"))
+expect_true(file.exists(row0_path))
+expect_true(file.exists(row1_path))
+expect_true(grepl("Row 0 body",
+                  paste(readLines(row0_path, warn = FALSE), collapse = "\n")))
+expect_true(grepl("Row 1 body",
+                  paste(readLines(row1_path, warn = FALSE), collapse = "\n")))
+unlink(v_dup, recursive = TRUE)
