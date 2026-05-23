@@ -40,7 +40,8 @@ lint <- function(vault = default_vault(), min_cluster_size = 3L) {
     broken_source <- character(0L)
     broken_link <- character(0L)
     broken_file <- character(0L)
-    for (i in seq_len(nrow(page_rows))) {
+    wiki_idx <- which(is_wiki)
+    for (i in wiki_idx) {
         links <- page_rows$links_out[[i]]
         if (length(links) == 0L) {
             next
@@ -59,8 +60,10 @@ lint <- function(vault = default_vault(), min_cluster_size = 3L) {
 
     # Orphan pages: paths that nothing points to.
     referenced_paths <- unique(referenced_paths)
-    orphan_idx <- !(page_paths %in% referenced_paths)
-    orphan_names <- sort(page_names[orphan_idx])
+    wiki_paths <- page_paths[is_wiki]
+    wiki_names <- page_names[is_wiki]
+    orphan_idx <- !(wiki_paths %in% referenced_paths)
+    orphan_names <- sort(wiki_names[orphan_idx])
 
     broken_df <- data.frame(source = broken_source, link = broken_link,
                             file = broken_file, stringsAsFactors = FALSE)
