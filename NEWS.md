@@ -1,3 +1,13 @@
+# pensar 0.6.3.1 (dev)
+
+## Changes
+
+* `lint()` now scopes orphan and broken-link checks to `wiki/` pages
+  only. Raw pages are auto-ingested and immutable; flagging them as
+  orphans or reporting scraper-artifact `[[...]]` as broken wikilinks
+  was meaningless noise. Tag cluster suggestions still scan raw pages
+  (that signal is intentional). (#1)
+
 # pensar 0.6.3
 
 ## Bug fixes
