@@ -63,7 +63,6 @@ lint <- function(vault = default_vault(), min_cluster_size = 3L) {
     referenced_paths <- unique(referenced_paths)
     orphan_idx <- !(page_paths %in% referenced_paths)
     wiki_orphans <- sort(page_names[orphan_idx & is_wiki])
-    raw_orphans <- sort(page_names[orphan_idx & !is_wiki])
 
     broken_df <- data.frame(source = broken_source, link = broken_link,
                             file = broken_file, stringsAsFactors = FALSE)
