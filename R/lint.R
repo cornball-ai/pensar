@@ -40,7 +40,8 @@ lint <- function(vault = default_vault(), min_cluster_size = 3L) {
     broken_source <- character(0L)
     broken_link <- character(0L)
     broken_file <- character(0L)
-    for (i in seq_len(nrow(page_rows))) {
+    wiki_idx <- which(is_wiki)
+    for (i in wiki_idx) {
         links <- page_rows$links_out[[i]]
         if (length(links) == 0L) {
             next
@@ -58,14 +59,22 @@ lint <- function(vault = default_vault(), min_cluster_size = 3L) {
     }
 
     # Orphan pages: paths that nothing points to.
+    # Compute across all pages (revert half of 29ba3b9), then split.
     referenced_paths <- unique(referenced_paths)
     orphan_idx <- !(page_paths %in% referenced_paths)
-    orphan_names <- sort(page_names[orphan_idx])
+    wiki_orphans <- sort(page_names[orphan_idx & is_wiki])
 
     broken_df <- data.frame(source = broken_source, link = broken_link,
                             file = broken_file, stringsAsFactors = FALSE)
     broken_df <- unique(broken_df)
     rownames(broken_df) <- NULL
+
+    # .pensarignore: exclude paths from synthesis backlog only
+    ignore_patterns <- read_pensarignore(vault)
+    ignored <- matches_pensarignore(page_paths, ignore_patterns)
+
+    # Orphan split: apply .pensarignore to raw_orphans only
+    raw_orphans <- sort(page_names[orphan_idx & !is_wiki & !ignored])
 
     # Tag clusters: tags shared by >= min_cluster_size raw pages,
     # with no wiki page tagged the same. Data is read from the registry
@@ -79,7 +88,7 @@ lint <- function(vault = default_vault(), min_cluster_size = 3L) {
         }
         if (is_wiki[i]) {
             wiki_tags <- c(wiki_tags, tags)
-        } else {
+        } else if (!ignored[i]) {
             # Key by relative path so two raw pages with the same
             # basename in different folders don't overwrite each other
             # and undercount tag clusters.
@@ -111,10 +120,11 @@ lint <- function(vault = default_vault(), min_cluster_size = 3L) {
     rownames(cluster_df) <- NULL
 
     result <- list(
-                   orphans = sort(orphan_names),
+                   orphans = wiki_orphans,
                    broken_links = broken_df,
                    suggested_clusters = cluster_df[, c("tag", "raw_pages"),
                    drop = FALSE],
+                   raw_orphans = raw_orphans,
                    vault = vault
     )
     class(result) <- "pensar_lint"
@@ -125,7 +135,8 @@ lint <- function(vault = default_vault(), min_cluster_size = 3L) {
 print.pensar_lint <- function(x, ...) {
     cat("Vault lint:", x$vault, "\n\n")
 
-    cat(sprintf("Orphan pages (%d):\n", length(x$orphans)))
+    cat("== Broken wiki graph (target: zero) ==\n")
+    cat(sprintf("Orphan wiki pages (%d):\n", length(x$orphans)))
     if (length(x$orphans) > 0L) {
         head_n <- min(10L, length(x$orphans))
         for (o in x$orphans[seq_len(head_n)]) {
@@ -145,6 +156,19 @@ print.pensar_lint <- function(x, ...) {
         }
         if (nrow(x$broken_links) > head_n) {
             cat(sprintf("  ... and %d more\n", nrow(x$broken_links) - head_n))
+        }
+    }
+
+    cat("\n== Synthesis backlog ==\n")
+    cat(sprintf("Unsynthesized raw pages (%d):\n", length(x$raw_orphans)))
+    if (length(x$raw_orphans) > 0L) {
+        head_n <- min(10L, length(x$raw_orphans))
+        for (o in x$raw_orphans[seq_len(head_n)]) {
+            cat("  -", o, "\n")
+        }
+        if (length(x$raw_orphans) > head_n) {
+            cat(sprintf("  ... and %d more (run `pensar backlog` for full list)\n",
+                        length(x$raw_orphans) - head_n))
         }
     }
 
