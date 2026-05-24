@@ -2,11 +2,20 @@
 
 ## Changes
 
-* `lint()` now scopes orphan and broken-link checks to `wiki/` pages
-  only. Raw pages are auto-ingested and immutable; flagging them as
-  orphans or reporting scraper-artifact `[[...]]` as broken wikilinks
-  was meaningless noise. Tag cluster suggestions still scan raw pages
-  (that signal is intentional). (#1)
+* `lint()` now scopes broken-link checks to `wiki/` pages only. Raw
+  pages are auto-ingested and immutable; scraper-artifact `[[...]]`
+  was meaningless noise. Orphan detection is split: `$orphans`
+  contains wiki-only orphans (the "fix me" signal), and a new
+  `$raw_orphans` field surfaces raw pages with no incoming wikilinks
+  as the **synthesis backlog**.
+* `.pensarignore` at vault root filters paths from the synthesis
+  backlog only (raw orphans + tag clusters). One glob per line,
+  `#` comments, blank lines ignored. Does not affect ingest,
+  indexing, broken-link checks, or the registry.
+* `print.pensar_lint()` now groups output into two sections:
+  "Broken wiki graph (target: zero)" and "Synthesis backlog".
+* New CLI subcommand: `pensar backlog` — full unsynthesized raw
+  page list, no truncation.
 
 # pensar 0.6.3
 
