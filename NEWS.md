@@ -1,3 +1,17 @@
+# pensar 0.6.3.2 (dev)
+
+## Changes
+
+* `vault_export()` is now **incremental**. The first export to an
+  output directory is a full build; subsequent exports re-render only
+  pages whose source changed, plus any page whose wikilinks point at a
+  name that was added, removed, or moved (so broken/resolved links stay
+  correct). State lives in `.pensar-export-cache.yml` in the output
+  directory; delete it to force a full rebuild. Editing a few pages now
+  renders a handful instead of the whole vault. The stylesheet and site
+  index are always regenerated (no pandoc). `vault_export()` returns the
+  output path with `rendered`/`skipped` attributes.
+
 # pensar 0.6.3.1 (dev)
 
 ## Changes
