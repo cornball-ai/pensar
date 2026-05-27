@@ -32,6 +32,14 @@ recommended escape hatch -- point it at a Syncthing folder so edits
 propagate to other devices on export.
 
 Requires the \code{pandoc} command-line tool to be available.
+
+Export is incremental. The first export to a given \code{out_dir} is a
+full build; subsequent exports re-render only pages whose source
+changed, plus any page whose wikilinks point at a name that was
+added, removed, or moved (so broken/resolved links stay correct).
+State is kept in \code{.pensar-export-cache.yml} inside \code{out_dir};
+delete it to force a full rebuild. The stylesheet and site index are
+always regenerated (they don't invoke pandoc).
 }
 \examples{
 \donttest{

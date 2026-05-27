@@ -19,6 +19,8 @@ Returns a normalized list with \code{version}, \code{created},
 \code{sources}, and \code{address_map} fields. When the manifest
 file is missing, returns a fresh empty struct with the current date
 as \code{created}; the manifest file is not written.
+}
+\details{
 Malformed YAML logs a warning and returns the empty struct so callers
 can keep going.
 }

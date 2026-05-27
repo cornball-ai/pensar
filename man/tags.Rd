@@ -29,7 +29,10 @@ taxonomy file (\code{_meta/taxonomy.md}, a markdown bullet list of
 allowed tags), and writes a proposals report to
 \code{_proposals/tags.md}. Unknown tags get near-miss suggestions
 via Jaro-Winkler distance against the taxonomy.
+}
+\details{
 Pensar never auto-renames. The proposals file is for human review.
+
 }
 \examples{
 v <- tempfile("vault-")
