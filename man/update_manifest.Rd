@@ -36,12 +36,15 @@ The manifest path, invisibly.
 Patches a manifest record for one page. Writes \emph{only}
 \code{.pensar/manifest.yml}; never edits other tools' manifest
 formats (\code{.manifest.json}, \code{.raw/.manifest.json}).
+}
+\details{
 \code{source}, \code{hash}, or \code{ingested_at} together write or
 refresh a \code{sources[path]} record. \code{page_uid} (or
 \code{address}, which is treated as an alias) writes an
 \code{address_map[path]} record. A call with only \code{path} and
 \code{page_uid} updates the address map without touching the
 \code{sources} record.
+
 }
 \examples{
 v <- tempfile("vault-")

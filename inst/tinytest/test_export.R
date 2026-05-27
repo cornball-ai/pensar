@@ -50,9 +50,45 @@ expect_true(grepl("Wiki", idx_html))
 expect_true(grepl("Raw: Articles", idx_html))
 expect_true(grepl("Concept A", idx_html))
 
-# Export is idempotent (overwrite)
+# Export is idempotent (same path) and incremental.
+# First export is a full build (nothing skipped); a re-export with no source
+# changes renders zero pages.
+expect_equal(attr(out, "skipped"), 0L)
+expect_true(file.exists(file.path(out, ".pensar-export-cache.yml")))
+# NB: each export appends to the vault's log.md (it logs itself), so log.md
+# is genuinely changed and re-renders on the next export. That's a constant
+# +1 below the user-facing change count.
 out2 <- vault_export(tmp, site_dir)
-expect_equal(out, out2)
+expect_identical(as.character(out), as.character(out2))
+expect_equal(attr(out2, "rendered"), 1L)            # just log.md
+
+# Editing one page re-renders only that page (+ log.md).
+writeLines(c("---", "title: Source 1", "---", "# Source 1", "Edited body."),
+           file.path(tmp, "raw", "articles", "Source 1.md"))
+out3 <- vault_export(tmp, site_dir)
+expect_equal(attr(out3, "rendered"), 2L)            # Source 1 + log.md
+
+# Adding the previously-missing page renders it AND re-renders A.md, whose
+# [[missing-page]] link flips from broken to resolved (+ log.md).
+writeLines(c("---", "title: missing-page", "---", "Now it exists."),
+           file.path(tmp, "wiki", "missing-page.md"))
+out4 <- vault_export(tmp, site_dir)
+expect_equal(attr(out4, "rendered"), 3L)            # missing-page + A + log.md
+a_html2 <- paste(readLines(file.path(out, "wiki", "A.html")), collapse = "\n")
+expect_true(grepl("missing-page.html", a_html2))   # link now resolves
+expect_false(grepl("broken-link", a_html2))         # A's only broken link is gone
+
+# Deleting a page removes its output and re-renders the page that linked to it.
+file.remove(file.path(tmp, "wiki", "missing-page.md"))
+out5 <- vault_export(tmp, site_dir)
+expect_false(file.exists(file.path(out, "wiki", "missing-page.html")))
+a_html3 <- paste(readLines(file.path(out, "wiki", "A.html")), collapse = "\n")
+expect_true(grepl("broken-link", a_html3))          # link broken again
+
+# Deleting the cache forces a full rebuild.
+file.remove(file.path(out, ".pensar-export-cache.yml"))
+out6 <- vault_export(tmp, site_dir)
+expect_equal(attr(out6, "skipped"), 0L)
 
 # Missing pandoc check
 # (Can't actually test this without hiding pandoc; test the check function

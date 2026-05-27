@@ -17,6 +17,14 @@
 #'
 #' Requires the \code{pandoc} command-line tool to be available.
 #'
+#' Export is incremental. The first export to a given \code{out_dir} is a
+#' full build; subsequent exports re-render only pages whose source
+#' changed, plus any page whose wikilinks point at a name that was
+#' added, removed, or moved (so broken/resolved links stay correct).
+#' State is kept in \code{.pensar-export-cache.yml} inside \code{out_dir};
+#' delete it to force a full rebuild. The stylesheet and site index are
+#' always regenerated (they don't invoke pandoc).
+#'
 #' @param vault Path to the vault directory.
 #' @param out_dir Destination directory. No default: pass an explicit
 #'   path or set \code{PENSAR_SITE_DIR} (per CRAN policy, pensar will
@@ -40,32 +48,154 @@ vault_export <- function(vault = default_vault(),
     check_pandoc()
 
     out_dir <- normalizePath(out_dir, mustWork = FALSE)
-    if (dir.exists(out_dir)) {
-        unlink(out_dir, recursive = TRUE)
-    }
-    dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-    out_dir <- normalizePath(out_dir, mustWork = TRUE)
 
     all_md <- list.files(vault, pattern = "\\.md$", recursive = TRUE,
                          full.names = TRUE)
 
-    # Build a map of page name -> relative output path for wikilink resolution
+    # Page name -> relative output path, for wikilink resolution. Also the
+    # per-source content hash; both feed the incremental cache.
     page_map <- build_page_map(all_md, vault)
+    rel_md <- vapply(all_md, make_relative, character(1L), base = vault)
+    src_hash <- stats::setNames(vapply(all_md, file_hash, character(1L)),
+                                rel_md)
 
-    # Render each file
-    for (fp in all_md) {
+    # Incremental render. The export cache (.pensar-export-cache.yml, written
+    # in out_dir) records each source's hash and the page-name map from the
+    # last export. With no cache we do a clean full build; with one, we render
+    # only pages whose source changed -- plus any page whose wikilinks point at
+    # a name that was added/removed/moved (its resolved/broken links shift even
+    # though its own source didn't). style.css and the site index are cheap, so
+    # they are always regenerated.
+    if (dir.exists(out_dir)) {
+        cache <- read_export_cache(out_dir)
+    } else {
+        cache <- NULL
+    }
+    if (is.null(cache)) {
+        if (dir.exists(out_dir)) {
+            unlink(out_dir, recursive = TRUE)
+        }
+        dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+        to_render <- all_md
+    } else {
+        dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+        to_render <- incremental_render_set(all_md, rel_md, src_hash,
+            page_map, out_dir, cache)
+    }
+    # Re-normalize once the directory exists (on macOS a not-yet-existing
+    # path under /var doesn't resolve its /private symlink), so the returned
+    # path is stable across calls.
+    out_dir <- normalizePath(out_dir, mustWork = TRUE)
+
+    for (fp in to_render) {
         render_page(fp, vault, out_dir, page_map)
     }
 
-    # Write style.css and site index
     writeLines(default_css(), file.path(out_dir, "style.css"))
     write_site_index(all_md, vault, out_dir)
+    write_export_cache(out_dir, src_hash, page_map)
 
-    log_entry(sprintf("Exported vault to %s", out_dir),
+    n_total <- length(all_md)
+    n_rendered <- length(to_render)
+    log_entry(sprintf("Exported vault to %s (%d/%d rendered)", out_dir,
+                      n_rendered, n_total),
               operation = "export", vault = vault)
+    message("Exported ", n_total, " pages (", n_rendered, " rendered, ",
+            n_total - n_rendered, " unchanged) to: ", out_dir)
+    invisible(structure(out_dir, rendered = n_rendered,
+                        skipped = n_total - n_rendered))
+}
 
-    message("Exported ", length(all_md), " pages to: ", out_dir)
-    invisible(out_dir)
+#' Path to the incremental-export cache for an output directory.
+#' @noRd
+export_cache_path <- function(out_dir) {
+    file.path(out_dir, ".pensar-export-cache.yml")
+}
+
+#' Read the export cache, or NULL if absent/unreadable/wrong version.
+#' @noRd
+read_export_cache <- function(out_dir) {
+    p <- export_cache_path(out_dir)
+    if (!file.exists(p)) {
+        return(NULL)
+    }
+    cache <- tryCatch(yaml::read_yaml(p), error = function(e) NULL)
+    if (is.null(cache) || !identical(as.integer(cache$version %||% 0L), 1L)) {
+        return(NULL)
+    }
+    cache
+}
+
+#' Write the export cache (source hashes + page-name map).
+#' @noRd
+write_export_cache <- function(out_dir, src_hash, page_map) {
+    obj <- list(version = 1L, pages = as.list(src_hash),
+                names = as.list(page_map))
+    tryCatch(yaml::write_yaml(obj, export_cache_path(out_dir)),
+             error = function(e) NULL)
+    invisible(NULL)
+}
+
+#' Wikilink target names referenced by a page's source text.
+#' @noRd
+page_link_targets <- function(content) {
+    m <- gregexpr("\\[\\[([^]]+)\\]\\]", content, perl = TRUE)
+    matches <- regmatches(content, m)[[1L]]
+    if (length(matches) == 0L) {
+        return(character(0L))
+    }
+    unique(vapply(matches, function(raw) parse_wikilink(raw)$target,
+                  character(1L), USE.NAMES = FALSE))
+}
+
+#' Decide which source files to render given the prior export cache.
+#'
+#' Renders a page when its source content changed (or its output is
+#' missing), or when it references a wikilink name whose resolution
+#' shifted (added/removed/moved since last export). Deletes outputs for
+#' sources that no longer exist. Returns the vector of file paths to
+#' render.
+#' @noRd
+incremental_render_set <- function(all_md, rel_md, src_hash, page_map,
+                                   out_dir, cache) {
+    cached_hash <- unlist(cache$pages %||% list())
+    cached_names <- unlist(cache$names %||% list())
+    rel_html <- sub("\\.md$", ".html", rel_md)
+
+    # `[[` on a named atomic vector errors on an absent name; look up by
+    # presence and fall back to NA so new/removed keys are handled.
+    lk <- function(vec, nm) {
+        if (nm %in% names(vec)) unname(vec[[nm]]) else NA_character_
+    }
+
+    changed <- vapply(seq_along(rel_md), function(i) {
+        prev <- lk(cached_hash, rel_md[i])
+        is.na(prev) ||
+        !identical(prev, unname(src_hash[[rel_md[i]]])) ||
+        !file.exists(file.path(out_dir, rel_html[i]))
+    }, logical(1L))
+
+    # Names whose resolution differs from last export (added, removed, or
+    # moved to a new output path) -- pages linking to them must re-render.
+    all_names <- union(names(cached_names), names(page_map))
+    delta_names <- Filter(function(nm) {
+        !identical(lk(cached_names, nm), lk(page_map, nm))
+    }, all_names)
+
+    affected <- logical(length(all_md))
+    if (length(delta_names) > 0L) {
+        affected <- vapply(all_md, function(fp) {
+            content <- paste(readLines(fp, warn = FALSE), collapse = "\n")
+            any(page_link_targets(content) %in% delta_names)
+        }, logical(1L), USE.NAMES = FALSE)
+    }
+
+    # Outputs for sources that no longer exist: remove them.
+    for (gone in setdiff(names(cached_hash), rel_md)) {
+        unlink(file.path(out_dir, sub("\\.md$", ".html", gone)))
+    }
+
+    all_md[changed | affected]
 }
 
 #' @noRd
