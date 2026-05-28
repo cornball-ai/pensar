@@ -1,3 +1,13 @@
+# pensar 0.6.3.3 (dev)
+
+## Changes
+
+* Wikilink parsing now ignores Markdown code. Fenced blocks (` ``` ` or
+  `~~~`) and inline spans (`` `...` ``) are stripped before extracting
+  `[[...]]`, so R's `[[ ]]` list indexing in a code sample no longer
+  registers as a broken wikilink. Affects `lint()`, `outlinks()`,
+  `backlinks()`, and `vault_graph()`.
+
 # pensar 0.6.3.2 (dev)
 
 ## Changes
