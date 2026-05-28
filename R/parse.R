@@ -20,13 +20,33 @@ parse_frontmatter <- function(filepath) {
     tryCatch(yaml::yaml.load(yaml_text), error = function(e) list())
 }
 
+#' Blank out code regions so they are not scanned for wikilinks
+#'
+#' Markdown code is literal text, not wiki markup. R's \code{[[ ]]} list
+#' indexing inside a code block would otherwise be misread as a wikilink.
+#' This drops fenced code blocks (\code{```} or \code{~~~}) entirely and
+#' strips inline code spans (\code{`...`}) from the remaining lines.
+#'
+#' An unterminated fence swallows everything to end of file, which is the
+#' safe choice: better to miss a link in malformed markup than to invent one.
+#' @noRd
+strip_code <- function(lines) {
+    fence <- grepl("^\\s*(`{3,}|~{3,})", lines)
+    # cumsum is odd on the opening fence and its contents; the closing
+    # fence lands on an even count, so include it via `| fence`.
+    inside <- (cumsum(fence) %% 2L == 1L) | fence
+    gsub("`+[^`]*`+", " ", lines[!inside])
+}
+
 #' Parse all wikilinks from a markdown file
+#'
+#' Code regions are ignored via \code{strip_code()}.
 #'
 #' @param filepath Path to a markdown file.
 #' @return Character vector of link targets.
 #' @noRd
 parse_wikilinks <- function(filepath) {
-    lines <- readLines(filepath, warn = FALSE)
+    lines <- strip_code(readLines(filepath, warn = FALSE))
     all_links <- regmatches(lines, gregexpr("\\[\\[([^]]+)\\]\\]", lines))
     all_links <- unlist(all_links)
     if (length(all_links) == 0L) {

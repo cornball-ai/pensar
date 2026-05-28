@@ -52,6 +52,26 @@ parsed <- pensar:::parse_wikilink("[[Delta|display text]]")
 expect_equal(parsed$target, "Delta")
 expect_equal(parsed$label, "display text")
 
+# Code regions are not scanned: R's [[ ]] indexing is not a wikilink.
+tmp5 <- tempfile(fileext = ".md")
+writeLines(c(
+  "Real link [[Alpha]] in prose.",
+  "Inline code `merged[[name]] <- project[[name]]` is not a link.",
+  "```r",
+  "x <- registry[[uuid]]",
+  "y <- [[Beta]]",
+  "```",
+  "After the fence [[Gamma]] counts again."
+), tmp5)
+
+wl2 <- pensar:::parse_wikilinks(tmp5)
+expect_true("Alpha" %in% wl2)
+expect_true("Gamma" %in% wl2)
+expect_false("name" %in% wl2)
+expect_false("uuid" %in% wl2)
+expect_false("Beta" %in% wl2)
+unlink(tmp5)
+
 # --- name_from_path ---
 expect_equal(pensar:::name_from_path("/vault/Neural Networks.md"), "Neural Networks")
 
