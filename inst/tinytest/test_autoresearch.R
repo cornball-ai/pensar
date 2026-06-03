@@ -1069,3 +1069,29 @@ setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
 expect_true(!is.null(res_timeout))
 expect_equal(nrow(res_timeout$claims), 1L)
 unlink(v_timeout, recursive = TRUE)
+
+# A search query that returns zero results must not crash validation or the
+# search loop (regression: scalar date/source/query assignment onto a 0-row
+# data.frame errored with "replacement has 1 row, data has 0").
+empty_search <- function(query, n) {
+    data.frame(title = character(), url = character(),
+               snippet = character(), stringsAsFactors = FALSE)
+}
+val_empty <- pensar:::.validate_autoresearch_search_results(empty_search("q", 5L))
+expect_equal(nrow(val_empty), 0L)
+expect_true(all(c("title", "url", "snippet", "date", "source") %in%
+                names(val_empty)))
+
+# The url filter must keep date/source aligned when it drops rows.
+mixed <- data.frame(title = c("a", "b"), url = c("", "https://x.test"),
+                    snippet = c("s1", "s2"), stringsAsFactors = FALSE)
+val_mixed <- pensar:::.validate_autoresearch_search_results(mixed)
+expect_equal(nrow(val_mixed), 1L)
+expect_equal(val_mixed$url, "https://x.test")
+
+# The full search loop tags query/angle even when a query yields nothing.
+q <- data.frame(query = "q", angle = "a", stringsAsFactors = FALSE)
+loop_empty <- pensar:::autoresearch_run_searches(
+    q, empty_search, list(max_sources_per_round = 5L), verbose = FALSE)
+expect_equal(nrow(loop_empty), 0L)
+expect_true(all(c("query", "angle") %in% names(loop_empty)))

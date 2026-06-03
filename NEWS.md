@@ -1,3 +1,14 @@
+# pensar 0.6.3.3 (dev)
+
+## Bug fixes
+
+* `autoresearch()` no longer crashes when a search query returns zero
+  results. Tagging the results with `date`, `source`, `query`, and
+  `angle` assigned a length-1 value onto a 0-row data.frame and errored
+  with "replacement has 1 row, data has 0". The validator now builds all
+  columns at full length before filtering empty URLs, keeping `date` and
+  `source` aligned when rows are dropped.
+
 # pensar 0.6.3.2 (dev)
 
 ## Changes

@@ -27,8 +27,8 @@ autoresearch_run_searches <- function(queries, search_backend, program,
                 queries$query[[i]])
         raw <- search_backend(queries$query[[i]], program$max_sources_per_round)
         df <- .validate_autoresearch_search_results(raw)
-        df$query <- queries$query[[i]]
-        df$angle <- queries$angle[[i]]
+        df$query <- rep.int(queries$query[[i]], nrow(df))
+        df$angle <- rep.int(queries$angle[[i]], nrow(df))
         results[[i]] <- df
         .ar_msg(verbose, "  search ", i, "/", nrow(queries), ": ",
                 nrow(df), " ", if (nrow(df) == 1L) "result" else "results")
@@ -564,21 +564,16 @@ autoresearch_write_pages <- function(pages, vault, program, overwrite = TRUE,
         stop("search_backend() result missing column(s): ",
              paste(missing, collapse = ", "), call. = FALSE)
     }
-    out <- x[, required, drop = FALSE]
-    out$title <- as.character(out$title)
-    out$url <- as.character(out$url)
-    out$snippet <- as.character(out$snippet)
+    date <- if ("date" %in% names(x)) as.character(x$date) else rep("", nrow(x))
+    source <- if ("source" %in% names(x)) as.character(x$source) else rep("", nrow(x))
+    out <- data.frame(
+        title = as.character(x$title),
+        url = as.character(x$url),
+        snippet = as.character(x$snippet),
+        date = date,
+        source = source,
+        stringsAsFactors = FALSE)
     out <- out[nzchar(out$url),, drop = FALSE]
-    if ("date" %in% names(x)) {
-        out$date <- as.character(x$date)
-    } else {
-        out$date <- ""
-    }
-    if ("source" %in% names(x)) {
-        out$source <- as.character(x$source)
-    } else {
-        out$source <- ""
-    }
     rownames(out) <- NULL
     out
 }
