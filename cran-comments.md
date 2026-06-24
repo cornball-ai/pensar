@@ -1,92 +1,66 @@
 ## Submission summary
 
-pensar 0.5.0 follows 0.4.2 on CRAN. It folds in the 0.4.3 macOS
-idempotency fix (never submitted) and the new repo-ingest workflow.
+pensar 0.6.4 is a maintenance update to 0.6.3 (on CRAN since
+2026-05-19). It exports one new function and is otherwise bug fixes and
+internal improvements. No exported object was removed and no exported
+signature changed, so the update is backward compatible.
 
-The package still ships with a single hard dependency (`yaml`); `saber`
-remains in `Suggests` and every call site is guarded by
-`requireNamespace("saber", quietly = TRUE)` or
-`getExportedValue("saber", ...)`, so optional features degrade
-gracefully when `saber` is absent.
+## Changes since 0.6.3
 
-## Changes since 0.4.2
+### New features
 
-### 0.5.0 -- repo-aware ingest and provenance
+- `default_vault()` is now exported: a public getter for the active
+  vault path, paired with the existing `use_vault()` setter, so callers
+  can confirm which vault `ingest()` / `status()` will act on without
+  reaching into the package namespace.
 
-- New `ingest_repo(path)` writes per-repo provenance under
-  `raw/repos/<repo>/`: `briefing.md` (via `saber::briefing()`),
-  `ast.md` (via `saber::symbols()`), and `snapshot.md` (commit-pinned
-  git metadata: SHA, origin URL, branch, tracked file listing). Wiki
-  pages cite them with path-style wikilinks like
-  `[[corteza/briefing]]`.
-- `name_from_path()` is now path-aware: files under
-  `raw/repos/<repo>/` resolve to `<repo>/<basename>`, so identically
-  named artifacts (`briefing.md`) across different repos no longer
-  collide. Files outside `raw/repos/` are unchanged.
-- `update_index()` reports a new `Raw: Repos` category.
-- `ingest_briefing()` is deprecated; calls warn and delegate to
-  `ingest_repo(path, artifacts = "briefing")`.
-- New `migrate_briefings_to_repos(vault, dry_run = TRUE)` moves legacy
-  `raw/briefings/*.md` content into the new layout. Defaults to
-  dry-run; review the plan before applying.
-- Schema doc updated to describe the new layout and mark
-  `briefings/` deprecated.
+### Changes
 
-### 0.4.3 -- macOS idempotency fix (rolled into 0.5.0)
+- `vault_export()` is incremental: subsequent exports re-render only
+  pages whose source (or whose wikilink targets) changed, with state in
+  `.pensar-export-cache.yml` in the output directory.
+- `lint()` scopes broken-link checks to `wiki/` pages and surfaces a
+  separate `$raw_orphans` synthesis backlog; a `.pensarignore` file
+  filters that backlog.
 
-- `vault_export()` returns a canonicalized `out_dir` so the path is
-  stable across repeated calls. On macOS `tempdir()` lives under
-  `/var/...` which is a symlink to `/private/var/...`;
-  `normalizePath()` only resolves symlinks for existing paths, so the
-  first call returned the unresolved form and the second the resolved
-  form, breaking idempotency. Re-normalizing after `dir.create()`
-  fixes the M1mac CRAN check failure reported against 0.4.2.
+### Bug fixes
+
+- `autoresearch()` no longer errors when a search query returns zero
+  results.
+- Wikilink parsing now ignores Markdown code, so `[[ ]]` list indexing
+  in a code sample no longer registers as a broken wikilink.
 
 ## Test environments
 
 - Local: Ubuntu 24.04 LTS, R 4.6.0
-- Local: Windows 10, R 4.6.0 (release) and R-devel (r90050)
+- win-builder: R-devel and R-release
 - GitHub Actions via r-ci: ubuntu-latest, macos-latest
 
 ## R CMD check results
 
-- 0 errors
-- 0 warnings
-- 0 notes on all environments (against current CRAN `saber` 0.7.1).
+0 errors | 0 warnings | 0 notes.
 
-## Downstream dependencies
+## Reverse dependencies
 
 None on CRAN. Verified via
 `tools::package_dependencies("pensar", reverse = TRUE)`.
 
 ## Notes for reviewers
 
-### System requirements
-
-`SystemRequirements: pandoc (for vault_export()), git (for
-vault_commit())`. Both are checked at runtime via `Sys.which()`;
-`vault_commit()` is a no-op when git is not available, and
-`vault_export()` errors with a clear message asking the user to
-install pandoc.
-
-### Imports / Suggests
-
-- `Imports`: `yaml` (CRAN).
-- `Suggests`: `saber` (CRAN) and `tinytest` (CRAN). `saber` is used
-  by `ingest_briefing()`, `ingest_repo()`, and `vault_graph()`,
-  always behind `requireNamespace()` or `getExportedValue()` so
-  optional features degrade gracefully.
-
-### Writes to the home filespace
-
-Unchanged from 0.4.2: `default_vault()` and `default_site_dir()` are
-strict opt-in resolvers (env var, walk-up `schema.md`, or
-`options("pensar.vault")` set by `use_vault()`); both error if no
-opt-in path is configured. No package code writes to the home
-filespace by default, and examples/tests write only to `tempfile()` /
-`tempdir()` with cleanup.
-
-### Non-interactive guard
-
-No `.onLoad` or `.onAttach` hooks; no file-system writes at load
-time; no network activity at load time.
+- `Imports`: curl, digest, stringdist, yaml (all CRAN).
+- `Suggests`: jsonlite, llm.api, saber, simplermarkdown, tinytest (all
+  CRAN). Each is used behind `requireNamespace()` /
+  `getExportedValue()`, so optional features degrade gracefully when a
+  suggested package is absent.
+- `default_vault()` and `default_site_dir()` remain strict opt-in
+  resolvers (the `PENSAR_VAULT` environment variable, a walk-up for
+  `schema.md`, or `options("pensar.vault")` set by `use_vault()`); both
+  error if no opt-in path is configured. No package code writes to the
+  home filespace by default, and examples and tests write only to
+  `tempfile()` / `tempdir()` with cleanup.
+- No `.onLoad` / `.onAttach` hooks; no file-system writes and no network
+  activity at load time.
+- `SystemRequirements`: pandoc (for `vault_export()`), git (for
+  `vault_commit()`); both are checked at runtime via `Sys.which()`.
+  `vault_commit()` is a no-op when git is unavailable; `vault_export()`
+  errors with a clear message when pandoc is unavailable.
