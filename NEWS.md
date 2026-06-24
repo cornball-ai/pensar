@@ -1,25 +1,11 @@
-# pensar 0.6.3.4 (dev)
+# pensar 0.6.4
 
-## Changes
+## New features
 
-* Wikilink parsing now ignores Markdown code. Fenced blocks (` ``` ` or
-  `~~~`) and inline spans (`` `...` ``) are stripped before extracting
-  `[[...]]`, so R's `[[ ]]` list indexing in a code sample no longer
-  registers as a broken wikilink. Affects `lint()`, `outlinks()`,
-  `backlinks()`, and `vault_graph()`.
-
-# pensar 0.6.3.3 (dev)
-
-## Bug fixes
-
-* `autoresearch()` no longer crashes when a search query returns zero
-  results. Tagging the results with `date`, `source`, `query`, and
-  `angle` assigned a length-1 value onto a 0-row data.frame and errored
-  with "replacement has 1 row, data has 0". The validator now builds all
-  columns at full length before filtering empty URLs, keeping `date` and
-  `source` aligned when rows are dropped.
-
-# pensar 0.6.3.2 (dev)
+* `default_vault()` is now exported: a public getter for the active
+  vault path, paired with the existing `use_vault()` setter. Call it to
+  confirm which vault a bare `ingest()` or `status()` will act on
+  without reaching into `pensar:::` (#55).
 
 ## Changes
 
@@ -32,11 +18,6 @@
   renders a handful instead of the whole vault. The stylesheet and site
   index are always regenerated (no pandoc). `vault_export()` returns the
   output path with `rendered`/`skipped` attributes.
-
-# pensar 0.6.3.1 (dev)
-
-## Changes
-
 * `lint()` now scopes broken-link checks to `wiki/` pages only. Raw
   pages are auto-ingested and immutable; scraper-artifact `[[...]]`
   was meaningless noise. Orphan detection is split: `$orphans`
@@ -51,6 +32,20 @@
   "Broken wiki graph (target: zero)" and "Synthesis backlog".
 * New CLI subcommand: `pensar backlog` — full unsynthesized raw
   page list, no truncation.
+
+## Bug fixes
+
+* Wikilink parsing now ignores Markdown code. Fenced blocks (` ``` ` or
+  `~~~`) and inline spans (`` `...` ``) are stripped before extracting
+  `[[...]]`, so R's `[[ ]]` list indexing in a code sample no longer
+  registers as a broken wikilink. Affects `lint()`, `outlinks()`,
+  `backlinks()`, and `vault_graph()`.
+* `autoresearch()` no longer crashes when a search query returns zero
+  results. Tagging the results with `date`, `source`, `query`, and
+  `angle` assigned a length-1 value onto a 0-row data.frame and errored
+  with "replacement has 1 row, data has 0". The validator now builds all
+  columns at full length before filtering empty URLs, keeping `date` and
+  `source` aligned when rows are dropped.
 
 # pensar 0.6.3
 

@@ -1,8 +1,8 @@
 Package: pensar
 Type: Package
 Title: LLM Wiki Engine
-Version: 0.6.3.4
-Date: 2026-06-06
+Version: 0.6.4
+Date: 2026-06-24
 Authors@R: c(
     person("Troy", "Hernandez", role = c("aut", "cre"),
         email = "troy@cornball.ai",
