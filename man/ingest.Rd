@@ -1,7 +1,7 @@
 % tinyrox says don't edit this manually, but it can't stop you!
 \name{ingest}
 \alias{ingest}
-\title{Source ingestion}
+\title{Ingest content into the vault}
 \usage{
 ingest(content, type = c("articles", "chats", "briefings", "matrix"), source,
        title = NULL, tags = NULL, vault = default_vault(), force = FALSE)
@@ -31,9 +31,6 @@ parameter.}
 The path to the written file, invisibly.
 }
 \description{
-Ingest content into a pensar vault.
-Ingest content into the vault
-
 Writes content to \code{raw/{type}/}, generates a filename from source
 and date, adds YAML frontmatter, updates \code{index.md}, and appends
 to \code{log.md}.

@@ -1,7 +1,7 @@
 % tinyrox says don't edit this manually, but it can't stop you!
 \name{ingest_repo}
 \alias{ingest_repo}
-\title{Repo ingestion}
+\title{Ingest a repository snapshot into the vault}
 \usage{
 ingest_repo(path, name = NULL, ref = "HEAD",
             enrich = c("auto", "package", "none"),
@@ -36,24 +36,23 @@ artifact.}
 Character vector of paths written, invisibly.
 }
 \description{
-Ingest a git repo's metadata, briefing, and AST into the vault.
-Ingest a repository snapshot into the vault
-
 Captures repo state pinned to a commit SHA so wiki claims can cite a
 specific point in time. Writes one or more artifacts under
 \code{raw/repos/<name>/<artifact>.md}:
 \describe{
-  \item{briefing.md}{\code{type: repo-briefing} -- saber digest of HEAD
-    (regenerable). Requires the \code{saber} package.}
-  \item{ast.md}{\code{type: repo-ast} -- exported and internal symbols
-    from \code{saber::symbols()} (regenerable). Requires \code{saber}.}
-  \item{snapshot.md}{\code{type: repo-snapshot} -- commit-pinned
-    metadata: SHA, origin URL, branch, tracked file listing, recent
-    commits.}
+\item{briefing.md}{\code{type: repo-briefing} -- saber digest of HEAD
+(regenerable). Requires the \code{saber} package.}
+\item{ast.md}{\code{type: repo-ast} -- exported and internal symbols
+from \code{saber::symbols()} (regenerable). Requires \code{saber}.}
+\item{snapshot.md}{\code{type: repo-snapshot} -- commit-pinned
+metadata: SHA, origin URL, branch, tracked file listing, recent
+commits.}
 }
-
+}
+\details{
 Re-running overwrites the artifact files in place; git tracks history.
 This supersedes \code{ingest_briefing()}, which is now deprecated.
+
 }
 \examples{
 \dontrun{

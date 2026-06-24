@@ -1,7 +1,7 @@
 % tinyrox says don't edit this manually, but it can't stop you!
 \name{init_vault}
 \alias{init_vault}
-\title{Vault initialization}
+\title{Initialize a pensar vault}
 \usage{
 init_vault(path = default_vault(), rproj = TRUE, agent_instructions = TRUE,
            adopt = FALSE, commit = NULL, force = FALSE)
@@ -59,9 +59,6 @@ The vault path, invisibly. Returns \code{NULL} invisibly when
   the safety gate refused to scaffold.
 }
 \description{
-Create and seed a pensar vault.
-Initialize a pensar vault
-
 Creates the vault directory structure and seeds the control files:
 \code{schema.md}, \code{index.md}, \code{log.md}, and (by default)
 agent instruction files for Claude Code and Codex.

@@ -1,7 +1,7 @@
 % tinyrox says don't edit this manually, but it can't stop you!
 \name{ingest_agent_context}
 \alias{ingest_agent_context}
-\title{Agent context ingest}
+\title{Snapshot saber's assembled agent context into the vault}
 \usage{
 ingest_agent_context(agent = c("claude", "codex", "corteza"),
                      vault = default_vault(), project_dir = getwd(),
@@ -28,18 +28,13 @@ The relative path of the written page, invisibly. Returns
   \code{NULL} invisibly when saber returns an empty context.
 }
 \description{
-Thin wrapper that snapshots
-\code{saber::agent_context()} into the vault as a \code{raw/chats/}
-page so the live agent context (memory, instructions, identity)
-becomes searchable across sessions.
-Snapshot saber's assembled agent context into the vault
-
 Calls \code{saber::agent_context()} to assemble the current
 memory / project-instructions / global-instructions / identity
 string for an agent, then writes it into the vault through the
 existing \code{ingest()} pipeline (so the manifest, index, log,
 and auto-commit all kick in).
-
+}
+\details{
 Saber stays in pensar's \code{Suggests}: the wrapper guards with
 \code{requireNamespace("saber")} and errors with an install hint
 if the package isn't available. It also gates on the
@@ -51,6 +46,7 @@ mandatory dependency cost.
 
 Returns silently with a message (and no write) when saber returns
 an empty context, so the vault doesn't accumulate empty snapshots.
+
 }
 \examples{
 \dontrun{

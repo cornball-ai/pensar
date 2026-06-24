@@ -1,7 +1,7 @@
 % tinyrox says don't edit this manually, but it can't stop you!
 \name{ingest_url}
 \alias{ingest_url}
-\title{URL ingest}
+\title{Ingest content from a URL}
 \usage{
 ingest_url(url, vault = default_vault(), type = "articles", title = NULL,
            tags = NULL)
@@ -23,18 +23,15 @@ The relative path of the written (or existing) page,
   invisibly.
 }
 \description{
-Fetch a URL with \code{curl}, write the body into the
-vault via \code{ingest()}, and record the source URL in the
-manifest.
-Ingest content from a URL
-
 Fetches \code{url} (10s timeout), refuses non-2xx responses or
 content types outside text/JSON/XML, and writes the body into the
 vault through \code{ingest()}. If the manifest already records this
 URL as a source, returns the existing page path without re-fetching.
-
+}
+\details{
 For HTML responses the page's \code{<title>} is extracted and used
 as the page title when \code{title} is not supplied.
+
 }
 \examples{
 \dontrun{

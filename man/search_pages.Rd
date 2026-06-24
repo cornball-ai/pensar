@@ -1,7 +1,7 @@
 % tinyrox says don't edit this manually, but it can't stop you!
 \name{search_pages}
 \alias{search_pages}
-\title{Retrieval primitives}
+\title{Search pages by title, tags, aliases, or (optionally) body}
 \usage{
 search_pages(query, vault = default_vault(), type = NULL, in_body = FALSE)
 }
@@ -22,11 +22,6 @@ A data.frame with columns \code{path}, \code{node_id},
   \code{"tag:<tag>"}, \code{"alias:<alias>"}, or \code{"body"}).
 }
 \description{
-Read-only queries over a vault's page registry: search,
-page context, related pages, and recent activity. Built on
-\code{vault_registry()}; no disk writes.
-Search pages by title, tags, aliases, or (optionally) body
-
 Substring match (case-insensitive). Default scope is registry-only
 fields: \code{title}, \code{tags}, and frontmatter \code{aliases}.
 With \code{in_body = TRUE} the body of each page is scanned too;

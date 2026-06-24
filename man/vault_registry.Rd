@@ -1,7 +1,7 @@
 % tinyrox says don't edit this manually, but it can't stop you!
 \name{vault_registry}
 \alias{vault_registry}
-\title{Vault page registry}
+\title{Build a structured registry of a vault's pages}
 \usage{
 vault_registry(vault = default_vault(), cache = c("session", "user", "none"),
                refresh = FALSE)
@@ -24,38 +24,35 @@ A data.frame with columns: \code{path}, \code{node_id},
   when present, falling back to \code{category} otherwise.
 }
 \description{
-Build a structured index of every page in a vault for
-link resolution, frontmatter querying, and downstream features
-(retrieval primitives, dedup audits, manifest sync).
-Build a structured registry of a vault's pages
-
 Scans every \code{.md} file in \code{vault} and returns a data.frame
 with one row per page. Used internally to resolve wikilinks and
 query frontmatter without re-scanning the filesystem on every call.
-
+}
+\details{
 \strong{Identity columns:}
 \itemize{
-  \item \code{node_id} is the current link-resolution identity
-    (path-aware basename via \code{name_from_path()}). This is what
-    \code{[[page]]} matches against.
-  \item \code{page_uid} is a stable identity sourced from frontmatter
-    \code{id:} or \code{address:}. \code{NA} if the page declares
-    neither. Stable identity is opt-in via frontmatter; pensar never
-    fabricates one from a path hash, because path hashes change on
-    rename.
+\item \code{node_id} is the current link-resolution identity
+(path-aware basename via \code{name_from_path()}). This is what
+\code{[[page]]} matches against.
+\item \code{page_uid} is a stable identity sourced from frontmatter
+\code{id:} or \code{address:}. \code{NA} if the page declares
+neither. Stable identity is opt-in via frontmatter; pensar never
+fabricates one from a path hash, because path hashes change on
+rename.
 }
 
 \strong{Cache} levels:
 \itemize{
-  \item \code{"session"} (default): memoized in a package-level
-    environment, keyed by vault path. No disk write. Invalidates when
-    any \code{.md} file's mtime changes.
-  \item \code{"user"}: persisted to
-    \code{tools::R_user_dir("pensar", "cache")}. CRAN-safe location;
-    never writes inside the vault itself (\code{.pensar/} is reserved
-    for vault-owned state).
-  \item \code{"none"}: rebuild on every call.
+\item \code{"session"} (default): memoized in a package-level
+environment, keyed by vault path. No disk write. Invalidates when
+any \code{.md} file's mtime changes.
+\item \code{"user"}: persisted to
+\code{tools::R_user_dir("pensar", "cache")}. CRAN-safe location;
+never writes inside the vault itself (\code{.pensar/} is reserved
+for vault-owned state).
+\item \code{"none"}: rebuild on every call.
 }
+
 }
 \examples{
 v <- tempfile("vault-")

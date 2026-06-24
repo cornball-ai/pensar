@@ -1,7 +1,7 @@
 % tinyrox says don't edit this manually, but it can't stop you!
 \name{log_entry}
 \alias{log_entry}
-\title{Vault log}
+\title{Append a log entry}
 \usage{
 log_entry(message, operation = "note", vault = default_vault())
 }
@@ -17,9 +17,6 @@ log_entry(message, operation = "note", vault = default_vault())
 Invisible \code{NULL}.
 }
 \description{
-Append-only operation log for a pensar vault.
-Append a log entry
-
 Appends a structured entry to \code{log.md} with timestamp, operation
 type, and message.
 }

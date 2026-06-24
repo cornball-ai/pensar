@@ -1,7 +1,7 @@
 % tinyrox says don't edit this manually, but it can't stop you!
 \name{pensar_skill_path}
 \alias{pensar_skill_path}
-\title{Skill bundle paths}
+\title{Locate pensar's bundled skill directory}
 \usage{
 pensar_skill_path(skill = NULL)
 }
@@ -14,9 +14,6 @@ Absolute path. Returns an empty string when the skill is
   not installed (matching \code{system.file()} behavior).
 }
 \description{
-Helper to locate pensar's bundled agent skills.
-Locate pensar's bundled skill directory
-
 Pensar ships markdown skill bundles under \code{inst/skills/pensar/}.
 Returns the absolute path to the bundle root, or to a specific
 skill when \code{skill} is given. Useful for symlinking pensar

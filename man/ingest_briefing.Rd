@@ -1,7 +1,7 @@
 % tinyrox says don't edit this manually, but it can't stop you!
 \name{ingest_briefing}
 \alias{ingest_briefing}
-\title{Briefing ingestion (deprecated)}
+\title{Generate and ingest a saber briefing}
 \usage{
 ingest_briefing(project = NULL, scan_dir = path.expand("~"),
                 vault = default_vault())

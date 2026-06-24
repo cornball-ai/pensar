@@ -1,7 +1,7 @@
 % tinyrox says don't edit this manually, but it can't stop you!
 \name{status}
 \alias{status}
-\title{Vault status}
+\title{Vault status summary}
 \usage{
 status(vault = NULL)
 }
@@ -16,9 +16,6 @@ A list with class \code{pensar_status}, including the
   \code{"option"}, or \code{"explicit"}).
 }
 \description{
-Summary stats for a pensar vault.
-Vault status summary
-
 Returns page counts by category, total pages, and wikilink count.
 When \code{vault} is \code{NULL} (default), the vault is resolved
 via \code{PENSAR_VAULT}, walk-up from \code{getwd()}, or

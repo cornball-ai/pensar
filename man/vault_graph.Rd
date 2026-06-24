@@ -1,7 +1,7 @@
 % tinyrox says don't edit this manually, but it can't stop you!
 \name{vault_graph}
 \alias{vault_graph}
-\title{Vault wikilink graph}
+\title{Render a vault's wikilink graph as SVG}
 \usage{
 vault_graph(vault = default_vault(), width = 1600L, height = 1200L, ...)
 }
@@ -19,9 +19,6 @@ toward many nodes.}
 Character vector of SVG lines. Write with \code{writeLines()}.
 }
 \description{
-Render the vault's wikilink graph as SVG via saber.
-Render a vault's wikilink graph as SVG
-
 Scans every markdown page in the vault (excluding control files),
 extracts \code{[[wikilinks]]} as edges, and renders the result via
 \code{saber::graph_svg()}. Node tooltips carry the page type, tags,

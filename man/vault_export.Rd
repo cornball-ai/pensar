@@ -1,7 +1,7 @@
 % tinyrox says don't edit this manually, but it can't stop you!
 \name{vault_export}
 \alias{vault_export}
-\title{Static HTML export}
+\title{Export the vault to static HTML}
 \usage{
 vault_export(vault = default_vault(), out_dir = default_site_dir())
 }
@@ -16,14 +16,12 @@ not silently render into a home-filespace location).}
 The output directory path, invisibly.
 }
 \description{
-Render the vault to a directory of static HTML files.
-Export the vault to static HTML
-
 Renders every markdown page in the vault to HTML, resolving
 \code{[[wikilinks]]} to relative anchor tags. Output is a standalone
 site that can be served from any static file server or opened via
 \code{file://}.
-
+}
+\details{
 No default \code{out_dir}: pass an explicit path or set the
 \code{PENSAR_SITE_DIR} environment variable. Per CRAN policy
 pensar will not silently render into a home-filespace location
@@ -40,6 +38,7 @@ added, removed, or moved (so broken/resolved links stay correct).
 State is kept in \code{.pensar-export-cache.yml} inside \code{out_dir};
 delete it to force a full rebuild. The stylesheet and site index are
 always regenerated (they don't invoke pandoc).
+
 }
 \examples{
 \donttest{
