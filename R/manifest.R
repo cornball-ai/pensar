@@ -1,17 +1,15 @@
-#' @title Vault manifest
-#' @description Pensar-owned bookkeeping at \code{.pensar/manifest.yml}:
-#' per-source ingest provenance and an opt-in \code{path -> page_uid}
-#' address map. Read by retrieval primitives that need delta info;
-#' written by \code{ingest()} and \code{ingest_repo()} after a
-#' successful page write. Read-only operations
-#' (\code{vault_registry()}, \code{update_index()}, \code{status()})
-#' never touch the manifest.
-
 #' Canonical manifest path inside a vault
 #'
-#' Returns \code{<vault>/.pensar/manifest.yml}. The directory is created
-#' lazily by \code{update_manifest()} so simply asking for the path
-#' doesn't materialize \code{.pensar/}.
+#' Returns \code{<vault>/.pensar/manifest.yml}. Pensar uses this file for
+#' per-source ingest provenance and an opt-in \code{path -> page_uid}
+#' address map.
+#'
+#' The manifest is written by \code{ingest()} and \code{ingest_repo()}
+#' after a successful page write. Read-only operations
+#' (\code{vault_registry()}, \code{update_index()}, and \code{status()})
+#' never touch it. The directory is created lazily by
+#' \code{update_manifest()}, so simply asking for the path does not
+#' materialize \code{.pensar/}.
 #' @param vault Vault path.
 #' @return Absolute path to the manifest file.
 #' @examples

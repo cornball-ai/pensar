@@ -12,9 +12,17 @@ manifest_path(vault)
 Absolute path to the manifest file.
 }
 \description{
-Returns \code{<vault>/.pensar/manifest.yml}. The directory is created
-lazily by \code{update_manifest()} so simply asking for the path
-doesn't materialize \code{.pensar/}.
+Returns \code{<vault>/.pensar/manifest.yml}. Pensar uses this file for
+per-source ingest provenance and an opt-in \code{path -> page_uid}
+address map.
+}
+\details{
+The manifest is written by \code{ingest()} and \code{ingest_repo()}
+after a successful page write. Read-only operations
+(\code{vault_registry()}, \code{update_index()}, and \code{status()})
+never touch it. The directory is created lazily by
+\code{update_manifest()}, so simply asking for the path does not
+materialize \code{.pensar/}.
 }
 \examples{
 v <- tempfile("vault-")

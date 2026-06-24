@@ -1,9 +1,10 @@
 ## Submission summary
 
-pensar 0.6.4 is a maintenance update to 0.6.3 (on CRAN since
-2026-05-19). It exports one new function and is otherwise bug fixes and
-internal improvements. No exported object was removed and no exported
-signature changed, so the update is backward compatible.
+pensar 0.6.4 is a feature and bug-fix update to 0.6.3 (on CRAN since
+2026-05-19). It exports one new function, adds incremental static-site
+exports, and improves vault linting and backlog reporting. No exported
+object was removed and no exported signature changed, so the update is
+backward compatible.
 
 ## Changes since 0.6.3
 
