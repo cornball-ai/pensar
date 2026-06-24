@@ -3,6 +3,7 @@
 export(autoresearch)
 export(backlinks)
 export(dedup)
+export(default_vault)
 export(ingest)
 export(ingest_agent_context)
 export(ingest_briefing)

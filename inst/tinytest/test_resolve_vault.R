@@ -91,6 +91,20 @@ dir.create(empty)
 expect_error(resolve_vault(start = empty), "No pensar vault configured")
 unlink(empty, recursive = TRUE)
 
+# --- exported default_vault() getter returns the resolved path ---
+# Public getter paired with use_vault(); must be callable without ::: .
+# Use PENSAR_VAULT so the result is independent of the suite's cwd
+# (default_vault() takes no `start`, so it resolves from getwd()).
+v_def <- file.path(tempdir(), paste0("vault-def-",
+                                     format(Sys.time(), "%H%M%S")))
+init_vault(v_def, rproj = FALSE, agent_instructions = FALSE)
+Sys.setenv(PENSAR_VAULT = v_def)
+dv <- default_vault()
+expect_equal(dv, normalizePath(v_def))
+expect_true(is.character(dv) && length(dv) == 1L)
+Sys.unsetenv("PENSAR_VAULT")
+unlink(v_def, recursive = TRUE)
+
 # --- status() carries source label through to the object ---
 v_st <- file.path(tempdir(), paste0("vault-st-",
                                     format(Sys.time(), "%H%M%S")))

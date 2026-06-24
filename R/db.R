@@ -51,13 +51,33 @@ resolve_vault <- function(start = getwd()) {
          "init_vault()) explicitly", call. = FALSE)
 }
 
-#' Default vault path
+#' Resolve the active vault path
 #'
-#' Thin wrapper around \code{resolve_vault()} that returns just the
-#' path. Most callers want this; \code{status()} calls
-#' \code{resolve_vault()} directly to keep the source label.
-#' @return Character string.
-#' @noRd
+#' Returns the path of the vault pensar will act on, resolved from the
+#' same opt-in sources as every other entry point: the
+#' \code{PENSAR_VAULT} environment variable, a walk-up for
+#' \code{schema.md}, then \code{options("pensar.vault")} (set by
+#' \code{\link{use_vault}}). This is the public getter paired with the
+#' \code{use_vault()} setter; call it to confirm which vault a bare
+#' \code{\link{ingest}()} or \code{\link{status}()} will use before
+#' running them.
+#'
+#' Per CRAN policy there is no implicit home-filespace fallback. If no
+#' source is configured this errors with a setup hint rather than
+#' guessing a path. For the resolution source as well as the path
+#' (useful when debugging "why is it filing to the wrong vault?"), call
+#' \code{\link{status}()}, which reports both.
+#' @return Character string: the normalized vault path. Errors if no
+#'   vault is configured.
+#' @seealso \code{\link{use_vault}} to set the vault for a session.
+#' @examples
+#' v <- tempfile("vault-")
+#' init_vault(v, rproj = FALSE, agent_instructions = FALSE)
+#' use_vault(v)
+#' default_vault()
+#' options(pensar.vault = NULL)
+#' unlink(v, recursive = TRUE)
+#' @export
 default_vault <- function() {
     resolve_vault()$path
 }
