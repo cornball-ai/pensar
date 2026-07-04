@@ -185,3 +185,84 @@ m <- withCallingHandlers(read_manifest(v10),
 expect_true(is.list(m))
 expect_equal(length(m$sources), 0L)
 unlink(v10, recursive = TRUE)
+
+# --- 13. merge_manifest_structs: union by path, prune to tree ---
+v13 <- file.path(tempdir(), paste0("man-merge-",
+                                   format(Sys.time(), "%H%M%OS3")))
+init_vault(v13, rproj = FALSE, agent_instructions = FALSE)
+writeLines("Page A content.", file.path(v13, "raw", "articles", "a.md"))
+writeLines("Page B content.", file.path(v13, "raw", "articles", "b.md"))
+hash_a <- paste0("sha1:", digest::digest(
+    file = file.path(v13, "raw", "articles", "a.md"), algo = "sha1"))
+hash_b <- paste0("sha1:", digest::digest(
+    file = file.path(v13, "raw", "articles", "b.md"), algo = "sha1"))
+
+ours <- list(version = 1L, created = "2026-01-01",
+             sources = list(
+                 "raw/articles/a.md" = list(source = "srcA", hash = hash_a,
+                                            ingested_at = "2026-01-02T00:00:00"),
+                 "raw/articles/gone.md" = list(source = "gone",
+                                               hash = "sha1:x",
+                                               ingested_at = "2026-01-01T00:00:00")),
+             address_map = list())
+theirs <- list(version = 1L, created = "2026-02-01",
+               sources = list(
+                   "raw/articles/b.md" = list(source = "srcB", hash = hash_b,
+                                              ingested_at = "2026-01-03T00:00:00")),
+               address_map = list())
+
+m13 <- pensar:::merge_manifest_structs(ours, theirs, v13)
+expect_true(all(c("raw/articles/a.md", "raw/articles/b.md") %in%
+    names(m13$sources)))
+# Entry whose file is absent from the merged tree is pruned
+expect_false("raw/articles/gone.md" %in% names(m13$sources))
+# Earliest created date survives
+expect_equal(m13$created, "2026-01-01")
+# Symmetric: swapping sides gives the same sources
+m13r <- pensar:::merge_manifest_structs(theirs, ours, v13)
+expect_equal(m13r$sources[order(names(m13r$sources))],
+             m13$sources[order(names(m13$sources))])
+
+# --- 14. Record conflict: hash match against the tree wins ---
+theirs14 <- theirs
+theirs14$sources[["raw/articles/a.md"]] <- list(source = "srcA-stale",
+                                                hash = "sha1:stale",
+                                                ingested_at = "2026-01-01T00:00:00")
+m14 <- pensar:::merge_manifest_structs(ours, theirs14, v13)
+# theirs has the earlier timestamp, but ours matches the file on disk
+expect_equal(m14$sources[["raw/articles/a.md"]]$source, "srcA")
+
+# --- 15. Neither hash matches: earlier ingest wins, hash refreshed ---
+o15 <- list(version = 1L, created = "2026-01-01",
+            sources = list(
+                "raw/articles/b.md" = list(source = "early",
+                                           hash = "sha1:old1",
+                                           ingested_at = "2026-01-01T00:00:00")),
+            address_map = list())
+t15 <- list(version = 1L, created = "2026-01-01",
+            sources = list(
+                "raw/articles/b.md" = list(source = "late",
+                                           hash = "sha1:old2",
+                                           ingested_at = "2026-03-01T00:00:00")),
+            address_map = list())
+m15 <- pensar:::merge_manifest_structs(o15, t15, v13)
+rec15 <- m15$sources[["raw/articles/b.md"]]
+expect_equal(rec15$source, "early")
+expect_equal(rec15$hash, hash_b)
+
+# --- 16. address_map: union, prune, frontmatter settles conflicts ---
+writeLines(c("---", "title: C", "id: uid-from-frontmatter", "---", "",
+             "Body."),
+           file.path(v13, "wiki", "c.md"))
+o16 <- list(version = 1L, created = "2026-01-01", sources = list(),
+            address_map = list("wiki/c.md" = "uid-ours",
+                               "raw/articles/a.md" = "uid-a",
+                               "raw/articles/gone.md" = "uid-gone"))
+t16 <- list(version = 1L, created = "2026-01-01", sources = list(),
+            address_map = list("wiki/c.md" = "uid-theirs"))
+m16 <- pensar:::merge_manifest_structs(o16, t16, v13)
+expect_equal(m16$address_map[["wiki/c.md"]], "uid-from-frontmatter")
+expect_equal(m16$address_map[["raw/articles/a.md"]], "uid-a")
+expect_false("raw/articles/gone.md" %in% names(m16$address_map))
+
+unlink(v13, recursive = TRUE)
