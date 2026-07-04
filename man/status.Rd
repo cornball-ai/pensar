@@ -16,7 +16,10 @@ A list with class \code{pensar_status}, including the
   \code{"option"}, or \code{"explicit"}).
 }
 \description{
-Returns page counts by category, total pages, and wikilink count.
+Returns page counts by category, total pages, and the number of
+unresolved entries in the merge-conflict digest (printed as a loud
+banner when nonzero, since synthesizing the digest is the first
+priority for any agent in the vault).
 When \code{vault} is \code{NULL} (default), the vault is resolved
 via \code{PENSAR_VAULT}, walk-up from \code{getwd()}, or
 \code{options("pensar.vault")}, and the source of the match is
