@@ -71,8 +71,7 @@ vault_merge <- function(vault = default_vault()) {
             return(invisible(NULL))
         }
         committed <- system2("git",
-                             c("-C", vault, "-c", "core.editor=true",
-                               "commit", "--no-edit"),
+                             c("-C", vault, "-c", "core.editor=true", "commit", "--no-edit"),
                              stdout = FALSE, stderr = FALSE)
         if (committed != 0L) {
             message("Conflicts resolved and staged, but the merge ",
@@ -124,8 +123,7 @@ continue_rebase <- function(vault) {
                           stdout = FALSE, stderr = FALSE)
     } else {
         status <- system2("git",
-                          c("-C", vault, "-c", "core.editor=true", "rebase",
-                            "--continue"),
+                          c("-C", vault, "-c", "core.editor=true", "rebase", "--continue"),
                           stdout = FALSE, stderr = FALSE)
     }
     # A non-zero status with the rebase still alive means the next
@@ -175,7 +173,7 @@ resolve_stopped_merge <- function(vault) {
 
     # Phase 1: classify. No tree writes happen here.
     plans <- lapply(unique(stages$path), function(p) {
-        classify_conflict(p, stages[stages$path == p, , drop = FALSE], vault)
+        classify_conflict(p, stages[stages$path == p,, drop = FALSE], vault)
     })
 
     # Phase 2a: the digest is written before any resolution touches
@@ -198,13 +196,16 @@ resolve_stopped_merge <- function(vault) {
         }
     }
     for (pl in plans) {
-        if (pl$class %in% c("raw-collision", "index-regen",
-                            "manifest-union")) {
+        if (pl$class %in% c("raw-collision", "index-regen", "manifest-union")) {
             next
         }
         if (is.null(pl$kept_lines)) {
             # Opaque (non-text) content: resolve via git, don't touch bytes.
-            side <- if (identical(pl$kept, "theirs")) "--theirs" else "--ours"
+            if (identical(pl$kept, "theirs")) {
+                side <- "--theirs"
+            } else {
+                side <- "--ours"
+            }
             system2("git",
                     c("-C", vault, "checkout", side, "--", shQuote(pl$path)),
                     stdout = FALSE, stderr = FALSE)
@@ -226,8 +227,8 @@ resolve_stopped_merge <- function(vault) {
 
     to_stage <- c(vapply(plans, function(pl) pl$path, character(1L)),
                   unlist(renames, use.names = FALSE),
-                  if (digest_written) ".pensar/merge-conflicts.md",
-                  if (length(renames) > 0L) ".pensar/manifest.yml")
+        if (digest_written) ".pensar/merge-conflicts.md",
+        if (length(renames) > 0L) ".pensar/manifest.yml")
     added <- system2("git",
                      c("-C", vault, "add", "--",
                        vapply(unique(to_stage), shQuote, character(1L))),
@@ -247,7 +248,7 @@ resolve_stopped_merge <- function(vault) {
 conflicted_stages <- function(vault) {
     out <- tryCatch(
                     suppressWarnings(system2("git", c("-C", vault, "ls-files", "-u"),
-                                             stdout = TRUE, stderr = FALSE)),
+                stdout = TRUE, stderr = FALSE)),
                     error = function(e) character(0L)
     )
     if (length(out) == 0L) {
@@ -268,9 +269,8 @@ conflicted_stages <- function(vault) {
 read_stage_lines <- function(vault, stage, path) {
     lines <- tryCatch(
                       suppressWarnings(system2("git",
-                                               c("-C", vault, "show",
-                                                 sprintf(":%d:%s", stage, shQuote(path))),
-                                               stdout = TRUE, stderr = FALSE)),
+                c("-C", vault, "show", sprintf(":%d:%s", stage, shQuote(path))),
+                stdout = TRUE, stderr = FALSE)),
                       error = function(e) NULL
     )
     status <- attr(lines, "status")
@@ -291,7 +291,11 @@ read_stage_lines <- function(vault, stage, path) {
 classify_conflict <- function(path, stages, vault) {
     sha_of <- function(stage) {
         s <- stages$sha[stages$stage == stage]
-        if (length(s) == 1L) s else NA_character_
+        if (length(s) == 1L) {
+            s
+        } else {
+            NA_character_
+        }
     }
     ours_sha <- sha_of(2L)
     theirs_sha <- sha_of(3L)
@@ -325,7 +329,11 @@ classify_conflict <- function(path, stages, vault) {
         # Opaque content: keep whichever side exists (ours on a tie),
         # resolve via git checkout, digest a note without bytes.
         plan$class <- "opaque-divergence"
-        plan$kept <- if (is.na(ours_sha)) "theirs" else "ours"
+        if (is.na(ours_sha)) {
+            plan$kept <- "theirs"
+        } else {
+            plan$kept <- "ours"
+        }
         plan$kept_lines <- NULL
         plan$entry <- digest_entry(plan, vault, embed = FALSE)
         return(plan)
@@ -346,8 +354,16 @@ classify_conflict <- function(path, stages, vault) {
         # Raw modify/modify or delete/modify should not happen (raw is
         # immutable after ingest). Preserve content, flag the anomaly.
         plan$class <- "raw-anomaly"
-        plan$kept <- if (is.na(ours_sha)) "theirs" else "ours"
-        plan$kept_lines <- if (is.na(ours_sha)) theirs else ours
+        if (is.na(ours_sha)) {
+            plan$kept <- "theirs"
+        } else {
+            plan$kept <- "ours"
+        }
+        if (is.na(ours_sha)) {
+            plan$kept_lines <- theirs
+        } else {
+            plan$kept_lines <- ours
+        }
         plan$ours <- ours
         plan$theirs <- theirs
         plan$entry <- digest_entry(plan, vault)
@@ -358,8 +374,16 @@ classify_conflict <- function(path, stages, vault) {
         # Deleted on one side, edited on the other: keep the content
         # side (nothing is lost that way), digest the disagreement.
         plan$class <- "delete-modify"
-        plan$kept <- if (is.na(ours_sha)) "theirs" else "ours"
-        plan$kept_lines <- if (is.na(ours_sha)) theirs else ours
+        if (is.na(ours_sha)) {
+            plan$kept <- "theirs"
+        } else {
+            plan$kept <- "ours"
+        }
+        if (is.na(ours_sha)) {
+            plan$kept_lines <- theirs
+        } else {
+            plan$kept_lines <- ours
+        }
         plan$ours <- ours
         plan$theirs <- theirs
         plan$entry <- digest_entry(plan, vault)
@@ -385,14 +409,22 @@ classify_conflict <- function(path, stages, vault) {
     if (lint_dominates(lo, lt) || lint_dominates(lt, lo)) {
         ours_wins <- lint_dominates(lo, lt)
         plan$class <- "lint-preferred"
-        plan$kept <- if (ours_wins) "ours" else "theirs"
-        plan$kept_lines <- if (ours_wins) ours else theirs
+        if (ours_wins) {
+            plan$kept <- "ours"
+        } else {
+            plan$kept <- "theirs"
+        }
+        if (ours_wins) {
+            plan$kept_lines <- ours
+        } else {
+            plan$kept_lines <- theirs
+        }
         plan$ours <- ours
         plan$theirs <- theirs
         # Lint is a soft signal and the losing side may hold real
         # prose; digest it so nothing is silently discarded.
         plan$entry <- digest_entry(plan, vault, lint = list(ours = lo,
-                                                            theirs = lt))
+                theirs = lt))
         return(plan)
     }
 
@@ -401,8 +433,7 @@ classify_conflict <- function(path, stages, vault) {
     plan$kept_lines <- ours
     plan$ours <- ours
     plan$theirs <- theirs
-    plan$entry <- digest_entry(plan, vault, lint = list(ours = lo,
-                                                        theirs = lt))
+    plan$entry <- digest_entry(plan, vault, lint = list(ours = lo, theirs = lt))
     plan
 }
 
@@ -477,7 +508,11 @@ union_lines <- function(ours, theirs) {
 #' @noRd
 digest_entry_id <- function(path, ours_sha, theirs_sha, class) {
     short <- function(s) {
-        if (is.na(s)) "absent" else substr(s, 1L, 7L)
+        if (is.na(s)) {
+            "absent"
+        } else {
+            substr(s, 1L, 7L)
+        }
     }
     sprintf("%s %s..%s %s", path, short(ours_sha), short(theirs_sha), class)
 }
@@ -488,10 +523,10 @@ digest_entry_id <- function(path, ours_sha, theirs_sha, class) {
 #' digest stays out of the link graph and lint's backlog.
 #' @noRd
 digest_entry <- function(plan, vault, embed = TRUE, lint = NULL) {
-    id <- digest_entry_id(plan$path, plan$ours_sha, plan$theirs_sha,
-                          plan$class)
+    id <- digest_entry_id(plan$path, plan$ours_sha, plan$theirs_sha, plan$class)
     page <- name_from_path(plan$path)
-    bl <- tryCatch(backlinks(page, vault)$file, error = function(e) character(0L))
+    bl <- tryCatch(backlinks(page, vault)$file,
+                   error = function(e) character(0L))
     out <- c(sprintf("## %s", id), "",
              sprintf("- path: `%s`", plan$path),
              sprintf("- class: %s", plan$class),
@@ -503,9 +538,9 @@ digest_entry <- function(plan, vault, embed = TRUE, lint = NULL) {
     }
     if (!is.null(lint)) {
         out <- c(out, sprintf("- lint: ours %s frontmatter, %d broken; theirs %s frontmatter, %d broken",
-                              if (lint$ours$fm_ok) "valid" else "invalid",
+                if (lint$ours$fm_ok) "valid" else "invalid",
                               lint$ours$broken,
-                              if (lint$theirs$fm_ok) "valid" else "invalid",
+                if (lint$theirs$fm_ok) "valid" else "invalid",
                               lint$theirs$broken))
     }
     if (plan$class == "raw-collision") {
@@ -524,13 +559,13 @@ digest_entry <- function(plan, vault, embed = TRUE, lint = NULL) {
     if (!is.null(plan$ours)) {
         out <- c(out, sprintf("### Ours (%s)%s",
                               substr(plan$ours_sha, 1L, 7L),
-                              if (plan$kept == "ours") " -- kept" else ""),
+                if (plan$kept == "ours") " -- kept" else ""),
                  "", fence, plan$ours, fence, "")
     }
     if (!is.null(plan$theirs)) {
         out <- c(out, sprintf("### Theirs (%s)%s",
                               substr(plan$theirs_sha, 1L, 7L),
-                              if (plan$kept == "theirs") " -- kept" else ""),
+                if (plan$kept == "theirs") " -- kept" else ""),
                  "", fence, plan$theirs, fence, "")
     }
     out
@@ -541,7 +576,11 @@ digest_entry <- function(plan, vault, embed = TRUE, lint = NULL) {
 append_digest <- function(vault, entries) {
     fp <- file.path(vault, ".pensar", "merge-conflicts.md")
     dir.create(dirname(fp), recursive = TRUE, showWarnings = FALSE)
-    existing <- if (file.exists(fp)) readLines(fp, warn = FALSE) else digest_seed()
+    if (file.exists(fp)) {
+        existing <- readLines(fp, warn = FALSE)
+    } else {
+        existing <- digest_seed()
+    }
     existing_ids <- sub("^## ", "", grep("^## ", existing, value = TRUE))
     fresh <- Filter(function(e) {
         !(sub("^## ", "", e[1L]) %in% existing_ids)
@@ -560,12 +599,12 @@ append_digest <- function(vault, entries) {
 #' @noRd
 digest_seed <- function() {
     c("---", "title: Merge Conflicts", "type: merge-digest", "---", "",
-      "# Merge Conflicts", "",
-      "Divergence preserved by automatic merge resolution, pending",
-      "synthesis. For each entry: read both versions, drill down into",
-      "cited sources, edit the wiki page to synthesize what both",
-      "authors meant, then delete the entry. Delete this file when no",
-      "entries remain, then commit.", "")
+        "# Merge Conflicts", "",
+        "Divergence preserved by automatic merge resolution, pending",
+        "synthesis. For each entry: read both versions, drill down into",
+        "cited sources, edit the wiki page to synthesize what both",
+        "authors meant, then delete the entry. Delete this file when no",
+        "entries remain, then commit.", "")
 }
 
 #' Re-key manifest records for renamed raw files (unconflicted manifest)
@@ -586,8 +625,7 @@ rekey_manifest_on_disk <- function(vault, renames) {
         }
         hash_at <- function(p) {
             tryCatch(paste0("sha1:",
-                            digest::digest(file = file.path(vault, p),
-                                           algo = "sha1")),
+                            digest::digest(file = file.path(vault, p), algo = "sha1")),
                      error = function(e) NA_character_)
         }
         if (identical(rec$hash, hash_at(to)) &&
