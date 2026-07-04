@@ -1,5 +1,10 @@
-# pensar 0.6.4.1 (development)
+# pensar 0.6.4.2 (development)
 
+* Multi-author second slice (#52): a rebase stopped only by derived
+  files resolves itself. `index.md` is regenerated from the merged
+  tree; `.pensar/manifest.yml` is unioned by path and pruned to pages
+  that survived the merge. Conflicts outside the derived set still
+  abort, leaving the vault clean and the commit local.
 * Multi-author first slice (#52): `init_vault()` scaffolds a
   `.gitattributes` marking `log.md` as `merge=union`, and a rejected
   auto-push now retries once after `git pull --rebase` (aborting the
