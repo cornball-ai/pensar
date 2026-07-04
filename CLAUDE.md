@@ -21,6 +21,9 @@ No default location. Per CRAN policy pensar refuses to silently write into the u
   index.md          auto-generated catalog (use update_index())
   log.md            append-only operation log (use log_entry())
   schema.md         conventions for vault maintenance
+  .pensar/          manifest (ingest provenance) + merge-conflicts.md
+                    (if the digest exists, synthesizing it comes first;
+                    status() banners it)
 ```
 
 `ingest()` stores content in `raw/`. Sources that already live somewhere and don't need preservation can be referenced by wiki pages in their frontmatter without calling ingest.
@@ -38,6 +41,8 @@ No default location. Per CRAN policy pensar refuses to silently write into the u
 | `outlinks(page, vault)` | Find pages this page cites |
 | `show_page(page, vault)` | Bundle content + outlinks + backlinks |
 | `lint(vault)` | Orphans, broken wikilinks, cluster gaps |
+| `vault_commit(message)` | Auto-commit + push (rebase-retries a rejected push) |
+| `vault_merge(vault)` | Resolve a stopped merge/rebase; digest real divergence |
 
 ## CLI tool (use by default)
 
@@ -50,6 +55,7 @@ pensar show "<page>"       # content + outlinks + backlinks (drill-down)
 pensar back "<page>"       # backlinks only
 pensar tag <tag>           # pages with a tag
 pensar log [n]             # last n log entries
+pensar merge               # resolve a stopped merge/rebase
 ```
 
 **Before claiming anything about a wiki page, run `pensar show "<page>"` first.** It surfaces what the page cites and what cites it, which is the context needed to judge accuracy.

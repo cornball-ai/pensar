@@ -110,7 +110,9 @@ Use both, for different things:
 - **Git** for the vault source (`raw/`, `wiki/`, `index.md`, `log.md`, `schema.md`). The vault is plain markdown — diffs cleanly, history matters when a wiki page gets revised, and you can push to a private GitHub repo for backup. `autoresearch()` and `ingest()` both call `vault_commit()` after their writes, so git-backed vaults stay clean. After `init_vault()`, run `git init && git add . && git commit -m "initial vault"`.
 - **Syncthing (or Dropbox, etc.)** for the rendered site (`vault_export()` output), so you can browse on your phone. Set `PENSAR_SITE_DIR` to a synced folder.
 
-Don't sync the vault source via Syncthing. Concurrent edits from multiple devices on the same `.md` file get messy.
+**Shared vaults.** A vault can have more than one author: point every clone at a common remote and let auto-push do the rest. A rejected push retries after `git pull --rebase`, and conflicts resolve mechanically: the append-only log unions, `index.md` and the manifest regenerate from the merged tree, raw add/add collisions keep both files, and genuinely diverged wiki prose is preserved (both full versions) in a committed digest at `.pensar/merge-conflicts.md` for an LLM session to synthesize. `pensar status` announces pending digest entries; a merge stopped by hand resolves with `pensar merge`. Private single-author vaults need none of this and can stay local-only.
+
+Don't sync the vault source via Syncthing. Concurrent edits from multiple devices on the same `.md` file bypass the merge machinery and get messy; a shared git remote is the supported path for multiple writers.
 
 ## Functions
 
@@ -123,6 +125,7 @@ Don't sync the vault source via Syncthing. Concurrent edits from multiple device
 | `ingest_url(url)` | Fetch + file a URL into `raw/articles/` |
 | `update_index(vault)` | Regenerate `index.md` from all vault pages |
 | `vault_commit(message)` | Auto-commit vault changes (no-op for non-git) |
+| `vault_merge(vault)` | Resolve a stopped merge/rebase; digest real divergence |
 | `status(vault)` | Page counts by category |
 | `backlinks(page)` | Find all pages linking to a given page |
 | `outlinks(page)` | Find pages this page cites |
@@ -141,6 +144,8 @@ pensar back "<page>"       backlinks only
 pensar tag <tag>           pages with this tag
 pensar log [n]             last n log entries
 pensar export [out-dir]    render to static HTML
+pensar commit [message]    git commit + push
+pensar merge               resolve a stopped merge/rebase
 ```
 
 Symlink `{pkg}/bin/pensar` to somewhere on your `PATH` (e.g., `~/.local/bin/pensar`) to use it as a command.

@@ -1,3 +1,10 @@
+# pensar 0.6.4.4 (development)
+
+* Multi-author fourth slice (#52): docs retire the single-author
+  assumption. The agent-instructions template and README now
+  distinguish private single-author vaults (local-only is fine) from
+  shared multi-author vaults (common remote, auto-merge machinery).
+
 # pensar 0.6.4.3 (development)
 
 * Multi-author third slice (#52): new `vault_merge()` (CLI:

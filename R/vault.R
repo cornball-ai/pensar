@@ -248,10 +248,16 @@ agent_instructions_template <- function() {
         "`PENSAR_AUTO_PUSH` is truthy (default: push if any remote is",
         "set). Manual commit after wiki edits:", "", "```",
         "pensar commit \"Revised torch ecosystem synthesis\"", "```", "",
-        "Non-standard git usage: the vault is typically a local-only",
-        "repo on one authoritative machine (e.g., troy-ai). Other",
-        "machines clone read-only over Tailscale/SSH. No GitHub",
-        "required for privacy.")
+        "Vaults come in two shapes. A **private single-author vault**",
+        "can stay local-only; no remote or hosting is required for",
+        "privacy. A **shared multi-author vault** uses a common git",
+        "remote: every author's pensar auto-pushes, and a rejected push",
+        "rebases and resolves conflicts mechanically. Concurrent log",
+        "appends union, derived files regenerate, raw add/add",
+        "collisions keep both files, and genuinely diverged wiki prose",
+        "lands in `.pensar/merge-conflicts.md` with both versions",
+        "preserved (see the FIRST section above). A merge you stopped",
+        "by hand resolves with `pensar merge`.")
 }
 
 #' RStudio project file template
