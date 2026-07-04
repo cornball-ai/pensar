@@ -4,8 +4,11 @@
 #' Initialize a pensar vault
 #'
 #' Creates the vault directory structure and seeds the control files:
-#' \code{schema.md}, \code{index.md}, \code{log.md}, and (by default)
-#' agent instruction files for Claude Code and Codex.
+#' \code{schema.md}, \code{index.md}, \code{log.md}, a
+#' \code{.gitattributes} marking \code{log.md} as \code{merge=union}
+#' (concurrent appends to the log from two vault clones merge cleanly
+#' instead of conflicting), and (by default) agent instruction files
+#' for Claude Code and Codex.
 #'
 #' @param path Path to the vault directory. No implicit default: pass
 #'   an explicit path, or configure one via \code{PENSAR_VAULT},
@@ -137,6 +140,14 @@ init_vault <- function(path = default_vault(), rproj = TRUE,
     writeLines(schema_template(), file.path(path, "schema.md"))
     writeLines(index_seed(), file.path(path, "index.md"))
     writeLines(log_seed(), file.path(path, "log.md"))
+
+    # Union-merge the append-only log so concurrent appends from two
+    # authors never git-conflict (#52). Guarded so a force = TRUE
+    # scaffold into foreign content can't clobber an existing file.
+    gitattributes <- file.path(path, ".gitattributes")
+    if (!file.exists(gitattributes)) {
+        writeLines("log.md merge=union", gitattributes)
+    }
 
     if (isTRUE(rproj)) {
         rproj_path <- file.path(path, paste0(basename(path), ".Rproj"))
