@@ -3,7 +3,10 @@
 
 #' Vault status summary
 #'
-#' Returns page counts by category, total pages, and wikilink count.
+#' Returns page counts by category, total pages, and the number of
+#' unresolved entries in the merge-conflict digest (printed as a loud
+#' banner when nonzero, since synthesizing the digest is the first
+#' priority for any agent in the vault).
 #' When \code{vault} is \code{NULL} (default), the vault is resolved
 #' via \code{PENSAR_VAULT}, walk-up from \code{getwd()}, or
 #' \code{options("pensar.vault")}, and the source of the match is
@@ -51,7 +54,9 @@ status <- function(vault = NULL) {
 
     result <- list(raw_articles = raw_articles, raw_chats = raw_chats,
                    raw_briefings = raw_briefings, raw_matrix = raw_matrix,
-                   wiki = wiki, total = total, vault = vault, source = src)
+                   wiki = wiki, total = total,
+                   merge_conflicts = merge_digest_pending(vault),
+                   vault = vault, source = src)
     class(result) <- "pensar_status"
     result
 }
@@ -62,6 +67,12 @@ print.pensar_status <- function(x, ...) {
                     "walkup-subdir" = "./vault walk-up",
                     option = "options(\"pensar.vault\")",
                     explicit = "explicit vault argument", x$source)
+    mc <- x$merge_conflicts %||% 0L
+    if (mc > 0L) {
+        cat(sprintf("!! %d unresolved merge conflict entr%s in .pensar/merge-conflicts.md\n",
+                    mc, if (mc == 1L) "y" else "ies"))
+        cat("!! Synthesizing the digest is the first priority; each entry preserves both diverged versions.\n\n")
+    }
     if (isTRUE(x$adopted)) {
         cat(sprintf("Vault status: %s (via %s) [adopted]\n", x$vault, label))
         if (length(x$by_type) > 0L) {
@@ -101,7 +112,9 @@ status_adopted <- function(vault, src) {
     }
 
     result <- list(adopted = TRUE, by_type = by_type,
-                   total = nrow(page_rows), vault = vault, source = src)
+                   total = nrow(page_rows),
+                   merge_conflicts = merge_digest_pending(vault),
+                   vault = vault, source = src)
     class(result) <- "pensar_status"
     result
 }

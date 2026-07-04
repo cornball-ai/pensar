@@ -595,6 +595,19 @@ append_digest <- function(vault, entries) {
     invisible(fp)
 }
 
+#' Count unresolved entries in the merge-conflict digest
+#'
+#' Used by \code{status()} to declare pending synthesis loudly to any
+#' agent opening the vault.
+#' @noRd
+merge_digest_pending <- function(vault) {
+    fp <- file.path(vault, ".pensar", "merge-conflicts.md")
+    if (!file.exists(fp)) {
+        return(0L)
+    }
+    sum(grepl("^## ", readLines(fp, warn = FALSE)))
+}
+
 #' Digest file seed (header + resolution instructions)
 #' @noRd
 digest_seed <- function() {

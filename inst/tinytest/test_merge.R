@@ -45,7 +45,22 @@ pensar:::append_digest(vd, list(entry))
 pensar:::append_digest(vd, list(entry))
 digest_lines <- readLines(file.path(vd, ".pensar", "merge-conflicts.md"))
 expect_equal(sum(grepl("^## wiki/x.md", digest_lines)), 1L)
+
+# --- status() declares pending digest entries loudly ---
+st <- status(vd)
+expect_equal(st$merge_conflicts, 1L)
+banner <- capture.output(print(st))
+expect_true(any(grepl("unresolved merge conflict", banner)))
 unlink(vd, recursive = TRUE)
+
+vclean <- file.path(tempdir(),
+                    paste0("digest0-", format(Sys.time(), "%H%M%OS3")))
+init_vault(vclean, rproj = FALSE, agent_instructions = FALSE)
+st0 <- status(vclean)
+expect_equal(st0$merge_conflicts, 0L)
+expect_false(any(grepl("unresolved merge conflict",
+                       capture.output(print(st0)))))
+unlink(vclean, recursive = TRUE)
 
 if (nchar(Sys.which("git")) == 0L) {
     exit_file("git not available")

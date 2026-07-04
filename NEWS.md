@@ -8,7 +8,10 @@
   a strict-superset or lint-dominant wiki side wins automatically;
   prose divergence keeps the current branch's side with both full
   versions preserved in the digest. The auto-push flow uses the same
-  engine, so the vault is never left mid-rebase.
+  engine, so the vault is never left mid-rebase. The convention is
+  declared loudly to agents: `status()` banners pending digest
+  entries, the agent-instructions template opens with a FIRST-check
+  section, and `schema.md` documents the digest contract.
 * Multi-author second slice (#52): a rebase stopped only by derived
   files resolves itself. `index.md` is regenerated from the merged
   tree; `.pensar/manifest.yml` is unioned by path and pruned to pages
