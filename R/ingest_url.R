@@ -226,4 +226,3 @@ extract_html_title <- function(html) {
     title <- gsub("&gt;", ">", title, fixed = TRUE)
     title
 }
-

@@ -419,4 +419,3 @@ print.pensar_research <- function(x, ...) {
                stringsAsFactors = FALSE
     )
 }
-

@@ -143,8 +143,7 @@ push_all_remotes <- function(vault) {
         return(invisible(NULL))
     }
     branch <- tryCatch(
-                       system2("git",
-                               c("-C", vault, "rev-parse", "--abbrev-ref", "HEAD"),
+                       system2("git", c("-C", vault, "rev-parse", "--abbrev-ref", "HEAD"),
                                stdout = TRUE, stderr = FALSE),
                        error = function(e) character(0L)
     )
@@ -179,4 +178,3 @@ push_all_remotes <- function(vault) {
     }
     invisible(NULL)
 }
-

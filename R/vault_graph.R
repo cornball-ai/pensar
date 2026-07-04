@@ -166,4 +166,3 @@ category_from_path <- function(fp, vault) {
     }
     "unknown"
 }
-

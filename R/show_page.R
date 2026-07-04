@@ -79,4 +79,3 @@ print.pensar_page <- function(x, ...) {
 
     invisible(x)
 }
-

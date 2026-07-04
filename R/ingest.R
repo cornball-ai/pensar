@@ -86,4 +86,3 @@ ingest <- function(content,
     message("Ingested: ", basename(outpath))
     invisible(outpath)
 }
-

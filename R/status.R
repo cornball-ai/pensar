@@ -105,4 +105,3 @@ status_adopted <- function(vault, src) {
     class(result) <- "pensar_status"
     result
 }
-

@@ -32,4 +32,3 @@ pensar_skill_path <- function(skill = NULL) {
     }
     candidate
 }
-

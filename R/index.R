@@ -127,4 +127,3 @@ update_index_adopted <- function(vault) {
     writeLines(lines, file.path(vault, "index.md"))
     invisible(file.path(vault, "index.md"))
 }
-

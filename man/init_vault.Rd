@@ -60,8 +60,11 @@ The vault path, invisibly. Returns \code{NULL} invisibly when
 }
 \description{
 Creates the vault directory structure and seeds the control files:
-\code{schema.md}, \code{index.md}, \code{log.md}, and (by default)
-agent instruction files for Claude Code and Codex.
+\code{schema.md}, \code{index.md}, \code{log.md}, a
+\code{.gitattributes} marking \code{log.md} as \code{merge=union}
+(concurrent appends to the log from two vault clones merge cleanly
+instead of conflicting), and (by default) agent instruction files
+for Claude Code and Codex.
 }
 \examples{
 v <- tempfile("vault-")

@@ -20,4 +20,3 @@
 #'
 #' @keywords internal
 "_PACKAGE"
-

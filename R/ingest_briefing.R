@@ -59,4 +59,3 @@ infer_project_from_git <- function() {
     }
     basename(root)
 }
-

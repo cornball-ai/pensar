@@ -25,7 +25,12 @@ given message, and optionally pushes to remotes.
 \details{
 Honors the \code{PENSAR_AUTO_PUSH} environment variable: if set to
 \code{"0"} or \code{"false"} (case-insensitive), skips the push
-step. Otherwise, pushes to every configured remote.
+step. Otherwise, pushes to every configured remote. A rejected
+push (another author pushed first) is retried once after
+\code{git pull --rebase}; concurrent appends to \code{log.md}
+rebase cleanly because \code{init_vault()} marks it
+\code{merge=union}. A rebase that hits a real conflict is aborted,
+leaving the local commit unpushed for manual reconciliation.
 
 }
 \examples{

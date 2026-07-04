@@ -28,4 +28,3 @@ matches_pensarignore <- function(paths, patterns) {
         as.logical(m)
     }
 }
-

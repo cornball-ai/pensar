@@ -52,4 +52,3 @@ backlinks <- function(page, vault = default_vault()) {
 
     data.frame(source = sources, file = files, stringsAsFactors = FALSE)
 }
-

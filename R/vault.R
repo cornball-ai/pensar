@@ -405,4 +405,3 @@ index_seed <- function() {
 log_seed <- function() {
     c("---", "title: Vault Log", "type: log", "---", "", "# Vault Log", "")
 }
-

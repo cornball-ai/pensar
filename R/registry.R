@@ -233,4 +233,3 @@ registry_cache_put <- function(vault, cache, key, df) {
     }
     invisible(NULL)
 }
-
