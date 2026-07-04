@@ -5,10 +5,10 @@
 #'
 #' Creates the vault directory structure and seeds the control files:
 #' \code{schema.md}, \code{index.md}, \code{log.md}, a
-#' \code{.gitattributes} marking \code{log.md} as \code{merge=union}
-#' (concurrent appends to the log from two vault clones merge cleanly
-#' instead of conflicting), and (by default) agent instruction files
-#' for Claude Code and Codex.
+#' \code{.gitattributes} marking \code{log.md} and the merge-conflict
+#' digest as \code{merge=union} (concurrent appends from two vault
+#' clones merge cleanly instead of conflicting), and (by default)
+#' agent instruction files for Claude Code and Codex.
 #'
 #' @param path Path to the vault directory. No implicit default: pass
 #'   an explicit path, or configure one via \code{PENSAR_VAULT},
@@ -141,12 +141,17 @@ init_vault <- function(path = default_vault(), rproj = TRUE,
     writeLines(index_seed(), file.path(path, "index.md"))
     writeLines(log_seed(), file.path(path, "log.md"))
 
-    # Union-merge the append-only log so concurrent appends from two
-    # authors never git-conflict (#52). Guarded so a force = TRUE
-    # scaffold into foreign content can't clobber an existing file.
+    # Union-merge the append-only files so concurrent appends from two
+    # authors never git-conflict (#52): the operation log, and the
+    # merge-conflict digest (whose entries are self-contained blocks,
+    # so two digests concatenate instead of conflicting recursively).
+    # Guarded so a force = TRUE scaffold into foreign content can't
+    # clobber an existing file.
     gitattributes <- file.path(path, ".gitattributes")
     if (!file.exists(gitattributes)) {
-        writeLines("log.md merge=union", gitattributes)
+        writeLines(c("log.md merge=union",
+                     ".pensar/merge-conflicts.md merge=union"),
+                   gitattributes)
     }
 
     if (isTRUE(rproj)) {
@@ -186,8 +191,17 @@ agent_instructions_template <- function() {
     c("# Agent Instructions", "",
         "You're in a pensar vault. This is a knowledge base, not a code",
         "project. The content is plain markdown; the tooling is the",
-        "`pensar` R package.", "", "## What lives here", "", "```",
-        "raw/              immutable source documents",
+        "`pensar` R package.", "",
+        "## FIRST: check for unresolved merge conflicts", "",
+        "If `.pensar/merge-conflicts.md` exists, resolving it comes",
+        "before any other vault work (`pensar status` also announces",
+        "it). Each entry preserves both versions of a page that",
+        "diverged between vault authors and records which side was",
+        "kept automatically. For each entry: read both versions, drill",
+        "down into cited sources, edit the wiki page to synthesize",
+        "what both authors meant, then delete the entry. Delete the",
+        "file when no entries remain, then commit.", "", "## What lives here",
+        "", "```", "raw/              immutable source documents",
         "wiki/             LLM-maintained synthesis pages",
         "index.md          auto-generated catalog",
         "log.md            append-only operation log",
@@ -353,6 +367,24 @@ schema_template <- function() {
         "3. Cross-reference aggressively. If two pages relate, link them.",
         "4. Update index.md after adding or removing pages (via update_index()).",
         "5. Log all operations to log.md (via log_entry()).",
+        "",
+        "## Merge Conflicts Digest",
+        "",
+        "Multi-author vaults auto-resolve git conflicts mechanically",
+        "(vault_merge() / `pensar merge`). Genuine divergence -- two",
+        "authors editing the same page's prose -- is not discarded: one",
+        "side is kept on the page and BOTH full versions are preserved",
+        "in `.pensar/merge-conflicts.md`, the merge-conflict digest.",
+        "",
+        "**If the digest exists, synthesizing it is the first priority",
+        "for any agent working in this vault.** `pensar status` announces",
+        "it. For each entry: read both versions, drill down into cited",
+        "sources, edit the wiki page to synthesize both authors' intent,",
+        "then delete the entry. Delete the file when empty, then commit.",
+        "",
+        "The digest is committed and travels between authors; either",
+        "author's agent may resolve it. It uses plain paths, never",
+        "[[wikilinks]], so it stays out of the link graph.",
         "",
         "## .pensarignore",
         "",

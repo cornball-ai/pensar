@@ -166,7 +166,7 @@ status_d <- system2("git", c("-C", tmpD, "status", "--porcelain"),
                     stdout = TRUE, stderr = FALSE)
 expect_equal(length(status_d), 0L)
 
-# --- A real wiki conflict still aborts, vault left clean ---
+# --- Genuine wiki divergence: ours kept, both versions digested ---
 writeLines(c("---", "title: Topic", "---", "", "A's take."),
            file.path(tmpC, "wiki", "topic.md"))
 vault_commit("A writes topic", vault = tmpC, push = TRUE)
@@ -176,14 +176,28 @@ writeLines(c("---", "title: Topic", "---", "", "B's take."),
            file.path(tmpD, "wiki", "topic.md"))
 r_d <- vault_commit("B writes topic", vault = tmpD, push = TRUE)
 expect_true(r_d)
-# Remote kept A's version; B's commit stays local for reconciliation
+# The push went through: upstream (A's) side kept on the page
 remote_topic <- system2("git",
                         c("-C", bare2, "show", "main:wiki/topic.md"),
                         stdout = TRUE, stderr = FALSE)
 expect_true(any(grepl("A's take", remote_topic)))
+# Both versions preserved in the committed digest
+remote_digest <- system2("git",
+                         c("-C", bare2, "show",
+                           "main:.pensar/merge-conflicts.md"),
+                         stdout = TRUE, stderr = FALSE)
+expect_true(any(grepl("prose-divergence", remote_digest)))
+expect_true(any(grepl("A's take", remote_digest)))
+expect_true(any(grepl("B's take", remote_digest)))
+# No wikilinks in the digest outside embedded code fences
+stripped_digest <- pensar:::strip_code(remote_digest)
+expect_false(any(grepl("\\[\\[", stripped_digest)))
+# B's clone is clean, on the resolved state
 expect_false(pensar:::rebase_in_progress(tmpD))
 local_topic <- readLines(file.path(tmpD, "wiki", "topic.md"))
-expect_true(any(grepl("B's take", local_topic)))
+expect_true(any(grepl("A's take", local_topic)))
+expect_true(file.exists(file.path(tmpD, ".pensar",
+                                  "merge-conflicts.md")))
 status_d2 <- system2("git", c("-C", tmpD, "status", "--porcelain"),
                      stdout = TRUE, stderr = FALSE)
 expect_equal(length(status_d2), 0L)
