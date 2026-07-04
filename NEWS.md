@@ -1,3 +1,11 @@
+# pensar 0.6.4.1 (development)
+
+* Multi-author first slice (#52): `init_vault()` scaffolds a
+  `.gitattributes` marking `log.md` as `merge=union`, and a rejected
+  auto-push now retries once after `git pull --rebase` (aborting the
+  rebase on a real conflict). Concurrent log appends from two vault
+  clones no longer git-conflict.
+
 # pensar 0.6.4
 
 ## New features

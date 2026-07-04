@@ -143,4 +143,3 @@ find_page <- function(page, vault) {
 
     NULL
 }
-

@@ -184,4 +184,3 @@ print.pensar_lint <- function(x, ...) {
 
     invisible(x)
 }
-

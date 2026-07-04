@@ -23,4 +23,3 @@ log_entry <- function(message, operation = "note", vault = default_vault()) {
     cat(entry, "\n", sep = "", file = log_path, append = TRUE)
     invisible(NULL)
 }
-

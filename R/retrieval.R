@@ -326,4 +326,3 @@ extract_body <- function(filepath, n_chars = NULL) {
         substring(body, 1L, n_chars)
     }
 }
-

@@ -9,7 +9,12 @@
 #'
 #' Honors the \code{PENSAR_AUTO_PUSH} environment variable: if set to
 #' \code{"0"} or \code{"false"} (case-insensitive), skips the push
-#' step. Otherwise, pushes to every configured remote.
+#' step. Otherwise, pushes to every configured remote. A rejected
+#' push (another author pushed first) is retried once after
+#' \code{git pull --rebase}; concurrent appends to \code{log.md}
+#' rebase cleanly because \code{init_vault()} marks it
+#' \code{merge=union}. A rebase that hits a real conflict is aborted,
+#' leaving the local commit unpushed for manual reconciliation.
 #'
 #' @param message Commit message.
 #' @param vault Path to the vault directory.
@@ -121,6 +126,13 @@ vault_is_pensar_owned <- function(path) {
 }
 
 #' Push to all configured remotes (best-effort, errors swallowed)
+#'
+#' A rejected push (commonly a non-fast-forward because another vault
+#' author pushed first) triggers one \code{git pull --rebase} + retry.
+#' \code{log.md} is union-merged via the scaffolded
+#' \code{.gitattributes}, so the rebase is conflict-free for
+#' concurrent log appends (#52). A rebase that does conflict is
+#' aborted: the vault is never left mid-rebase.
 #' @noRd
 push_all_remotes <- function(vault) {
     remotes <- tryCatch(
@@ -130,13 +142,39 @@ push_all_remotes <- function(vault) {
     if (length(remotes) == 0L) {
         return(invisible(NULL))
     }
+    branch <- tryCatch(
+                       system2("git", c("-C", vault, "rev-parse", "--abbrev-ref", "HEAD"),
+                               stdout = TRUE, stderr = FALSE),
+                       error = function(e) character(0L)
+    )
     for (r in remotes) {
-        tryCatch(
-                 system2("git", c("-C", vault, "push", r), stdout = FALSE,
-                         stderr = FALSE),
-                 error = function(e) NULL
+        pushed <- tryCatch(
+                           system2("git", c("-C", vault, "push", r), stdout = FALSE,
+                                   stderr = FALSE),
+                           error = function(e) 1L
         )
+        if (pushed == 0L || length(branch) != 1L || branch == "HEAD") {
+            next
+        }
+        rebased <- tryCatch(
+                            system2("git",
+                                    c("-C", vault, "pull", "--rebase", r, branch),
+                                    stdout = FALSE, stderr = FALSE),
+                            error = function(e) 1L
+        )
+        if (rebased == 0L) {
+            tryCatch(
+                     system2("git", c("-C", vault, "push", r), stdout = FALSE,
+                             stderr = FALSE),
+                     error = function(e) NULL
+            )
+        } else {
+            tryCatch(
+                     system2("git", c("-C", vault, "rebase", "--abort"),
+                             stdout = FALSE, stderr = FALSE),
+                     error = function(e) NULL
+            )
+        }
     }
     invisible(NULL)
 }
-

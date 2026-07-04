@@ -85,4 +85,3 @@ ingest_agent_context <- function(agent = c("claude", "codex", "corteza"),
                  tags = c("agent-context", agent), vault = vault)
     invisible(substring(fp, nchar(vault) + 2L))
 }
-

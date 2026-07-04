@@ -296,4 +296,3 @@ rewrite_wikilinks_in_wiki <- function(vault, rename_pairs) {
     }
     invisible()
 }
-

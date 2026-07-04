@@ -278,4 +278,3 @@ format_repo_snapshot <- function(path, git_meta, files) {
         "## Recent commits",
         recent_lines)
 }
-

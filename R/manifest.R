@@ -174,4 +174,3 @@ empty_manifest <- function() {
     list(version = 1L, created = format(Sys.Date(), "%Y-%m-%d"),
          sources = list(), address_map = list())
 }
-

@@ -165,7 +165,11 @@ incremental_render_set <- function(all_md, rel_md, src_hash, page_map,
     # `[[` on a named atomic vector errors on an absent name; look up by
     # presence and fall back to NA so new/removed keys are handled.
     lk <- function(vec, nm) {
-        if (nm %in% names(vec)) unname(vec[[nm]]) else NA_character_
+        if (nm %in% names(vec)) {
+            unname(vec[[nm]])
+        } else {
+            NA_character_
+        }
     }
 
     changed <- vapply(seq_along(rel_md), function(i) {
@@ -474,4 +478,3 @@ write_site_index <- function(all_md, vault, out_dir) {
     )
     writeLines(html, file.path(out_dir, "index.html"))
 }
-

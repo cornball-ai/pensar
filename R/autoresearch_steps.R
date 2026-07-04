@@ -564,15 +564,23 @@ autoresearch_write_pages <- function(pages, vault, program, overwrite = TRUE,
         stop("search_backend() result missing column(s): ",
              paste(missing, collapse = ", "), call. = FALSE)
     }
-    date <- if ("date" %in% names(x)) as.character(x$date) else rep("", nrow(x))
-    source <- if ("source" %in% names(x)) as.character(x$source) else rep("", nrow(x))
+    if ("date" %in% names(x)) {
+        date <- as.character(x$date)
+    } else {
+        date <- rep("", nrow(x))
+    }
+    if ("source" %in% names(x)) {
+        source <- as.character(x$source)
+    } else {
+        source <- rep("", nrow(x))
+    }
     out <- data.frame(
-        title = as.character(x$title),
-        url = as.character(x$url),
-        snippet = as.character(x$snippet),
-        date = date,
-        source = source,
-        stringsAsFactors = FALSE)
+                      title = as.character(x$title),
+                      url = as.character(x$url),
+                      snippet = as.character(x$snippet),
+                      date = date,
+                      source = source,
+                      stringsAsFactors = FALSE)
     out <- out[nzchar(out$url),, drop = FALSE]
     rownames(out) <- NULL
     out
@@ -746,4 +754,3 @@ autoresearch_write_pages <- function(pages, vault, program, overwrite = TRUE,
                sources = character(), aliases = character(),
                tags = character(), stringsAsFactors = FALSE)
 }
-

@@ -326,4 +326,3 @@
     }
     substr(pieces[[1L]], 1L, 240L)
 }
-

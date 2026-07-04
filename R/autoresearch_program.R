@@ -118,4 +118,3 @@ load_autoresearch_program <- function(vault = default_vault(), program = NULL) {
     }
     program
 }
-

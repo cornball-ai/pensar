@@ -351,4 +351,3 @@ write_tags_proposals <- function(vault, used, unknown, unused_taxonomy,
     writeLines(lines, out_path)
     invisible(out_path)
 }
-

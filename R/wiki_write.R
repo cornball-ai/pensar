@@ -86,4 +86,3 @@ write_wiki_page <- function(slug, frontmatter, body, vault = default_vault(),
     }
     merged
 }
-
