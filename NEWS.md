@@ -1,5 +1,14 @@
-# pensar 0.6.4.2 (development)
+# pensar 0.6.4.3 (development)
 
+* Multi-author third slice (#52): new `vault_merge()` (CLI:
+  `pensar merge`) resolves a stopped git merge or rebase mechanically
+  and files genuine divergence into a committed digest at
+  `.pensar/merge-conflicts.md` for LLM synthesis. Raw add/add
+  collisions keep both files (incoming renamed, manifest re-keyed);
+  a strict-superset or lint-dominant wiki side wins automatically;
+  prose divergence keeps the current branch's side with both full
+  versions preserved in the digest. The auto-push flow uses the same
+  engine, so the vault is never left mid-rebase.
 * Multi-author second slice (#52): a rebase stopped only by derived
   files resolves itself. `index.md` is regenerated from the merged
   tree; `.pensar/manifest.yml` is unioned by path and pruned to pages
