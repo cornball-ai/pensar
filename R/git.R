@@ -213,9 +213,8 @@ resolve_derived_conflicts <- function(vault) {
         }
         conflicted <- tryCatch(
                                suppressWarnings(system2("git",
-                                                        c("-C", vault, "diff", "--name-only",
-                                                          "--diff-filter=U"),
-                                                        stdout = TRUE, stderr = FALSE)),
+                    c("-C", vault, "diff", "--name-only", "--diff-filter=U"),
+                    stdout = TRUE, stderr = FALSE)),
                                error = function(e) character(0L)
         )
         if (length(conflicted) == 0L || !all(conflicted %in% derived)) {
@@ -261,9 +260,9 @@ merge_conflicted_manifest <- function(vault) {
     read_stage <- function(stage) {
         txt <- tryCatch(
                         suppressWarnings(system2("git",
-                                                 c("-C", vault, "show",
-                                                   sprintf(":%d:.pensar/manifest.yml", stage)),
-                                                 stdout = TRUE, stderr = FALSE)),
+                    c("-C", vault, "show",
+                        sprintf(":%d:.pensar/manifest.yml", stage)),
+                    stdout = TRUE, stderr = FALSE)),
                         error = function(e) character(0L)
         )
         parsed <- tryCatch(yaml::yaml.load(paste(txt, collapse = "\n")),

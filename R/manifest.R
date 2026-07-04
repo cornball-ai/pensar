@@ -201,7 +201,7 @@ merge_manifest_structs <- function(ours, theirs, vault) {
             next
         }
         sources[[p]] <- pick_manifest_record(ours$sources[[p]],
-                                             theirs$sources[[p]], fp)
+            theirs$sources[[p]], fp)
     }
 
     address_map <- list()
@@ -263,7 +263,11 @@ pick_manifest_record <- function(a, b, fp) {
     }
     ta <- as.character(a$ingested_at %||% "")[1L]
     tb <- as.character(b$ingested_at %||% "")[1L]
-    chosen <- if (ta <= tb) a else b
+    if (ta <= tb) {
+        chosen <- a
+    } else {
+        chosen <- b
+    }
     if (!a_match && !b_match && !is.null(tree_hash)) {
         chosen$hash <- tree_hash
     }
