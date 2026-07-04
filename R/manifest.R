@@ -55,6 +55,15 @@ read_manifest <- function(vault) {
                 call. = FALSE)
         NULL
     })
+    normalize_manifest(parsed, fp)
+}
+
+#' Normalize a parsed manifest into the canonical struct
+#'
+#' Shared by \code{read_manifest()} and the merge path, which parses
+#' manifest text from git index stages rather than a file.
+#' @noRd
+normalize_manifest <- function(parsed, fp = "<manifest>") {
     if (!is.list(parsed)) {
         return(empty_manifest())
     }
@@ -173,4 +182,90 @@ update_manifest <- function(vault, source = NULL, path = NULL,
 empty_manifest <- function() {
     list(version = 1L, created = format(Sys.Date(), "%Y-%m-%d"),
          sources = list(), address_map = list())
+}
+
+#' Merge two manifest structs against a merged vault tree
+#'
+#' Union by path key, pruned to paths that exist in the tree (#52).
+#' The manifest records ingest provenance, which cannot be regenerated
+#' from files: union preserves it, pruning drops entries whose page no
+#' longer exists after the merge. The result is independent of which
+#' side is "ours": record conflicts are settled by hash match against
+#' the merged file, then by earlier \code{ingested_at}.
+#' @noRd
+merge_manifest_structs <- function(ours, theirs, vault) {
+    sources <- list()
+    for (p in union(names(ours$sources), names(theirs$sources))) {
+        fp <- file.path(vault, p)
+        if (!file.exists(fp)) {
+            next
+        }
+        sources[[p]] <- pick_manifest_record(ours$sources[[p]],
+                                             theirs$sources[[p]], fp)
+    }
+
+    address_map <- list()
+    for (p in union(names(ours$address_map), names(theirs$address_map))) {
+        fp <- file.path(vault, p)
+        if (!file.exists(fp)) {
+            next
+        }
+        a <- ours$address_map[[p]]
+        b <- theirs$address_map[[p]]
+        if (is.null(a) || is.null(b) || identical(a, b)) {
+            address_map[[p]] <- a %||% b
+        } else {
+            # Disagreement: the merged page's own frontmatter is the
+            # authority for its uid (the registry derives it the same
+            # way). Fall back to a symmetric tie-break.
+            fm <- tryCatch(parse_frontmatter(fp), error = function(e) NULL)
+            uid <- fm$id %||% fm$address
+            if (is.null(uid) || is.list(uid) || length(uid) != 1L) {
+                uid <- min(as.character(a)[1L], as.character(b)[1L])
+            }
+            address_map[[p]] <- as.character(uid)
+        }
+    }
+
+    list(version = max(ours$version %||% 1L, theirs$version %||% 1L),
+         created = min(ours$created, theirs$created),
+         sources = sources, address_map = address_map)
+}
+
+#' Pick one of two per-path manifest records
+#'
+#' The record whose \code{hash} matches the merged file wins; ties go
+#' to the earlier \code{ingested_at} (the original ingest). When
+#' neither hash matches (a regenerated-in-place artifact, e.g. an
+#' \code{ingest_repo()} overwrite), the kept record's hash is
+#' refreshed so it describes the file that actually exists.
+#' @noRd
+pick_manifest_record <- function(a, b, fp) {
+    if (!is.list(b)) {
+        return(a)
+    }
+    if (!is.list(a)) {
+        return(b)
+    }
+    if (identical(a, b)) {
+        return(a)
+    }
+    tree_hash <- tryCatch(
+                          paste0("sha1:", digest::digest(file = fp, algo = "sha1")),
+                          error = function(e) NULL)
+    a_match <- !is.null(tree_hash) && identical(a$hash, tree_hash)
+    b_match <- !is.null(tree_hash) && identical(b$hash, tree_hash)
+    if (a_match && !b_match) {
+        return(a)
+    }
+    if (b_match && !a_match) {
+        return(b)
+    }
+    ta <- as.character(a$ingested_at %||% "")[1L]
+    tb <- as.character(b$ingested_at %||% "")[1L]
+    chosen <- if (ta <= tb) a else b
+    if (!a_match && !b_match && !is.null(tree_hash)) {
+        chosen$hash <- tree_hash
+    }
+    chosen
 }

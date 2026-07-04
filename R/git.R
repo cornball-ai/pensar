@@ -131,8 +131,11 @@ vault_is_pensar_owned <- function(path) {
 #' author pushed first) triggers one \code{git pull --rebase} + retry.
 #' \code{log.md} is union-merged via the scaffolded
 #' \code{.gitattributes}, so the rebase is conflict-free for
-#' concurrent log appends (#52). A rebase that does conflict is
-#' aborted: the vault is never left mid-rebase.
+#' concurrent log appends (#52). A rebase stopped only by derived
+#' files (\code{index.md}, \code{.pensar/manifest.yml}) is resolved
+#' mechanically via \code{resolve_derived_conflicts()}; any other
+#' conflict aborts the whole rebase, so the vault is never left
+#' mid-rebase.
 #' @noRd
 push_all_remotes <- function(vault) {
     remotes <- tryCatch(
@@ -162,19 +165,114 @@ push_all_remotes <- function(vault) {
                                     stdout = FALSE, stderr = FALSE),
                             error = function(e) 1L
         )
-        if (rebased == 0L) {
-            tryCatch(
-                     system2("git", c("-C", vault, "push", r), stdout = FALSE,
-                             stderr = FALSE),
-                     error = function(e) NULL
-            )
-        } else {
-            tryCatch(
-                     system2("git", c("-C", vault, "rebase", "--abort"),
-                             stdout = FALSE, stderr = FALSE),
-                     error = function(e) NULL
-            )
+        if (rebased != 0L) {
+            resolved <- rebase_in_progress(vault) &&
+            tryCatch(resolve_derived_conflicts(vault),
+                     error = function(e) FALSE)
+            if (!resolved) {
+                tryCatch(
+                         system2("git", c("-C", vault, "rebase", "--abort"),
+                                 stdout = FALSE, stderr = FALSE),
+                         error = function(e) NULL
+                )
+                next
+            }
         }
+        tryCatch(
+                 system2("git", c("-C", vault, "push", r), stdout = FALSE,
+                         stderr = FALSE),
+                 error = function(e) NULL
+        )
     }
     invisible(NULL)
+}
+
+#' Is a rebase currently stopped in this repo?
+#' @noRd
+rebase_in_progress <- function(vault) {
+    dir.exists(file.path(vault, ".git", "rebase-merge")) ||
+    dir.exists(file.path(vault, ".git", "rebase-apply"))
+}
+
+#' Resolve a stopped rebase whose conflicts are all derived files
+#'
+#' \code{index.md} is regenerated from the merged tree (it's fully
+#' derived); \code{.pensar/manifest.yml} is unioned by path and pruned
+#' to the tree (it's provenance, so it can't be regenerated). The
+#' rebase is then continued, repeating for sequentially conflicting
+#' picks. Returns \code{TRUE} when the rebase ran to completion,
+#' \code{FALSE} on any conflict outside the derived set or any
+#' unexpected stop -- the caller aborts the whole rebase then, so a
+#' partial resolution never survives.
+#' @noRd
+resolve_derived_conflicts <- function(vault) {
+    derived <- c("index.md", ".pensar/manifest.yml")
+    for (i in seq_len(50L)) {
+        if (!rebase_in_progress(vault)) {
+            return(TRUE)
+        }
+        conflicted <- tryCatch(
+                               suppressWarnings(system2("git",
+                                                        c("-C", vault, "diff", "--name-only",
+                                                          "--diff-filter=U"),
+                                                        stdout = TRUE, stderr = FALSE)),
+                               error = function(e) character(0L)
+        )
+        if (length(conflicted) == 0L || !all(conflicted %in% derived)) {
+            return(FALSE)
+        }
+        if (".pensar/manifest.yml" %in% conflicted &&
+            !merge_conflicted_manifest(vault)) {
+            return(FALSE)
+        }
+        if ("index.md" %in% conflicted) {
+            update_index(vault)
+        }
+        added <- system2("git", c("-C", vault, "add", "--", conflicted),
+                         stdout = FALSE, stderr = FALSE)
+        if (added != 0L) {
+            return(FALSE)
+        }
+        # An empty pick (regeneration reproduced HEAD exactly) can't
+        # be committed; skip it instead.
+        staged <- system2("git", c("-C", vault, "diff", "--cached", "--quiet"),
+                          stdout = FALSE, stderr = FALSE)
+        if (staged == 0L) {
+            system2("git", c("-C", vault, "rebase", "--skip"),
+                    stdout = FALSE, stderr = FALSE)
+        } else {
+            system2("git",
+                    c("-C", vault, "-c", "core.editor=true", "rebase",
+                      "--continue"),
+                    stdout = FALSE, stderr = FALSE)
+        }
+    }
+    FALSE
+}
+
+#' Merge a conflicted .pensar/manifest.yml from its git index stages
+#'
+#' Reads ours (stage 2) and theirs (stage 3) out of the git index,
+#' unions them by path against the merged working tree, and writes the
+#' result over the conflict markers. A side whose stage is missing
+#' (delete/modify, add/add) or unparseable contributes nothing.
+#' @noRd
+merge_conflicted_manifest <- function(vault) {
+    read_stage <- function(stage) {
+        txt <- tryCatch(
+                        suppressWarnings(system2("git",
+                                                 c("-C", vault, "show",
+                                                   sprintf(":%d:.pensar/manifest.yml", stage)),
+                                                 stdout = TRUE, stderr = FALSE)),
+                        error = function(e) character(0L)
+        )
+        parsed <- tryCatch(yaml::yaml.load(paste(txt, collapse = "\n")),
+                           error = function(e) NULL)
+        suppressWarnings(normalize_manifest(parsed))
+    }
+    merged <- merge_manifest_structs(read_stage(2L), read_stage(3L), vault)
+    tryCatch({
+        yaml::write_yaml(merged, file.path(vault, ".pensar", "manifest.yml"))
+        TRUE
+    }, error = function(e) FALSE)
 }
