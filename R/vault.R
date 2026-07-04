@@ -5,10 +5,10 @@
 #'
 #' Creates the vault directory structure and seeds the control files:
 #' \code{schema.md}, \code{index.md}, \code{log.md}, a
-#' \code{.gitattributes} marking \code{log.md} as \code{merge=union}
-#' (concurrent appends to the log from two vault clones merge cleanly
-#' instead of conflicting), and (by default) agent instruction files
-#' for Claude Code and Codex.
+#' \code{.gitattributes} marking \code{log.md} and the merge-conflict
+#' digest as \code{merge=union} (concurrent appends from two vault
+#' clones merge cleanly instead of conflicting), and (by default)
+#' agent instruction files for Claude Code and Codex.
 #'
 #' @param path Path to the vault directory. No implicit default: pass
 #'   an explicit path, or configure one via \code{PENSAR_VAULT},
@@ -141,12 +141,17 @@ init_vault <- function(path = default_vault(), rproj = TRUE,
     writeLines(index_seed(), file.path(path, "index.md"))
     writeLines(log_seed(), file.path(path, "log.md"))
 
-    # Union-merge the append-only log so concurrent appends from two
-    # authors never git-conflict (#52). Guarded so a force = TRUE
-    # scaffold into foreign content can't clobber an existing file.
+    # Union-merge the append-only files so concurrent appends from two
+    # authors never git-conflict (#52): the operation log, and the
+    # merge-conflict digest (whose entries are self-contained blocks,
+    # so two digests concatenate instead of conflicting recursively).
+    # Guarded so a force = TRUE scaffold into foreign content can't
+    # clobber an existing file.
     gitattributes <- file.path(path, ".gitattributes")
     if (!file.exists(gitattributes)) {
-        writeLines("log.md merge=union", gitattributes)
+        writeLines(c("log.md merge=union",
+                     ".pensar/merge-conflicts.md merge=union"),
+                   gitattributes)
     }
 
     if (isTRUE(rproj)) {
@@ -224,6 +229,14 @@ agent_instructions_template <- function() {
         "`vault_export()`. Per CRAN policy pensar will not silently",
         "render to a home-filespace cache. Run after any wiki edit or",
         "ingest so downstream viewers show current state.", "",
+        "## Merge conflicts digest (first priority)", "",
+        "If `.pensar/merge-conflicts.md` exists, resolving it comes",
+        "before any other vault work. Each entry preserves both",
+        "versions of a page that diverged between authors and records",
+        "which side was kept automatically. For each entry: read both",
+        "versions, drill down into cited sources, edit the wiki page",
+        "to synthesize what both authors meant, then delete the entry.",
+        "Delete the file when no entries remain, then commit.", "",
         "## When something seems off", "",
         "Run `pensar lint`. It surfaces orphans (no backlinks), broken",
         "wikilinks, and tag clusters with no wiki synthesis.", "",
