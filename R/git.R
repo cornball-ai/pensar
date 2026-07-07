@@ -19,10 +19,15 @@
 #' \code{push = TRUE} pushes the enclosing repo's branch with a single
 #' plain push (no rebase-retry automation).
 #'
-#' For a vault that is its own repo, the \code{PENSAR_AUTO_PUSH}
-#' environment variable is honored: if set to \code{"0"} or
-#' \code{"false"} (case-insensitive), the push step is skipped.
-#' Otherwise, pushes to every configured remote. A rejected push
+#' For a vault that is its own repo, the push default is
+#' configurable at two levels. Per vault: set \code{auto_push: false}
+#' in \code{schema.md} frontmatter to turn auto-push off for that
+#' vault alone (\code{auto_push: true} likewise forces it on,
+#' overriding the environment). Per machine: the
+#' \code{PENSAR_AUTO_PUSH} environment variable, where \code{"0"} or
+#' \code{"false"} (case-insensitive) skips the push step. The
+#' explicit \code{push} argument beats both. When nothing is
+#' configured, pushes go to every configured remote. A rejected push
 #' (another author pushed first) is retried once after
 #' \code{git pull --rebase}; concurrent appends to \code{log.md}
 #' rebase cleanly because \code{init_vault()} marks it
@@ -82,7 +87,7 @@ vault_commit <- function(message, vault = default_vault(), push = NULL) {
     if (nested) {
         do_push <- isTRUE(push)
     } else {
-        do_push <- should_push(push)
+        do_push <- should_push(push, vault)
     }
     if (do_push) {
         push_all_remotes(vault, rebase_retry = !nested)
@@ -161,10 +166,26 @@ vault_git_dir <- function(vault) {
     out
 }
 
+#' Decide whether to push after a commit
+#'
+#' Precedence: explicit \code{push} argument, then the vault's own
+#' \code{auto_push:} setting in \code{schema.md} frontmatter, then the
+#' \code{PENSAR_AUTO_PUSH} environment variable, then the default
+#' (push). The schema setting is vault-local, so a personal vault can
+#' opt out of auto-push while a shared vault on the same machine keeps
+#' it.
 #' @noRd
-should_push <- function(push) {
+should_push <- function(push, vault = NULL) {
     if (!is.null(push)) {
         return(isTRUE(push))
+    }
+    if (!is.null(vault)) {
+        fm <- tryCatch(parse_frontmatter(file.path(vault, "schema.md")),
+                       error = function(e) list())
+        ap <- fm$auto_push
+        if (is.logical(ap) && length(ap) == 1L && !is.na(ap)) {
+            return(ap)
+        }
     }
     env <- tolower(Sys.getenv("PENSAR_AUTO_PUSH", unset = "true"))
     !(env %in% c("0", "false", "no", "off", ""))
