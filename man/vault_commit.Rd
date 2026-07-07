@@ -10,26 +10,41 @@ vault_commit(message, vault = default_vault(), push = NULL)
 
 \item{vault}{Path to the vault directory.}
 
-\item{push}{If \code{NULL} (default), honors \code{PENSAR_AUTO_PUSH}.
-Pass \code{TRUE} or \code{FALSE} to override.}
+\item{push}{If \code{NULL} (default), honors \code{PENSAR_AUTO_PUSH}
+(own-repo vaults) or skips the push (nested vaults). Pass
+\code{TRUE} or \code{FALSE} to override.}
 }
 \value{
 \code{TRUE} if a commit was made, \code{FALSE} otherwise
   (invisibly).
 }
 \description{
-No-op if the vault is not a git repo or if there are no changes.
-Stages all changes (respecting \code{.gitignore}), commits with the
-given message, and optionally pushes to remotes.
+No-op if the vault is not inside a git repo or if there are no
+changes. Stages all changes under the vault (respecting
+\code{.gitignore}), commits with the given message, and optionally
+pushes to remotes.
 }
 \details{
-Honors the \code{PENSAR_AUTO_PUSH} environment variable: if set to
-\code{"0"} or \code{"false"} (case-insensitive), skips the push
-step. Otherwise, pushes to every configured remote. A rejected
-push (another author pushed first) is retried once after
+The vault may be its own repo, or \strong{nested} inside a larger
+repo (e.g. a project repo with the vault at \code{vault/}). Nested
+vaults are handled conservatively: staging and the commit are
+scoped to the vault subtree, so unrelated changes elsewhere in the
+enclosing repo -- dirty or even already staged -- are never swept
+into a pensar commit. Nested vaults also \strong{never auto-push}:
+\code{PENSAR_AUTO_PUSH} is ignored, since pushing the enclosing
+repo could carry unrelated unpushed commits. An explicit
+\code{push = TRUE} pushes the enclosing repo's branch with a single
+plain push (no rebase-retry automation).
+
+For a vault that is its own repo, the \code{PENSAR_AUTO_PUSH}
+environment variable is honored: if set to \code{"0"} or
+\code{"false"} (case-insensitive), the push step is skipped.
+Otherwise, pushes to every configured remote. A rejected push
+(another author pushed first) is retried once after
 \code{git pull --rebase}; concurrent appends to \code{log.md}
 rebase cleanly because \code{init_vault()} marks it
-\code{merge=union}. A rebase that hits a real conflict is aborted,
+\code{merge=union}, and a stopped rebase is resolved by the
+\code{vault_merge()} engine. A rebase that still fails is aborted,
 leaving the local commit unpushed for manual reconciliation.
 
 }

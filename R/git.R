@@ -57,8 +57,8 @@ vault_commit <- function(message, vault = default_vault(), push = NULL) {
     # Stage all changes under the vault subtree. For an own-repo vault
     # the "." pathspec covers the whole repo; for a nested vault it
     # scopes staging so the enclosing repo is never swept.
-    system2("git", c("-C", vault, "add", "-A", "--", "."),
-            stdout = FALSE, stderr = FALSE)
+    system2("git", c("-C", vault, "add", "-A", "--", "."), stdout = FALSE,
+            stderr = FALSE)
 
     # Check if anything to commit
     status <- system2("git", c("-C", vault, "status", "--porcelain", "--", "."),
@@ -74,13 +74,16 @@ vault_commit <- function(message, vault = default_vault(), push = NULL) {
     if (nested) {
         commit_args <- c(commit_args, "--", ".")
     }
-    commit_status <- system2("git", commit_args, stdout = FALSE,
-                             stderr = FALSE)
+    commit_status <- system2("git", commit_args, stdout = FALSE, stderr = FALSE)
     if (commit_status != 0L) {
         return(invisible(FALSE))
     }
 
-    do_push <- if (nested) isTRUE(push) else should_push(push)
+    if (nested) {
+        do_push <- isTRUE(push)
+    } else {
+        do_push <- should_push(push)
+    }
     if (do_push) {
         push_all_remotes(vault, rebase_retry = !nested)
     }
@@ -99,8 +102,8 @@ vault_repo_root <- function(vault) {
     }
     out <- tryCatch(
                     suppressWarnings(system2("git",
-                                             c("-C", vault, "rev-parse", "--show-toplevel"),
-                                             stdout = TRUE, stderr = FALSE)),
+                c("-C", vault, "rev-parse", "--show-toplevel"),
+                stdout = TRUE, stderr = FALSE)),
                     error = function(e) character(0L)
     )
     status <- attr(out, "status")
@@ -118,8 +121,8 @@ vault_repo_root <- function(vault) {
 vault_git_prefix <- function(vault) {
     out <- tryCatch(
                     suppressWarnings(system2("git",
-                                             c("-C", vault, "rev-parse", "--show-prefix"),
-                                             stdout = TRUE, stderr = FALSE)),
+                c("-C", vault, "rev-parse", "--show-prefix"),
+                stdout = TRUE, stderr = FALSE)),
                     error = function(e) NULL
     )
     status <- attr(out, "status")
@@ -144,8 +147,8 @@ vault_is_nested <- function(vault) {
 vault_git_dir <- function(vault) {
     out <- tryCatch(
                     suppressWarnings(system2("git",
-                                             c("-C", vault, "rev-parse", "--absolute-git-dir"),
-                                             stdout = TRUE, stderr = FALSE)),
+                c("-C", vault, "rev-parse", "--absolute-git-dir"),
+                stdout = TRUE, stderr = FALSE)),
                     error = function(e) character(0L)
     )
     status <- attr(out, "status")

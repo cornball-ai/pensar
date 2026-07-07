@@ -44,6 +44,14 @@ class), so re-running the resolution is idempotent. Entries embed
 both full versions inside code fences and use plain paths, never
 wikilinks, so the digest stays out of the link graph.
 
+\strong{Nested vaults} (a vault directory inside a larger repo)
+are resolved conservatively: only conflicts under the vault
+subtree are touched. If the stopped merge or rebase also has
+conflicts outside the vault, the vault resolutions are staged and
+the merge/rebase is left in place for the human to finish; pensar
+never completes a merge that still has non-vault conflicts, and
+never aborts one it did not start.
+
 }
 \examples{
 v <- tempfile("vault-")

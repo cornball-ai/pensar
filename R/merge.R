@@ -128,7 +128,7 @@ outside_conflict_count <- function(vault) {
     root <- vault_repo_root(vault)
     out <- tryCatch(
                     suppressWarnings(system2("git", c("-C", root, "ls-files", "-u"),
-                                             stdout = TRUE, stderr = FALSE)),
+                stdout = TRUE, stderr = FALSE)),
                     error = function(e) character(0L)
     )
     if (length(out) == 0L) {
@@ -338,7 +338,7 @@ read_stage_lines <- function(vault, stage, path) {
     lines <- tryCatch(
                       suppressWarnings(system2("git",
                 c("-C", vault, "show",
-                  sprintf(":%d:./%s", stage, shQuote(path))),
+                    sprintf(":%d:./%s", stage, shQuote(path))),
                 stdout = TRUE, stderr = FALSE)),
                       error = function(e) NULL
     )
