@@ -43,7 +43,11 @@
 #'   \code{force = TRUE}.
 #' @param commit Auto-commit gate. \code{NULL} (default) commits the
 #'   initial scaffold only when the target directory is pensar-owned
-#'   (empty, or already shaped like a pensar vault). \code{TRUE} commits
+#'   (empty, or already shaped like a pensar vault) \emph{and} the
+#'   vault is its own repo root (or outside git entirely). A vault
+#'   nested inside a larger repo skips the auto-commit: initializing
+#'   a vault subdirectory does not by itself grant permission to
+#'   write to the enclosing project's history. \code{TRUE} commits
 #'   unconditionally (after \code{force = TRUE} writes); \code{FALSE}
 #'   skips the commit even for pensar-owned directories. Forcing pensar
 #'   into foreign content does not by itself grant permission to commit
@@ -169,11 +173,13 @@ init_vault <- function(path = default_vault(), rproj = TRUE,
 
     # Commit gate is separate from the write gate.
     # commit = NULL (default): auto-commit iff the dir was pensar-owned
-    #   before scaffolding. Forcing into foreign content does NOT imply
-    #   permission to commit to its history.
+    #   before scaffolding AND the vault is not nested inside a larger
+    #   repo -- a fresh vault subdirectory inside a project repo should
+    #   not write to that project's history without explicit permission.
+    #   Forcing into foreign content does NOT imply permission either.
     # commit = TRUE / FALSE: explicit override.
     if (is.null(commit)) {
-        should_commit <- pensar_owned
+        should_commit <- pensar_owned && !vault_is_nested(path)
     } else {
         should_commit <- isTRUE(commit)
     }
