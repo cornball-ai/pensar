@@ -1,3 +1,17 @@
+# pensar 0.6.4.5 (development)
+
+* Nested vaults (a vault directory inside a larger git repo, e.g.
+  `<project>/vault/`) now work with the git machinery. Staging and
+  commits are scoped to the vault subtree, so a pensar commit can
+  never sweep the enclosing repo; nested vaults never auto-push
+  (explicit `push = TRUE` does one plain push); `vault_merge()`
+  resolves only vault-subtree conflicts and leaves the rest of a
+  stopped merge for the human; `init_vault()` skips the scaffold
+  auto-commit into an enclosing repo unless `commit = TRUE`.
+* New per-vault auto-push setting: `auto_push: true/false` in
+  `schema.md` frontmatter. Precedence: explicit `push` argument,
+  schema setting, `PENSAR_AUTO_PUSH`, default (push).
+
 # pensar 0.6.4.4 (development)
 
 * Multi-author fourth slice (#52): docs retire the single-author
