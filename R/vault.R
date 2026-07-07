@@ -43,7 +43,11 @@
 #'   \code{force = TRUE}.
 #' @param commit Auto-commit gate. \code{NULL} (default) commits the
 #'   initial scaffold only when the target directory is pensar-owned
-#'   (empty, or already shaped like a pensar vault). \code{TRUE} commits
+#'   (empty, or already shaped like a pensar vault) \emph{and} the
+#'   vault is its own repo root (or outside git entirely). A vault
+#'   nested inside a larger repo skips the auto-commit: initializing
+#'   a vault subdirectory does not by itself grant permission to
+#'   write to the enclosing project's history. \code{TRUE} commits
 #'   unconditionally (after \code{force = TRUE} writes); \code{FALSE}
 #'   skips the commit even for pensar-owned directories. Forcing pensar
 #'   into foreign content does not by itself grant permission to commit
@@ -169,11 +173,13 @@ init_vault <- function(path = default_vault(), rproj = TRUE,
 
     # Commit gate is separate from the write gate.
     # commit = NULL (default): auto-commit iff the dir was pensar-owned
-    #   before scaffolding. Forcing into foreign content does NOT imply
-    #   permission to commit to its history.
+    #   before scaffolding AND the vault is not nested inside a larger
+    #   repo -- a fresh vault subdirectory inside a project repo should
+    #   not write to that project's history without explicit permission.
+    #   Forcing into foreign content does NOT imply permission either.
     # commit = TRUE / FALSE: explicit override.
     if (is.null(commit)) {
-        should_commit <- pensar_owned
+        should_commit <- pensar_owned && !vault_is_nested(path)
     } else {
         should_commit <- isTRUE(commit)
     }
@@ -242,11 +248,13 @@ agent_instructions_template <- function() {
         "Run `pensar lint`. It surfaces orphans (no backlinks), broken",
         "wikilinks, and tag clusters with no wiki synthesis.", "",
         "## Versioning", "",
-        "If the vault is a git repo (there's a `.git/` directory),",
-        "pensar auto-commits after `ingest()` and `init_vault()`.",
-        "Pushes to configured remotes happen automatically when",
-        "`PENSAR_AUTO_PUSH` is truthy (default: push if any remote is",
-        "set). Manual commit after wiki edits:", "", "```",
+        "If the vault is inside a git repo, pensar auto-commits after",
+        "`ingest()` and `init_vault()`. Pushes to configured remotes",
+        "happen automatically when `PENSAR_AUTO_PUSH` is truthy",
+        "(default: push if any remote is set). To turn auto-push off",
+        "for this vault alone, set `auto_push: false` in schema.md",
+        "frontmatter. Nested vaults (inside a larger repo) never",
+        "auto-push. Manual commit after wiki edits:", "", "```",
         "pensar commit \"Revised torch ecosystem synthesis\"", "```", "",
         "Vaults come in two shapes. A **private single-author vault**",
         "can stay local-only; no remote or hosting is required for",

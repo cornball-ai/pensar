@@ -32,6 +32,14 @@
 #' both full versions inside code fences and use plain paths, never
 #' wikilinks, so the digest stays out of the link graph.
 #'
+#' \strong{Nested vaults} (a vault directory inside a larger repo)
+#' are resolved conservatively: only conflicts under the vault
+#' subtree are touched. If the stopped merge or rebase also has
+#' conflicts outside the vault, the vault resolutions are staged and
+#' the merge/rebase is left in place for the human to finish; pensar
+#' never completes a merge that still has non-vault conflicts, and
+#' never aborts one it did not start.
+#'
 #' @param vault Path to the vault directory.
 #' @return Invisibly, a data frame with one row per resolved path
 #'   (columns \code{path}, \code{class}, \code{kept}, \code{digested}),
@@ -45,8 +53,7 @@
 #' @export
 vault_merge <- function(vault = default_vault()) {
     vault <- normalizePath(vault, mustWork = TRUE)
-    if (!dir.exists(file.path(vault, ".git")) ||
-        nchar(Sys.which("git")) == 0L) {
+    if (nchar(Sys.which("git")) == 0L || is.null(vault_repo_root(vault))) {
         message("No merge or rebase in progress.")
         return(invisible(NULL))
     }
@@ -59,16 +66,38 @@ vault_merge <- function(vault = default_vault()) {
             return(invisible(NULL))
         }
         report_merge_summary(plans)
+        if (isTRUE(attr(plans, "outside"))) {
+            message("Conflicts outside the vault remain; vault ",
+                    "resolutions are staged. Finish the rebase with git.")
+        }
         return(invisible(plans))
     }
 
-    if (file.exists(file.path(vault, ".git", "MERGE_HEAD"))) {
+    if (merge_in_progress(vault)) {
+        n_vault <- length(unique(conflicted_stages(vault)$path))
+        n_outside <- outside_conflict_count(vault)
+        if (n_vault == 0L) {
+            if (n_outside > 0L) {
+                message(sprintf("No vault conflicts to resolve; %d conflict(s) outside the vault remain. Finish the merge with git.",
+                                n_outside))
+            } else {
+                message("Merge in progress with no unresolved ",
+                        "conflicts; finish with `git commit`.")
+            }
+            return(invisible(NULL))
+        }
         plans <- tryCatch(resolve_stopped_merge(vault),
                           error = function(e) NULL)
         if (is.null(plans)) {
             message("Could not resolve the stopped merge mechanically; ",
                     "it was left in place for manual resolution.")
             return(invisible(NULL))
+        }
+        if (n_outside > 0L) {
+            report_merge_summary(plans)
+            message(sprintf("%d conflict(s) outside the vault remain; vault resolutions are staged. Finish the merge with git.",
+                            n_outside))
+            return(invisible(plans))
         }
         committed <- system2("git",
                              c("-C", vault, "-c", "core.editor=true", "commit", "--no-edit"),
@@ -86,6 +115,30 @@ vault_merge <- function(vault = default_vault()) {
     invisible(NULL)
 }
 
+#' Count conflicted paths in the enclosing repo outside the vault
+#'
+#' Always 0 for an own-repo vault (the prefix is empty, so every
+#' conflict is a vault conflict).
+#' @noRd
+outside_conflict_count <- function(vault) {
+    prefix <- vault_git_prefix(vault)
+    if (is.null(prefix) || !nzchar(prefix)) {
+        return(0L)
+    }
+    root <- vault_repo_root(vault)
+    out <- tryCatch(
+                    suppressWarnings(system2("git", c("-C", root, "ls-files", "-u"),
+                stdout = TRUE, stderr = FALSE)),
+                    error = function(e) character(0L)
+    )
+    if (length(out) == 0L) {
+        return(0L)
+    }
+    tab <- regexpr("\t", out, fixed = TRUE)
+    paths <- unique(substring(out, tab + 1L))
+    sum(!startsWith(paths, prefix))
+}
+
 #' Run the rebase-stop resolver loop, accumulating plans for reporting
 #'
 #' Same loop as \code{resolve_rebase_stops()} but keeps the per-stop
@@ -98,12 +151,27 @@ collect_rebase_resolutions <- function(vault) {
         if (!rebase_in_progress(vault)) {
             return(all_plans)
         }
-        plans <- tryCatch(resolve_stopped_merge(vault),
-                          error = function(e) NULL)
-        if (is.null(plans)) {
+        n_vault <- length(unique(conflicted_stages(vault)$path))
+        if (n_vault > 0L) {
+            plans <- tryCatch(resolve_stopped_merge(vault),
+                              error = function(e) NULL)
+            if (is.null(plans)) {
+                return(NULL)
+            }
+            all_plans <- rbind(all_plans, plans)
+        }
+        if (outside_conflict_count(vault) > 0L) {
+            # Nested vault: the stopped rebase has conflicts pensar
+            # doesn't own. Leave it stopped with the vault
+            # resolutions staged; the human finishes.
+            attr(all_plans, "outside") <- TRUE
+            return(all_plans)
+        }
+        if (n_vault == 0L) {
+            # Stopped for a reason other than conflicts (edit, exec):
+            # not ours to drive.
             return(NULL)
         }
-        all_plans <- rbind(all_plans, plans)
         if (!continue_rebase(vault)) {
             return(NULL)
         }
@@ -269,7 +337,8 @@ conflicted_stages <- function(vault) {
 read_stage_lines <- function(vault, stage, path) {
     lines <- tryCatch(
                       suppressWarnings(system2("git",
-                c("-C", vault, "show", sprintf(":%d:%s", stage, shQuote(path))),
+                c("-C", vault, "show",
+                    sprintf(":%d:./%s", stage, shQuote(path))),
                 stdout = TRUE, stderr = FALSE)),
                       error = function(e) NULL
     )

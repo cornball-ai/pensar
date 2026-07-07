@@ -44,7 +44,11 @@ work normally and \code{ingest()} refuses writes unless
 
 \item{commit}{Auto-commit gate. \code{NULL} (default) commits the
 initial scaffold only when the target directory is pensar-owned
-(empty, or already shaped like a pensar vault). \code{TRUE} commits
+(empty, or already shaped like a pensar vault) \emph{and} the
+vault is its own repo root (or outside git entirely). A vault
+nested inside a larger repo skips the auto-commit: initializing
+a vault subdirectory does not by itself grant permission to
+write to the enclosing project's history. \code{TRUE} commits
 unconditionally (after \code{force = TRUE} writes); \code{FALSE}
 skips the commit even for pensar-owned directories. Forcing pensar
 into foreign content does not by itself grant permission to commit

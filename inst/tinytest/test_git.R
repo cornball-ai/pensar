@@ -208,3 +208,35 @@ if (is.na(old_push_env)) {
     Sys.setenv(PENSAR_AUTO_PUSH = old_push_env)
 }
 unlink(c(tmpC, tmpD, bare2), recursive = TRUE)
+
+# --- schema.md auto_push frontmatter beats the env var ---
+tmp3 <- file.path(tempdir(),
+                  paste0("vault-ap-", format(Sys.time(), "%H%M%OS3")))
+init_vault(tmp3, rproj = FALSE, agent_instructions = FALSE)
+old_ap <- Sys.getenv("PENSAR_AUTO_PUSH", unset = NA)
+
+Sys.setenv(PENSAR_AUTO_PUSH = "true")
+schema <- readLines(file.path(tmp3, "schema.md"))
+writeLines(append(schema, "auto_push: false", after = 3L),
+           file.path(tmp3, "schema.md"))
+expect_false(pensar:::should_push(NULL, tmp3))
+
+# auto_push: true forces pushing on even when the env var says off
+Sys.setenv(PENSAR_AUTO_PUSH = "false")
+writeLines(append(schema, "auto_push: true", after = 3L),
+           file.path(tmp3, "schema.md"))
+expect_true(pensar:::should_push(NULL, tmp3))
+
+# The explicit argument beats the schema setting
+expect_false(pensar:::should_push(FALSE, tmp3))
+
+# No schema setting: the env var governs again
+writeLines(schema, file.path(tmp3, "schema.md"))
+expect_false(pensar:::should_push(NULL, tmp3))
+
+if (is.na(old_ap)) {
+    Sys.unsetenv("PENSAR_AUTO_PUSH")
+} else {
+    Sys.setenv(PENSAR_AUTO_PUSH = old_ap)
+}
+unlink(tmp3, recursive = TRUE)
