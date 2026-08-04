@@ -99,7 +99,8 @@ vault_commit <- function(message, vault = default_vault(), push = NULL) {
 #'
 #' Unlike a \code{.git} directory check, this recognizes vaults nested
 #' inside a larger repo (and worktree checkouts, where \code{.git} is
-#' a file).
+#' a file). An MSYS2 git reports the path in POSIX form; on Windows it
+#' is converted to a native drive path before normalization.
 #' @noRd
 vault_repo_root <- function(vault) {
     if (nchar(Sys.which("git")) == 0L) {
@@ -117,6 +118,9 @@ vault_repo_root <- function(vault) {
     }
     if (length(out) != 1L || !nzchar(out)) {
         return(NULL)
+    }
+    if (.Platform$OS.type == "windows") {
+        out <- native_win_path(out)
     }
     normalizePath(out, mustWork = FALSE)
 }
@@ -148,6 +152,11 @@ vault_is_nested <- function(vault) {
 }
 
 #' Absolute .git directory for the repo enclosing the vault, or NULL
+#'
+#' An MSYS2 git (e.g. the Rtools build on the win-builder farm)
+#' reports the path in POSIX form (/d/temp/...), which R cannot
+#' resolve on Windows; convert it back to a native drive path so
+#' callers can probe it with file.exists()/dir.exists().
 #' @noRd
 vault_git_dir <- function(vault) {
     out <- tryCatch(
@@ -163,7 +172,20 @@ vault_git_dir <- function(vault) {
     if (length(out) != 1L || !nzchar(out)) {
         return(NULL)
     }
+    if (.Platform$OS.type == "windows") {
+        out <- native_win_path(out)
+    }
     out
+}
+
+#' Convert an MSYS/Cygwin drive path (/d/x, /cygdrive/d/x) to d:/x
+#'
+#' Leaves anything else (native Windows paths, UNC paths, POSIX paths
+#' with a multi-letter first component) untouched. Only ever applied
+#' on Windows: on Unix, /d/x is a legitimate native path.
+#' @noRd
+native_win_path <- function(p) {
+    sub("^/(?:cygdrive/)?([a-zA-Z])(/|$)", "\\1:\\2", p, perl = TRUE)
 }
 
 #' Decide whether to push after a commit
@@ -313,6 +335,10 @@ push_all_remotes <- function(vault, rebase_retry = TRUE) {
 }
 
 #' Is a rebase currently stopped in the repo enclosing the vault?
+#'
+#' Probes the rebase state directories, which is what git itself
+#' does. (REBASE_HEAD is no substitute: it lingers after a completed
+#' rebase and is only removed by --abort.)
 #' @noRd
 rebase_in_progress <- function(vault) {
     gd <- vault_git_dir(vault)
