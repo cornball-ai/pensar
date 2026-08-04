@@ -42,6 +42,16 @@
   (local-only is fine) from shared multi-author vaults (common
   remote, auto-merge machinery).
 
+## Bug fixes
+
+* Rebase/merge state detection now works with an MSYS2 git (such as
+  the Rtools build). That git reports the `.git` directory in POSIX
+  form (`/d/temp/...`), which R cannot resolve on Windows, so the
+  state probe missed every stopped rebase and the auto-push machinery
+  aborted instead of resolving -- the losing author's work never
+  reached the remote. The reported path is now converted back to a
+  native drive path before probing.
+
 # pensar 0.6.4
 
 ## New features

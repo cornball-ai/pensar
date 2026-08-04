@@ -109,6 +109,65 @@ expect_equal(length(status_b), 0L)
 
 unlink(c(tmp, tmp2, tmpA, tmpB, bare), recursive = TRUE)
 
+# --- rebase/merge state detection asks git, not the filesystem ---
+# An MSYS2 git (e.g. the Rtools build on the win-builder farm) reports
+# .git paths in POSIX form (/d/temp/...), which R cannot resolve on
+# Windows. The predicates must work regardless of the git build.
+tmpS <- file.path(tempdir(), paste0("vault-state-", stamp))
+dir.create(tmpS)
+git_q("-C", tmpS, "init", "-q", "-b", "main")
+git_q("-C", tmpS, "config", "user.email", "s@example.com")
+git_q("-C", tmpS, "config", "user.name", "State Tester")
+writeLines("line one", file.path(tmpS, "f.txt"))
+git_q("-C", tmpS, "add", "-A")
+git_q("-C", tmpS, "commit", "-q", "-m", "base")
+git_q("-C", tmpS, "checkout", "-q", "-b", "side")
+writeLines("side version", file.path(tmpS, "f.txt"))
+git_q("-C", tmpS, "commit", "-q", "-am", "side-edit")
+git_q("-C", tmpS, "checkout", "-q", "main")
+writeLines("main version", file.path(tmpS, "f.txt"))
+git_q("-C", tmpS, "commit", "-q", "-am", "main-edit")
+
+expect_false(pensar:::rebase_in_progress(tmpS))
+expect_false(pensar:::merge_in_progress(tmpS))
+
+git_q("-C", tmpS, "checkout", "-q", "side")
+git_q("-C", tmpS, "rebase", "main")
+expect_true(pensar:::rebase_in_progress(tmpS))
+git_q("-C", tmpS, "rebase", "--abort")
+expect_false(pensar:::rebase_in_progress(tmpS))
+
+git_q("-C", tmpS, "checkout", "-q", "main")
+git_q("-C", tmpS, "merge", "side")
+expect_true(pensar:::merge_in_progress(tmpS))
+git_q("-C", tmpS, "merge", "--abort")
+expect_false(pensar:::merge_in_progress(tmpS))
+
+# A *completed* rebase must read as not-in-progress. (REBASE_HEAD
+# survives completion, which is why the predicate probes state dirs.)
+git_q("-C", tmpS, "checkout", "-q", "side")
+git_q("-C", tmpS, "rebase", "main")
+writeLines("resolved version", file.path(tmpS, "f.txt"))
+git_q("-C", tmpS, "add", "f.txt")
+git_q("-C", tmpS, "-c", "core.editor=true", "rebase", "--continue")
+expect_false(pensar:::rebase_in_progress(tmpS))
+
+# Same for a completed (committed) merge
+git_q("-C", tmpS, "checkout", "-q", "main")
+git_q("-C", tmpS, "merge", "side")
+writeLines("merged version", file.path(tmpS, "f.txt"))
+git_q("-C", tmpS, "add", "f.txt")
+git_q("-C", tmpS, "-c", "core.editor=true", "commit", "--no-edit")
+expect_false(pensar:::merge_in_progress(tmpS))
+unlink(tmpS, recursive = TRUE)
+
+# --- native_win_path converts MSYS/Cygwin drive paths only ---
+expect_equal(pensar:::native_win_path("/d/temp/x/.git"), "d:/temp/x/.git")
+expect_equal(pensar:::native_win_path("/cygdrive/c/u/v"), "c:/u/v")
+expect_equal(pensar:::native_win_path("/usr/lib"), "/usr/lib")
+expect_equal(pensar:::native_win_path("C:/Users/x/.git"), "C:/Users/x/.git")
+expect_equal(pensar:::native_win_path("//server/share"), "//server/share")
+
 # --- Diverged ingests: derived-file conflicts resolve mechanically ---
 # Both authors ingest a different article. index.md always conflicts
 # (both rewrote counts + the updated: timestamp) and manifest.yml is
