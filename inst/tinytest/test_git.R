@@ -152,11 +152,13 @@ git_q("-C", tmpS, "add", "f.txt")
 git_q("-C", tmpS, "-c", "core.editor=true", "rebase", "--continue")
 expect_false(pensar:::rebase_in_progress(tmpS))
 
-# Same for a completed (committed) merge
+# Same for a completed (committed) merge. After the rebase, side
+# descends from main, so a plain merge would fast-forward without
+# ever creating MERGE_HEAD; --no-ff --no-commit forces a real merge
+# state, and committing must clear it.
 git_q("-C", tmpS, "checkout", "-q", "main")
-git_q("-C", tmpS, "merge", "side")
-writeLines("merged version", file.path(tmpS, "f.txt"))
-git_q("-C", tmpS, "add", "f.txt")
+git_q("-C", tmpS, "merge", "--no-ff", "--no-commit", "side")
+expect_true(pensar:::merge_in_progress(tmpS))
 git_q("-C", tmpS, "-c", "core.editor=true", "commit", "--no-edit")
 expect_false(pensar:::merge_in_progress(tmpS))
 unlink(tmpS, recursive = TRUE)

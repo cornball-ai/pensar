@@ -99,7 +99,8 @@ vault_commit <- function(message, vault = default_vault(), push = NULL) {
 #'
 #' Unlike a \code{.git} directory check, this recognizes vaults nested
 #' inside a larger repo (and worktree checkouts, where \code{.git} is
-#' a file).
+#' a file). An MSYS2 git reports the path in POSIX form; on Windows it
+#' is converted to a native drive path before normalization.
 #' @noRd
 vault_repo_root <- function(vault) {
     if (nchar(Sys.which("git")) == 0L) {
@@ -117,6 +118,9 @@ vault_repo_root <- function(vault) {
     }
     if (length(out) != 1L || !nzchar(out)) {
         return(NULL)
+    }
+    if (.Platform$OS.type == "windows") {
+        out <- native_win_path(out)
     }
     normalizePath(out, mustWork = FALSE)
 }
