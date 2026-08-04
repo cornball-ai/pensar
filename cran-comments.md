@@ -1,39 +1,39 @@
 ## Submission summary
 
-pensar 0.6.4 is a feature and bug-fix update to 0.6.3 (on CRAN since
-2026-05-19). It exports one new function, adds incremental static-site
-exports, and improves vault linting and backlog reporting. No exported
-object was removed and no exported signature changed, so the update is
+pensar 0.7.0 is a feature update to 0.6.4 (on CRAN since 2026-06-24).
+It exports one new function, `vault_merge()`, and adds multi-author and
+nested-vault support to the optional git machinery. No exported object
+was removed and no exported signature changed, so the update is
 backward compatible.
 
-## Changes since 0.6.3
+## Changes since 0.6.4
 
 ### New features
 
-- `default_vault()` is now exported: a public getter for the active
-  vault path, paired with the existing `use_vault()` setter, so callers
-  can confirm which vault `ingest()` / `status()` will act on without
-  reaching into the package namespace.
+- Multi-author vaults: `init_vault()` scaffolds a `.gitattributes`
+  marking the operation log as `merge=union`; a rejected auto-push
+  retries once after `git pull --rebase`; a rebase stopped only by
+  derived files (the auto-generated index and manifest) resolves
+  itself by regenerating them from the merged tree.
+- New `vault_merge()`: resolves a stopped git merge or rebase
+  mechanically and files genuine divergence into a committed digest
+  for later synthesis. The vault is never left mid-rebase.
+- Nested vaults (a vault directory inside a larger git repository)
+  now work with the git machinery. Staging and commits are scoped to
+  the vault subtree, so a pensar commit can never sweep the enclosing
+  repository; nested vaults never auto-push.
+- New per-vault auto-push setting (`auto_push` in `schema.md`
+  frontmatter), with precedence: explicit `push` argument, schema
+  setting, `PENSAR_AUTO_PUSH` environment variable, default.
 
 ### Changes
 
-- `vault_export()` is incremental: subsequent exports re-render only
-  pages whose source (or whose wikilink targets) changed, with state in
-  `.pensar-export-cache.yml` in the output directory.
-- `lint()` scopes broken-link checks to `wiki/` pages and surfaces a
-  separate `$raw_orphans` synthesis backlog; a `.pensarignore` file
-  filters that backlog.
-
-### Bug fixes
-
-- `autoresearch()` no longer errors when a search query returns zero
-  results.
-- Wikilink parsing now ignores Markdown code, so `[[ ]]` list indexing
-  in a code sample no longer registers as a broken wikilink.
+- Documentation distinguishes private single-author vaults from
+  shared multi-author vaults.
 
 ## Test environments
 
-- Local: Ubuntu 24.04 LTS, R 4.6.0
+- Local: Ubuntu 24.04 LTS, R 4.6.1
 - win-builder: R-devel and R-release
 - GitHub Actions via r-ci: ubuntu-latest, macos-latest
 
@@ -62,6 +62,8 @@ None on CRAN. Verified via
 - No `.onLoad` / `.onAttach` hooks; no file-system writes and no network
   activity at load time.
 - `SystemRequirements`: pandoc (for `vault_export()`), git (for
-  `vault_commit()`); both are checked at runtime via `Sys.which()`.
-  `vault_commit()` is a no-op when git is unavailable; `vault_export()`
-  errors with a clear message when pandoc is unavailable.
+  `vault_commit()` and `vault_merge()`); both are checked at runtime
+  via `Sys.which()`. `vault_commit()` and `vault_merge()` are no-ops
+  with a message when git is unavailable; `vault_export()` errors with
+  a clear message when pandoc is unavailable. All git operations run
+  through `system2()` against repositories the user opted into.
