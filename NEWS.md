@@ -1,5 +1,28 @@
-# pensar 0.6.4.5 (development)
+# pensar 0.7.0
 
+## New features
+
+* Multi-author vaults (#52). Two clones of the same vault no longer
+  fight over shared files:
+  - `init_vault()` scaffolds a `.gitattributes` marking `log.md` as
+    `merge=union`, and a rejected auto-push retries once after
+    `git pull --rebase` (aborting the rebase on a real conflict), so
+    concurrent log appends no longer git-conflict.
+  - A rebase stopped only by derived files resolves itself:
+    `index.md` is regenerated from the merged tree and
+    `.pensar/manifest.yml` is unioned by path and pruned to pages
+    that survived the merge.
+  - New `vault_merge()` (CLI: `pensar merge`) resolves a stopped git
+    merge or rebase mechanically and files genuine divergence into a
+    committed digest at `.pensar/merge-conflicts.md` for LLM
+    synthesis. Raw add/add collisions keep both files (incoming
+    renamed, manifest re-keyed); a strict-superset or lint-dominant
+    wiki side wins automatically; prose divergence keeps the current
+    branch's side with both full versions preserved in the digest.
+    The auto-push flow uses the same engine, so the vault is never
+    left mid-rebase. `status()` banners pending digest entries, the
+    agent-instructions template opens with a FIRST-check section, and
+    `schema.md` documents the digest contract.
 * Nested vaults (a vault directory inside a larger git repo, e.g.
   `<project>/vault/`) now work with the git machinery. Staging and
   commits are scoped to the vault subtree, so a pensar commit can
@@ -12,37 +35,12 @@
   `schema.md` frontmatter. Precedence: explicit `push` argument,
   schema setting, `PENSAR_AUTO_PUSH`, default (push).
 
-# pensar 0.6.4.4 (development)
+## Changes
 
-* Multi-author fourth slice (#52): docs retire the single-author
-  assumption. The agent-instructions template and README now
-  distinguish private single-author vaults (local-only is fine) from
-  shared multi-author vaults (common remote, auto-merge machinery).
-
-# pensar 0.6.4.3 (development)
-
-* Multi-author third slice (#52): new `vault_merge()` (CLI:
-  `pensar merge`) resolves a stopped git merge or rebase mechanically
-  and files genuine divergence into a committed digest at
-  `.pensar/merge-conflicts.md` for LLM synthesis. Raw add/add
-  collisions keep both files (incoming renamed, manifest re-keyed);
-  a strict-superset or lint-dominant wiki side wins automatically;
-  prose divergence keeps the current branch's side with both full
-  versions preserved in the digest. The auto-push flow uses the same
-  engine, so the vault is never left mid-rebase. The convention is
-  declared loudly to agents: `status()` banners pending digest
-  entries, the agent-instructions template opens with a FIRST-check
-  section, and `schema.md` documents the digest contract.
-* Multi-author second slice (#52): a rebase stopped only by derived
-  files resolves itself. `index.md` is regenerated from the merged
-  tree; `.pensar/manifest.yml` is unioned by path and pruned to pages
-  that survived the merge. Conflicts outside the derived set still
-  abort, leaving the vault clean and the commit local.
-* Multi-author first slice (#52): `init_vault()` scaffolds a
-  `.gitattributes` marking `log.md` as `merge=union`, and a rejected
-  auto-push now retries once after `git pull --rebase` (aborting the
-  rebase on a real conflict). Concurrent log appends from two vault
-  clones no longer git-conflict.
+* Docs retire the single-author assumption: the agent-instructions
+  template and README now distinguish private single-author vaults
+  (local-only is fine) from shared multi-author vaults (common
+  remote, auto-merge machinery).
 
 # pensar 0.6.4
 
