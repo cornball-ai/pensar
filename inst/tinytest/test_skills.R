@@ -6,10 +6,12 @@ library(pensar)
 base <- pensar_skill_path()
 expect_true(nzchar(base))
 expect_true(dir.exists(base))
+expect_equal(base, system.file("skills", package = "pensar"))
 
 # --- 2. autoresearch skill is shipped ---
 ar_dir <- pensar_skill_path("autoresearch")
 expect_true(dir.exists(ar_dir))
+expect_equal(ar_dir, file.path(base, "autoresearch"))
 expect_true(file.exists(file.path(ar_dir, "SKILL.md")))
 expect_true(file.exists(file.path(ar_dir, "references",
                                   "program.md")))
