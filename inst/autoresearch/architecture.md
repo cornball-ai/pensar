@@ -83,7 +83,7 @@ required_tags:
   - research
 ```
 
-`inst/skills/pensar/autoresearch/SKILL.md` points humans to this file;
+`inst/skills/autoresearch/SKILL.md` points humans to this file;
 `autoresearch()` loads the YAML directly.
 
 ## Model Boundary

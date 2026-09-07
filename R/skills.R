@@ -3,12 +3,11 @@
 
 #' Locate pensar's bundled skill directory
 #'
-#' Pensar ships markdown skill bundles under \code{inst/skills/pensar/}.
+#' Pensar ships markdown skill bundles under \code{inst/skills/}.
 #' Returns the absolute path to the bundle root, or to a specific
 #' skill when \code{skill} is given. Useful for symlinking pensar
-#' skills into an agent's skill directory, e.g.
-#' \code{ln -s $(Rscript -e 'cat(pensar::pensar_skill_path())') \
-#' ~/.claude/skills/pensar}.
+#' skills into an agent's skill directory. Link the specific directory returned by
+#' \code{pensar_skill_path("autoresearch")}, rather than the bundle root.
 #'
 #' @param skill Optional skill name (e.g., \code{"autoresearch"}).
 #'   \code{NULL} returns the bundle root.
@@ -19,7 +18,7 @@
 #' pensar_skill_path("autoresearch")
 #' @export
 pensar_skill_path <- function(skill = NULL) {
-    base <- system.file("skills", "pensar", package = "pensar")
+    base <- system.file("skills", package = "pensar")
     if (!nzchar(base)) {
         return("")
     }

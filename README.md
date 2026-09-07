@@ -95,10 +95,10 @@ If none resolves, pensar errors with a setup hint.
 
 `init_vault()` seeds `CLAUDE.md` and `AGENTS.md` so any agent you start in the vault (Claude Code, Codex, etc.) knows how to operate on it — what files are immutable, how to drill down with `pensar show`, when to rebuild the site.
 
-A Claude Code `autoresearch` skill ships at `system.file("skills/pensar/autoresearch", package = "pensar")`. Symlink it into your skills directory:
+A package-owned `autoresearch` skill ships at `system.file("skills/autoresearch", package = "pensar")`. For local development, explicitly link its source directory into your agent's skills directory. For an installed package, the accessor locates the individual skill:
 
 ```bash
-ln -s "$(Rscript -e 'cat(pensar::pensar_skill_path())')" ~/.claude/skills/pensar
+Rscript --vanilla -e 'cat(pensar::pensar_skill_path("autoresearch"))'
 ```
 
 The skill routes research requests through `pensar::autoresearch()`, not through a manual WebSearch/WebFetch/file-edit loop. Pass `agent_instructions = FALSE` to `init_vault()` if you don't want CLAUDE.md / AGENTS.md.
