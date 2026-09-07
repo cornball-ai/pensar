@@ -1,3 +1,9 @@
+# pensar 0.7.0.1 (development)
+
+* Flatten the bundled skill to `inst/skills/autoresearch/`.
+  `pensar_skill_path()` retains its arguments and empty-string missing-skill
+  behavior; the root now resolves through `system.file("skills", package = "pensar")`.
+
 # pensar 0.7.0
 
 ## New features
