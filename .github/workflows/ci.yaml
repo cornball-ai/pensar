@@ -5,6 +5,10 @@ on:
 
 env:
   _R_CHECK_FORCE_SUGGESTS_: "false"
+  # run.sh's own gate: R CMD check exits 0 on a WARNING and run_tests
+  # passes that through, so a check ending "Status: 1 WARNING" is a
+  # green tick. Set, run_tests greps 00check.log and fails the job.
+  WARNINGS_ARE_ERRORS: "true"
 
 jobs:
   ci:
@@ -21,6 +25,10 @@ jobs:
 
       - name: Setup
         uses: eddelbuettel/github-actions/r-ci@master
+        with:
+          # r2u binaries through rapt rather than bspm on ubuntu; the
+          # macOS leg reads no backend.
+          backend: RAPT
 
       - name: Dependencies
         run: ./run.sh install_deps
