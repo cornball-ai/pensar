@@ -5,6 +5,16 @@ on:
 
 env:
   _R_CHECK_FORCE_SUGGESTS_: "false"
+  # run.sh's own gate: R CMD check exits 0 on a WARNING and run_tests
+  # passes that through, so a check ending "Status: 1 WARNING" is a
+  # green tick. Set, run_tests greps 00check.log and fails the job.
+  WARNINGS_ARE_ERRORS: "true"
+  # r-ci's defaults skip vignettes on both sides, and a package with a
+  # vignette source then checks with a WARNING (files in vignettes/ but
+  # none in inst/doc). Build and check it; the runners have pandoc and
+  # install_all brings simplermarkdown.
+  R_BUILD_ARGS: "--no-manual"
+  R_CHECK_ARGS: "--no-manual --as-cran"
 
 jobs:
   ci:
@@ -21,9 +31,16 @@ jobs:
 
       - name: Setup
         uses: eddelbuettel/github-actions/r-ci@master
+        with:
+          # r2u binaries through rapt rather than bspm on ubuntu; the
+          # macOS leg reads no backend.
+          backend: RAPT
 
+      # install_all rather than install_deps: the Suggests include the
+      # vignette builder, and a check without it is a WARNING ("Cannot
+      # process vignettes"), which the gate above fails.
       - name: Dependencies
-        run: ./run.sh install_deps
+        run: ./run.sh install_all
 
       - name: Test
         run: ./run.sh run_tests
