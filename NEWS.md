@@ -11,6 +11,9 @@
   the opt-in.
 * `vault_commit()` gains `paths =`: commit only the named files and leave
   other changes, dirty or staged, alone.
+
+# pensar 0.7.0.1
+
 * Flatten the bundled skill to `inst/skills/autoresearch/`.
   `pensar_skill_path()` retains its arguments and empty-string missing-skill
   behavior; the root now resolves through `system.file("skills", package = "pensar")`.
