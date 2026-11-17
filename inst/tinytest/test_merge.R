@@ -72,6 +72,9 @@ git_q <- function(...) {
 stamp <- format(Sys.time(), "%H%M%OS3")
 old_push_env <- Sys.getenv("PENSAR_AUTO_PUSH", unset = NA)
 Sys.setenv(PENSAR_AUTO_PUSH = "true")
+# Shared vaults reach each other by commit-and-push on every ingest.
+old_commit_env <- Sys.getenv("PENSAR_AUTO_COMMIT", unset = NA)
+Sys.setenv(PENSAR_AUTO_COMMIT = "true")
 
 # --- E2E: superset side wins outright, nothing digested ---
 bare <- file.path(tempdir(), paste0("merge-bare-", stamp, ".git"))
@@ -203,4 +206,9 @@ if (is.na(old_push_env)) {
     Sys.unsetenv("PENSAR_AUTO_PUSH")
 } else {
     Sys.setenv(PENSAR_AUTO_PUSH = old_push_env)
+}
+if (is.na(old_commit_env)) {
+    Sys.unsetenv("PENSAR_AUTO_COMMIT")
+} else {
+    Sys.setenv(PENSAR_AUTO_COMMIT = old_commit_env)
 }

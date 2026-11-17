@@ -125,8 +125,8 @@ ingest_repo <- function(path, name = NULL, ref = "HEAD",
     update_index(vault)
     log_entry(sprintf("Ingested repo: %s @ %s", name, git_meta$short_sha),
               operation = "ingest_repo", vault = vault)
-    vault_commit(sprintf("Ingest repo: %s @ %s", name, git_meta$short_sha),
-                 vault = vault)
+    auto_commit(sprintf("Ingest repo: %s @ %s", name, git_meta$short_sha),
+                vault = vault, paths = c(written, derived_paths(vault)))
 
     message(sprintf("Ingested repo: %s (%d artifacts)", name, length(written)))
     invisible(written)

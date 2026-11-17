@@ -1,5 +1,16 @@
 # pensar 0.7.0.1 (development)
 
+* `ingest()`, `ingest_repo()` and `autoresearch()` no longer commit.
+  They used to end in `vault_commit()`, which staged every change under
+  the vault (`git add -A`), so an ingest swept unrelated work in progress
+  into a commit titled "Ingest ...". A vault opts back in with
+  `auto_commit: true` in `schema.md` frontmatter (or a machine with
+  `PENSAR_AUTO_COMMIT=true`), and each such commit now holds only the
+  files that write produced: its own output, `index.md`, `log.md` and
+  `.pensar/manifest.yml`. Shared vaults that meet through a remote need
+  the opt-in.
+* `vault_commit()` gains `paths =`: commit only the named files and leave
+  other changes, dirty or staged, alone.
 * Flatten the bundled skill to `inst/skills/autoresearch/`.
   `pensar_skill_path()` retains its arguments and empty-string missing-skill
   behavior; the root now resolves through `system.file("skills", package = "pensar")`.
