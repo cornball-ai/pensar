@@ -6,6 +6,71 @@ if (nchar(Sys.which("git")) == 0L) {
     exit_file("git not available")
 }
 
+# Start from the default: no automatic commits on this machine.
+old_ac <- Sys.getenv("PENSAR_AUTO_COMMIT", unset = NA)
+Sys.unsetenv("PENSAR_AUTO_COMMIT")
+
+# --- ingest() does not commit by default ---
+tmp_nc <- file.path(tempdir(),
+                    paste0("vault-nc-", format(Sys.time(), "%H%M%OS3")))
+init_vault(tmp_nc, rproj = FALSE, agent_instructions = FALSE)
+system2("git", c("-C", tmp_nc, "init", "-q"))
+system2("git", c("-C", tmp_nc, "config", "user.email", "test@example.com"))
+system2("git", c("-C", tmp_nc, "config", "user.name", "Test"))
+vault_commit("Initial", vault = tmp_nc, push = FALSE)
+n_before <- length(system2("git", c("-C", tmp_nc, "log", "--oneline"),
+                           stdout = TRUE))
+nc_out <- suppressMessages(ingest("Hello.", type = "articles",
+                                  source = "nc", vault = tmp_nc))
+n_after <- length(system2("git", c("-C", tmp_nc, "log", "--oneline"),
+                          stdout = TRUE))
+expect_equal(n_after, n_before)
+expect_true(file.exists(nc_out))
+expect_false(pensar:::should_auto_commit(tmp_nc))
+
+# --- auto_commit: true commits only what the ingest wrote ---
+schema_nc <- readLines(file.path(tmp_nc, "schema.md"))
+writeLines(append(schema_nc, "auto_commit: true", after = 3L),
+           file.path(tmp_nc, "schema.md"))
+expect_true(pensar:::should_auto_commit(tmp_nc))
+vault_commit("schema and the first ingest", vault = tmp_nc, push = FALSE)
+# An unrelated edit in progress, and one already staged
+writeLines("half-finished rewrite", file.path(tmp_nc, "wiki", "draft.md"))
+writeLines("staged by hand", file.path(tmp_nc, "wiki", "staged.md"))
+system2("git", c("-C", tmp_nc, "add", "wiki/staged.md"))
+ac_out <- suppressMessages(ingest("World.", type = "articles",
+                                  source = "ac", vault = tmp_nc))
+committed <- system2("git", c("-C", tmp_nc, "show", "--name-only",
+                              "--format=", "HEAD"), stdout = TRUE)
+expect_true(paste0("raw/articles/", basename(ac_out)) %in% committed)
+expect_true(all(c("index.md", "log.md") %in% committed))
+expect_false("wiki/draft.md" %in% committed)
+expect_false("wiki/staged.md" %in% committed)
+st_nc <- system2("git", c("-C", tmp_nc, "status", "--porcelain"),
+                 stdout = TRUE)
+expect_true(any(grepl("^\\?\\? wiki/draft.md", st_nc)))
+expect_true(any(grepl("^A  wiki/staged.md", st_nc)))
+
+# auto_commit: false in the schema beats the env var
+writeLines(append(schema_nc, "auto_commit: false", after = 3L),
+           file.path(tmp_nc, "schema.md"))
+Sys.setenv(PENSAR_AUTO_COMMIT = "true")
+expect_false(pensar:::should_auto_commit(tmp_nc))
+# No schema setting: the env var governs
+writeLines(schema_nc, file.path(tmp_nc, "schema.md"))
+expect_true(pensar:::should_auto_commit(tmp_nc))
+Sys.unsetenv("PENSAR_AUTO_COMMIT")
+expect_false(pensar:::should_auto_commit(tmp_nc))
+unlink(tmp_nc, recursive = TRUE)
+
+# --- vault_commit(paths =) ignores paths outside the vault ---
+expect_equal(pensar:::vault_relative(c("wiki/a.md", "/elsewhere/b.md"),
+                                     tempdir()),
+             "wiki/a.md")
+
+# The shared-vault sections below rely on each ingest committing.
+Sys.setenv(PENSAR_AUTO_COMMIT = "true")
+
 # --- No-op when vault is not a git repo ---
 tmp <- file.path(tempdir(), paste0("vault-", format(Sys.time(), "%H%M%S")))
 init_vault(tmp)
@@ -301,3 +366,9 @@ if (is.na(old_ap)) {
     Sys.setenv(PENSAR_AUTO_PUSH = old_ap)
 }
 unlink(tmp3, recursive = TRUE)
+
+if (is.na(old_ac)) {
+    Sys.unsetenv("PENSAR_AUTO_COMMIT")
+} else {
+    Sys.setenv(PENSAR_AUTO_COMMIT = old_ac)
+}

@@ -10,7 +10,7 @@
 #' memory / project-instructions / global-instructions / identity
 #' string for an agent, then writes it into the vault through the
 #' existing \code{ingest()} pipeline (so the manifest, index, log,
-#' and auto-commit all kick in).
+#' and, when the vault opts in, the commit all kick in).
 #'
 #' Saber stays in pensar's \code{Suggests}: the wrapper guards with
 #' \code{requireNamespace("saber")} and errors with an install hint

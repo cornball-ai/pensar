@@ -329,8 +329,11 @@ body_merged <- readLines(file.path(v_merge, "wiki", "Research-skills.md"),
 expect_false(any(grepl("Old body", body_merged)))
 unlink(v_merge, recursive = TRUE)
 
-# autoresearch leaves a git-backed vault clean by committing its writes.
+# With auto_commit on, autoresearch leaves a git-backed vault clean by
+# committing its writes.
 if (nchar(Sys.which("git")) > 0L) {
+    old_ac <- Sys.getenv("PENSAR_AUTO_COMMIT", unset = NA)
+    Sys.setenv(PENSAR_AUTO_COMMIT = "true")
     v_git <- tempfile("ar-git-")
     init_vault(v_git, rproj = FALSE, agent_instructions = FALSE)
     system2("git", c("-C", v_git, "init", "-q"))
@@ -359,6 +362,11 @@ if (nchar(Sys.which("git")) > 0L) {
                         c("-C", v_git, "log", "-1", "--format=%s"),
                         stdout = TRUE, stderr = FALSE)
     expect_true(grepl("autoresearch:", log_line))
+    if (is.na(old_ac)) {
+        Sys.unsetenv("PENSAR_AUTO_COMMIT")
+    } else {
+        Sys.setenv(PENSAR_AUTO_COMMIT = old_ac)
+    }
     unlink(v_git, recursive = TRUE)
 }
 

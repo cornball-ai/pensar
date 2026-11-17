@@ -21,6 +21,17 @@
 #'   write into the adopted tree anyway. Native vaults ignore this
 #'   parameter.
 #' @return The path to the written file, invisibly.
+#' @section Commits:
+#' \code{ingest()} writes files and does not commit them. A vault that
+#' wants each ingest committed sets \code{auto_commit: true} in its
+#' \code{schema.md} frontmatter, or the machine sets
+#' \code{PENSAR_AUTO_COMMIT=true}; the commit then stages only the
+#' files this call wrote (the raw file, \code{index.md}, \code{log.md}
+#' and \code{.pensar/manifest.yml}), never other changes in the vault.
+#' The same holds for \code{\link{ingest_repo}()} and
+#' \code{\link{autoresearch}()}. Commit by hand with
+#' \code{\link{vault_commit}()} or \code{pensar commit}.
+#'
 #' @examples
 #' v <- tempfile("vault-")
 #' init_vault(v, rproj = FALSE, agent_instructions = FALSE)
@@ -79,9 +90,9 @@ ingest <- function(content,
     update_index(vault)
     log_entry(sprintf("Ingested %s: %s", type, basename(outpath)),
               operation = "ingest", vault = vault)
-    vault_commit(sprintf("Ingest %s: %s", type,
-                         tools::file_path_sans_ext(basename(outpath))),
-                 vault = vault)
+    auto_commit(sprintf("Ingest %s: %s", type,
+                        tools::file_path_sans_ext(basename(outpath))),
+                vault = vault, paths = c(outpath, derived_paths(vault)))
 
     message("Ingested: ", basename(outpath))
     invisible(outpath)

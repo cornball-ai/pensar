@@ -240,9 +240,10 @@ autoresearch <- function(topic, vault = default_vault(),
               operation = "autoresearch",
               vault = vault
     )
-    vault_commit(sprintf("autoresearch: %s (%d sources, %d pages)",
-                         topic, nrow(sources), nrow(written)),
-                 vault = vault)
+    auto_commit(sprintf("autoresearch: %s (%d sources, %d pages)",
+                        topic, nrow(sources), nrow(written)),
+                vault = vault,
+                paths = c(as.character(written$path), derived_paths(vault)))
     elapsed <- as.numeric(difftime(Sys.time(), t_start, units = "secs"))
     .ar_msg(verbose, "done in ", sprintf("%.1fs", elapsed), " (",
             nrow(sources), " sources, ", nrow(claims), " claims, ",

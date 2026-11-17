@@ -3,7 +3,7 @@
 \alias{vault_commit}
 \title{Commit vault changes to git}
 \usage{
-vault_commit(message, vault = default_vault(), push = NULL)
+vault_commit(message, vault = default_vault(), push = NULL, paths = NULL)
 }
 \arguments{
 \item{message}{Commit message.}
@@ -13,6 +13,15 @@ vault_commit(message, vault = default_vault(), push = NULL)
 \item{push}{If \code{NULL} (default), honors \code{PENSAR_AUTO_PUSH}
 (own-repo vaults) or skips the push (nested vaults). Pass
 \code{TRUE} or \code{FALSE} to override.}
+
+\item{paths}{Optional character vector of files to commit, absolute
+or relative to the vault. When given, only these are staged and
+committed; other changes in the vault, dirty or staged, are left
+alone. When \code{NULL} (default), every change under the vault is
+committed. \code{ingest()}, \code{ingest_repo()} and
+\code{autoresearch()} commit only when the vault opts in (see the
+Commits section of \code{\link{ingest}()}), and then pass the
+files they wrote here.}
 }
 \value{
 \code{TRUE} if a commit was made, \code{FALSE} otherwise

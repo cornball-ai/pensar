@@ -3,9 +3,13 @@
 \alias{ingest_agent_context}
 \title{Snapshot saber's assembled agent context into the vault}
 \usage{
-ingest_agent_context(agent = c("claude", "codex", "corteza"),
-                     vault = default_vault(), project_dir = getwd(),
-                     workspace_dir = NULL, ...)
+ingest_agent_context(
+  agent = c("claude", "codex", "corteza"),
+  vault = default_vault(),
+  project_dir = getwd(),
+  workspace_dir = NULL,
+  ...
+)
 }
 \arguments{
 \item{agent}{One of \code{"claude"}, \code{"codex"},
@@ -32,7 +36,7 @@ Calls \code{saber::agent_context()} to assemble the current
 memory / project-instructions / global-instructions / identity
 string for an agent, then writes it into the vault through the
 existing \code{ingest()} pipeline (so the manifest, index, log,
-and auto-commit all kick in).
+and, when the vault opts in, the commit all kick in).
 }
 \details{
 Saber stays in pensar's \code{Suggests}: the wrapper guards with

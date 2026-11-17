@@ -1,5 +1,5 @@
 #' @title Vault git operations
-#' @description Auto-commit and push for pensar vaults that are git repos.
+#' @description Commit and push for pensar vaults that are git repos.
 
 #' Commit vault changes to git
 #'
@@ -40,6 +40,14 @@
 #' @param push If \code{NULL} (default), honors \code{PENSAR_AUTO_PUSH}
 #'   (own-repo vaults) or skips the push (nested vaults). Pass
 #'   \code{TRUE} or \code{FALSE} to override.
+#' @param paths Optional character vector of files to commit, absolute
+#'   or relative to the vault. When given, only these are staged and
+#'   committed; other changes in the vault, dirty or staged, are left
+#'   alone. When \code{NULL} (default), every change under the vault is
+#'   committed. \code{ingest()}, \code{ingest_repo()} and
+#'   \code{autoresearch()} commit only when the vault opts in (see the
+#'   Commits section of \code{\link{ingest}()}), and then pass the
+#'   files they wrote here.
 #' @return \code{TRUE} if a commit was made, \code{FALSE} otherwise
 #'   (invisibly).
 #' @examples
@@ -49,7 +57,8 @@
 #' vault_commit("noop", vault = v, push = FALSE)
 #' unlink(v, recursive = TRUE)
 #' @export
-vault_commit <- function(message, vault = default_vault(), push = NULL) {
+vault_commit <- function(message, vault = default_vault(), push = NULL,
+                         paths = NULL) {
     vault <- normalizePath(vault, mustWork = TRUE)
     if (nchar(Sys.which("git")) == 0L) {
         return(invisible(FALSE))
@@ -59,25 +68,35 @@ vault_commit <- function(message, vault = default_vault(), push = NULL) {
     }
     nested <- vault_is_nested(vault)
 
-    # Stage all changes under the vault subtree. For an own-repo vault
-    # the "." pathspec covers the whole repo; for a nested vault it
+    # The pathspec: the named files, or the whole vault subtree. For an
+    # own-repo vault "." covers the whole repo; for a nested vault it
     # scopes staging so the enclosing repo is never swept.
-    system2("git", c("-C", vault, "add", "-A", "--", "."), stdout = FALSE,
-            stderr = FALSE)
+    if (is.null(paths)) {
+        spec <- "."
+    } else {
+        spec <- vault_relative(paths, vault)
+        if (!length(spec)) {
+            return(invisible(FALSE))
+        }
+    }
+    system2("git", c("-C", vault, "add", "-A", "--", shQuote(spec)),
+            stdout = FALSE, stderr = FALSE)
 
     # Check if anything to commit
-    status <- system2("git", c("-C", vault, "status", "--porcelain", "--", "."),
+    status <- system2("git", c("-C", vault, "status", "--porcelain", "--",
+                               shQuote(spec)),
                       stdout = TRUE, stderr = FALSE)
     if (length(status) == 0L) {
         return(invisible(FALSE))
     }
 
-    # A nested commit names the vault pathspec explicitly: git then
-    # commits the vault subtree and disregards content staged for
-    # other paths (which stays staged for the user's own commit).
+    # The commit names its pathspec when it is narrower than the whole
+    # repo: git then commits exactly those paths and leaves content
+    # staged for anything else alone (it stays staged for the user's own
+    # commit).
     commit_args <- c("-C", vault, "commit", "-m", shQuote(message))
-    if (nested) {
-        commit_args <- c(commit_args, "--", ".")
+    if (nested || !is.null(paths)) {
+        commit_args <- c(commit_args, "--", shQuote(spec))
     }
     commit_status <- system2("git", commit_args, stdout = FALSE, stderr = FALSE)
     if (commit_status != 0L) {
@@ -186,6 +205,57 @@ vault_git_dir <- function(vault) {
 #' @noRd
 native_win_path <- function(p) {
     sub("^/(?:cygdrive/)?([a-zA-Z])(/|$)", "\\1:\\2", p, perl = TRUE)
+}
+
+#' Vault-relative form of paths, dropping any outside the vault
+#' @noRd
+vault_relative <- function(paths, vault) {
+    vault <- normalizePath(vault, mustWork = TRUE)
+    rel <- !grepl("^(/|[A-Za-z]:)", paths)
+    paths[rel] <- file.path(vault, paths[rel])
+    abs <- normalizePath(paths, mustWork = FALSE)
+    prefix <- paste0(vault, "/")
+    inside <- startsWith(abs, prefix)
+    unique(substring(abs[inside], nchar(prefix) + 1L))
+}
+
+#' The files every write rewrites besides its own
+#' @noRd
+derived_paths <- function(vault) {
+    file.path(vault, c("index.md", "log.md", ".pensar/manifest.yml"))
+}
+
+#' Commit what one write made, if the vault asks for that
+#'
+#' The commit step of \code{ingest()}, \code{ingest_repo()} and
+#' \code{autoresearch()}. Nothing happens unless
+#' \code{should_auto_commit()} says so, and then only \code{paths} are
+#' committed.
+#' @noRd
+auto_commit <- function(message, vault, paths) {
+    if (!should_auto_commit(vault)) {
+        return(invisible(FALSE))
+    }
+    vault_commit(message, vault = vault, paths = paths)
+}
+
+#' Decide whether a write commits on its own
+#'
+#' Precedence: the vault's own \code{auto_commit:} setting in
+#' \code{schema.md} frontmatter, then the \code{PENSAR_AUTO_COMMIT}
+#' environment variable, then the default (no commit). A shared vault
+#' that relies on commit-and-push to reach its other authors sets
+#' \code{auto_commit: true}.
+#' @noRd
+should_auto_commit <- function(vault) {
+    fm <- tryCatch(parse_frontmatter(file.path(vault, "schema.md")),
+                   error = function(e) list())
+    ac <- fm$auto_commit
+    if (is.logical(ac) && length(ac) == 1L && !is.na(ac)) {
+        return(ac)
+    }
+    env <- tolower(Sys.getenv("PENSAR_AUTO_COMMIT", unset = ""))
+    env %in% c("1", "true", "yes", "on")
 }
 
 #' Decide whether to push after a commit

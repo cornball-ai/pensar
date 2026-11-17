@@ -3,8 +3,15 @@
 \alias{ingest}
 \title{Ingest content into the vault}
 \usage{
-ingest(content, type = c("articles", "chats", "briefings", "matrix"), source,
-       title = NULL, tags = NULL, vault = default_vault(), force = FALSE)
+ingest(
+  content,
+  type = c("articles", "chats", "briefings", "matrix"),
+  source,
+  title = NULL,
+  tags = NULL,
+  vault = default_vault(),
+  force = FALSE
+)
 }
 \arguments{
 \item{content}{Character string or character vector (lines) of content.}
@@ -34,6 +41,18 @@ The path to the written file, invisibly.
 Writes content to \code{raw/{type}/}, generates a filename from source
 and date, adds YAML frontmatter, updates \code{index.md}, and appends
 to \code{log.md}.
+}
+\section{Commits}{
+\code{ingest()} writes files and does not commit them. A vault that
+wants each ingest committed sets \code{auto_commit: true} in its
+\code{schema.md} frontmatter, or the machine sets
+\code{PENSAR_AUTO_COMMIT=true}; the commit then stages only the
+files this call wrote (the raw file, \code{index.md}, \code{log.md}
+and \code{.pensar/manifest.yml}), never other changes in the vault.
+The same holds for \code{\link{ingest_repo}()} and
+\code{\link{autoresearch}()}. Commit by hand with
+\code{\link{vault_commit}()} or \code{pensar commit}.
+
 }
 \examples{
 v <- tempfile("vault-")
