@@ -1,4 +1,4 @@
-# pensar 0.7.0.1 (development)
+# pensar 0.7.0.2 (development)
 
 * `ingest()`, `ingest_repo()` and `autoresearch()` no longer commit.
   They used to end in `vault_commit()`, which staged every change under
